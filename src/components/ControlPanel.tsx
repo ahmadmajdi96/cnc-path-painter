@@ -99,31 +99,6 @@ export const ControlPanel = () => {
           </SelectContent>
         </Select>
       </div>
-
-      {/* Quick Actions */}
-      <div className="space-y-2">
-        <h4 className="font-medium text-gray-900 mb-2">Quick Actions</h4>
-        <Button variant="outline" className="w-full justify-start">
-          🏠 Home Machine
-        </Button>
-        <Button variant="outline" className="w-full justify-start">
-          🎯 Set Work Origin
-        </Button>
-        <Button variant="outline" className="w-full justify-start">
-          🔧 Tool Change
-        </Button>
-        <Button variant="outline" className="w-full justify-start">
-          💧 Coolant Toggle
-        </Button>
-      </div>
-
-      {/* Estimated Time */}
-      <div className="mt-6 p-3 bg-blue-50 rounded-lg">
-        <div className="text-sm text-blue-800">
-          <div className="font-medium">Estimated Runtime</div>
-          <div className="text-lg font-bold">2:34 min</div>
-        </div>
-      </div>
     </Card>
   );
 };

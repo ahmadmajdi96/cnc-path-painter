@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,12 @@ interface GCodeCommand {
   f?: number;
 }
 
+interface CuttingParams {
+  feedRate: number;
+  spindleSpeed: number;
+  plungeDepth: number;
+}
+
 export const CNCVisualization = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,6 +34,13 @@ export const CNCVisualization = () => {
   const [nextPointId, setNextPointId] = useState(1);
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [gCodeCommands, setGCodeCommands] = useState<GCodeCommand[]>([]);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
+  const [distanceFromLastPoint, setDistanceFromLastPoint] = useState<number>(0);
+  const [cuttingParams, setCuttingParams] = useState<CuttingParams>({
+    feedRate: 1000,
+    spindleSpeed: 8000,
+    plungeDepth: 2
+  });
 
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
@@ -36,7 +48,71 @@ export const CNCVisualization = () => {
 
   useEffect(() => {
     drawCanvas();
-  }, [points, currentPointIndex]);
+  }, [points, currentPointIndex, mousePosition, distanceFromLastPoint]);
+
+  const calculateDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  };
+
+  const calculateTotalPathLength = () => {
+    if (points.length < 2) return 0;
+    
+    let totalLength = 0;
+    for (let i = 1; i < points.length; i++) {
+      totalLength += calculateDistance(points[i - 1], points[i]);
+    }
+    return totalLength;
+  };
+
+  const calculateEstimatedTime = () => {
+    const pathLengthPixels = calculateTotalPathLength();
+    // Convert pixels to mm (assuming 1 pixel = 0.1mm for estimation)
+    const pathLengthMm = pathLengthPixels * 0.1;
+    
+    if (pathLengthMm === 0) return "0:00";
+    
+    // Calculate cutting time based on feed rate
+    const cuttingTimeMinutes = pathLengthMm / cuttingParams.feedRate;
+    
+    // Add overhead time for plunge/retract operations
+    const numberOfMoves = points.length;
+    const plungeRetractTime = numberOfMoves * 0.1; // 0.1 minutes per plunge/retract
+    
+    const totalTimeMinutes = cuttingTimeMinutes + plungeRetractTime;
+    const minutes = Math.floor(totalTimeMinutes);
+    const seconds = Math.floor((totalTimeMinutes - minutes) * 60);
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isPlaying) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Snap to grid
+    const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
+
+    setMousePosition({ x: snappedX, y: snappedY });
+
+    // Calculate distance from last point
+    if (points.length > 0) {
+      const lastPoint = points[points.length - 1];
+      const distance = calculateDistance(lastPoint, { x: snappedX, y: snappedY });
+      setDistanceFromLastPoint(distance);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setMousePosition(null);
+    setDistanceFromLastPoint(0);
+  };
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -94,6 +170,39 @@ export const CNCVisualization = () => {
         ctx.lineTo(points[i].x, points[i].y);
       }
       ctx.stroke();
+    }
+
+    // Draw preview line from last point to mouse cursor
+    if (mousePosition && points.length > 0 && !isPlaying) {
+      const lastPoint = points[points.length - 1];
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(mousePosition.x, mousePosition.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw preview point
+      ctx.beginPath();
+      ctx.arc(mousePosition.x, mousePosition.y, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fill();
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Draw distance text
+      if (distanceFromLastPoint > 0) {
+        const midX = (lastPoint.x + mousePosition.x) / 2;
+        const midY = (lastPoint.y + mousePosition.y) / 2;
+        ctx.fillStyle = '#1f2937';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        const distanceMm = (distanceFromLastPoint * 0.1).toFixed(1);
+        ctx.fillText(`${distanceMm}mm`, midX, midY - 10);
+      }
     }
 
     // Draw points
@@ -269,8 +378,8 @@ export const CNCVisualization = () => {
     gcode += 'G21 ; Set units to millimeters\n';
     gcode += 'G90 ; Absolute positioning\n';
     gcode += 'G94 ; Feed rate per minute\n';
-    gcode += 'F1000 ; Set feed rate to 1000mm/min\n';
-    gcode += 'M3 S1000 ; Start spindle at 1000 RPM\n\n';
+    gcode += `F${cuttingParams.feedRate} ; Set feed rate to ${cuttingParams.feedRate}mm/min\n`;
+    gcode += `M3 S${cuttingParams.spindleSpeed} ; Start spindle at ${cuttingParams.spindleSpeed} RPM\n\n`;
 
     // Convert canvas coordinates to real-world coordinates (assuming 1 pixel = 0.1mm)
     const manualPoints = points.filter(p => !p.isFromGCode);
@@ -280,7 +389,7 @@ export const CNCVisualization = () => {
       
       if (index === 0) {
         gcode += `G0 X${realX} Y${realY} ; Rapid move to start position\n`;
-        gcode += `G1 Z-2 ; Plunge to cutting depth\n`;
+        gcode += `G1 Z-${cuttingParams.plungeDepth} ; Plunge to cutting depth\n`;
       } else {
         gcode += `G1 X${realX} Y${realY} ; Cut to point ${point.id}\n`;
       }
@@ -362,14 +471,17 @@ export const CNCVisualization = () => {
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
           onClick={handleCanvasClick}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
           className="cursor-crosshair bg-white"
           style={{ display: 'block' }}
         />
       </div>
 
       <div className="mt-4 text-sm text-gray-600">
-        <p><strong>Instructions:</strong> Upload a G-code file or click on the canvas to add waypoints. Points will be connected automatically.</p>
+        <p><strong>Instructions:</strong> Upload a G-code file or click on the canvas to add waypoints. Move cursor to see distance from last point.</p>
         <p><strong>Status:</strong> {points.length} points defined | {isPlaying ? 'Playing sequence...' : 'Ready'} {uploadedFileName && `| Loaded: ${uploadedFileName}`}</p>
+        <p><strong>Estimated Runtime:</strong> {calculateEstimatedTime()}</p>
         <div className="flex items-center gap-4 mt-2">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
