@@ -424,13 +424,6 @@ export const CNCVisualization = () => {
             className="hidden"
           />
           <Button 
-            onClick={() => fileInputRef.current?.click()}
-            variant="outline"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Upload G-Code
-          </Button>
-          <Button 
             onClick={playSequence} 
             disabled={isPlaying || points.length === 0}
             className="bg-green-600 hover:bg-green-700"
@@ -461,6 +454,13 @@ export const CNCVisualization = () => {
           >
             <Download className="w-4 h-4 mr-2" />
             Export G-Code
+          </Button>
+          <Button 
+            onClick={() => fileInputRef.current?.click()}
+            variant="outline"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload G-Code
           </Button>
         </div>
       </div>
