@@ -2,20 +2,33 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Square, RotateCcw, Download } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Play, Square, RotateCcw, Download, Upload } from 'lucide-react';
 
 interface Point {
   x: number;
   y: number;
   id: number;
+  isFromGCode?: boolean;
+}
+
+interface GCodeCommand {
+  command: string;
+  x?: number;
+  y?: number;
+  z?: number;
+  f?: number;
 }
 
 export const CNCVisualization = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPointIndex, setCurrentPointIndex] = useState(-1);
   const [nextPointId, setNextPointId] = useState(1);
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [gCodeCommands, setGCodeCommands] = useState<GCodeCommand[]>([]);
 
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
@@ -95,6 +108,8 @@ export const CNCVisualization = () => {
         ctx.fillStyle = '#f59e0b'; // Current point - amber
       } else if (isCompleted) {
         ctx.fillStyle = '#10b981'; // Completed points - green
+      } else if (point.isFromGCode) {
+        ctx.fillStyle = '#8b5cf6'; // G-code points - purple
       } else {
         ctx.fillStyle = '#fbbf24'; // Default points - yellow
       }
@@ -110,6 +125,85 @@ export const CNCVisualization = () => {
       ctx.textAlign = 'center';
       ctx.fillText(point.id.toString(), point.x, point.y + 4);
     });
+  };
+
+  const parseGCode = (gCodeContent: string): Point[] => {
+    const lines = gCodeContent.split('\n');
+    const parsedPoints: Point[] = [];
+    let currentX = 0;
+    let currentY = 0;
+    let pointId = 1;
+    const commands: GCodeCommand[] = [];
+
+    lines.forEach((line) => {
+      const trimmedLine = line.trim().toUpperCase();
+      if (trimmedLine.startsWith(';') || trimmedLine === '') return; // Skip comments and empty lines
+
+      const command: GCodeCommand = { command: trimmedLine };
+      
+      // Parse G0 and G1 commands (rapid move and linear interpolation)
+      if (trimmedLine.includes('G0') || trimmedLine.includes('G1')) {
+        const xMatch = trimmedLine.match(/X([-+]?\d*\.?\d+)/);
+        const yMatch = trimmedLine.match(/Y([-+]?\d*\.?\d+)/);
+        const zMatch = trimmedLine.match(/Z([-+]?\d*\.?\d+)/);
+        const fMatch = trimmedLine.match(/F(\d+)/);
+
+        if (xMatch) {
+          command.x = parseFloat(xMatch[1]);
+          currentX = command.x;
+        }
+        if (yMatch) {
+          command.y = parseFloat(yMatch[1]);
+          currentY = command.y;
+        }
+        if (zMatch) {
+          command.z = parseFloat(zMatch[1]);
+        }
+        if (fMatch) {
+          command.f = parseInt(fMatch[1]);
+        }
+
+        // Convert real-world coordinates to canvas coordinates
+        // Assuming the G-code coordinates are in mm and we scale them appropriately
+        const canvasX = (currentX * 2) + 100; // Scale and offset
+        const canvasY = CANVAS_HEIGHT - ((currentY * 2) + 100); // Invert Y and scale
+
+        // Only add points that are within canvas bounds and for cutting moves (G1)
+        if (canvasX >= 0 && canvasX <= CANVAS_WIDTH && canvasY >= 0 && canvasY <= CANVAS_HEIGHT) {
+          if (trimmedLine.includes('G1') && (!command.z || command.z <= 0)) { // Only cutting moves
+            parsedPoints.push({
+              x: canvasX,
+              y: canvasY,
+              id: pointId++,
+              isFromGCode: true
+            });
+          }
+        }
+      }
+
+      commands.push(command);
+    });
+
+    setGCodeCommands(commands);
+    return parsedPoints;
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadedFileName(file.name);
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const gCodePoints = parseGCode(content);
+      setPoints(gCodePoints);
+      setNextPointId(gCodePoints.length + 1);
+      setCurrentPointIndex(-1);
+    };
+    
+    reader.readAsText(file);
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -129,7 +223,8 @@ export const CNCVisualization = () => {
     const newPoint: Point = {
       x: snappedX,
       y: snappedY,
-      id: nextPointId
+      id: nextPointId,
+      isFromGCode: false
     };
 
     setPoints(prev => [...prev, newPoint]);
@@ -163,6 +258,8 @@ export const CNCVisualization = () => {
     setPoints([]);
     setCurrentPointIndex(-1);
     setNextPointId(1);
+    setUploadedFileName('');
+    setGCodeCommands([]);
   };
 
   const exportGCode = () => {
@@ -176,7 +273,8 @@ export const CNCVisualization = () => {
     gcode += 'M3 S1000 ; Start spindle at 1000 RPM\n\n';
 
     // Convert canvas coordinates to real-world coordinates (assuming 1 pixel = 0.1mm)
-    points.forEach((point, index) => {
+    const manualPoints = points.filter(p => !p.isFromGCode);
+    manualPoints.forEach((point, index) => {
       const realX = ((point.x - 40) * 0.1).toFixed(2);
       const realY = (((CANVAS_HEIGHT - 40) - point.y) * 0.1).toFixed(2);
       
@@ -209,6 +307,20 @@ export const CNCVisualization = () => {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">CNC 2D Visualization</h3>
         <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".gcode,.nc,.cnc"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button 
+            onClick={() => fileInputRef.current?.click()}
+            variant="outline"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload G-Code
+          </Button>
           <Button 
             onClick={playSequence} 
             disabled={isPlaying || points.length === 0}
@@ -256,8 +368,26 @@ export const CNCVisualization = () => {
       </div>
 
       <div className="mt-4 text-sm text-gray-600">
-        <p><strong>Instructions:</strong> Click on the canvas to add waypoints. Points will be connected automatically.</p>
-        <p><strong>Status:</strong> {points.length} points defined | {isPlaying ? 'Playing sequence...' : 'Ready'}</p>
+        <p><strong>Instructions:</strong> Upload a G-code file or click on the canvas to add waypoints. Points will be connected automatically.</p>
+        <p><strong>Status:</strong> {points.length} points defined | {isPlaying ? 'Playing sequence...' : 'Ready'} {uploadedFileName && `| Loaded: ${uploadedFileName}`}</p>
+        <div className="flex items-center gap-4 mt-2">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+            <span>Manual points</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+            <span>G-code points</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span>Completed</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+            <span>Current</span>
+          </div>
+        </div>
       </div>
     </Card>
   );
