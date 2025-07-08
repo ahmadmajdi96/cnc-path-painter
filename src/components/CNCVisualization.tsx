@@ -8,7 +8,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useToast } from '@/hooks/use-toast';
 
 type CNCMachine = Tables<'cnc_machines'>;
 type Toolpath = Tables<'toolpaths'>;
@@ -50,8 +49,6 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [gcodeEndpoint, setGcodeEndpoint] = useState('');
-
-  const { toast } = useToast();
 
   // Scale factor: 1 pixel = 0.1 mm (can be adjusted)
   const MM_PER_PIXEL = 0.1;
@@ -100,7 +97,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     enabled: !!selectedMachineId
   });
 
-  // Save toolpath mutation with toast
+  // Save toolpath mutation
   const saveToolpathMutation = useMutation({
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
@@ -124,21 +121,10 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['toolpaths', selectedMachineId] });
       setToolpathName('');
-      toast({
-        title: "Toolpath Saved",
-        description: "Your toolpath has been saved successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Save Failed",
-        description: "Failed to save toolpath. Please try again.",
-        variant: "destructive",
-      });
     }
   });
 
-  // Update machine endpoint mutation with toast
+  // Update machine endpoint mutation
   const updateEndpointMutation = useMutation({
     mutationFn: async (endpoint: string) => {
       if (!selectedMachineId) return;
@@ -156,17 +142,6 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cnc-machine', selectedMachineId] });
-      toast({
-        title: "Endpoint Updated",
-        description: "Machine endpoint has been updated successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Update Failed",
-        description: "Failed to update endpoint. Please try again.",
-        variant: "destructive",
-      });
     }
   });
 
@@ -202,11 +177,11 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Set up coordinate system with origin at center
+    // Save context and apply zoom/pan
     ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.translate(canvas.width / 2 + panOffset.x, canvas.height / 2 + panOffset.y);
     ctx.scale(zoom, zoom);
-    ctx.translate(panOffset.x / zoom, panOffset.y / zoom);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
     // Draw grid
     drawGrid(ctx, canvas.width, canvas.height);
@@ -219,19 +194,20 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       drawToolpath(ctx, points, currentPoint);
     }
 
+    // Restore context
     ctx.restore();
 
-    // Draw machine info (not affected by transformations)
+    // Draw machine info (not affected by zoom)
     if (selectedMachine) {
       drawMachineInfo(ctx, selectedMachine);
     }
 
-    // Draw cursor distance (not affected by transformations)
+    // Draw cursor distance (not affected by zoom)
     if (points.length > 0 && !isDragging) {
       drawCursorDistance(ctx);
     }
 
-    // Draw zoom level (not affected by transformations)
+    // Draw zoom level
     drawZoomLevel(ctx);
   }, [points, currentPoint, selectedMachine, mousePos, isDragging, zoom, panOffset]);
 
@@ -239,58 +215,66 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     ctx.strokeStyle = '#e5e7eb';
     ctx.lineWidth = 1;
 
-    const gridSize = 20; // 20 pixels = 2mm at current scale
-    const extent = Math.max(width, height) / zoom;
+    const gridSize = 20; // 20 pixels = 2mm
 
     // Vertical lines
-    for (let x = -extent; x <= extent; x += gridSize) {
+    for (let x = 0; x <= width; x += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(x, -extent);
-      ctx.lineTo(x, extent);
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
       ctx.stroke();
     }
 
     // Horizontal lines
-    for (let y = -extent; y <= extent; y += gridSize) {
+    for (let y = 0; y <= height; y += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(-extent, y);
-      ctx.lineTo(extent, y);
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
       ctx.stroke();
     }
   };
 
   const drawAxes = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const centerX = width / 2;
+    const centerY = height / 2;
+
     ctx.strokeStyle = '#374151';
     ctx.lineWidth = 2;
 
-    const extent = Math.max(width, height) / zoom;
-
     // X-axis
     ctx.beginPath();
-    ctx.moveTo(-extent, 0);
-    ctx.lineTo(extent, 0);
+    ctx.moveTo(0, centerY);
+    ctx.lineTo(width, centerY);
     ctx.stroke();
 
     // Y-axis
     ctx.beginPath();
-    ctx.moveTo(0, -extent);
-    ctx.lineTo(0, extent);
+    ctx.moveTo(centerX, 0);
+    ctx.lineTo(centerX, height);
     ctx.stroke();
 
     // Axis labels
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
-    ctx.fillText('X', extent - 20, -10);
-    ctx.fillText('Y', 10, -extent + 20);
+    ctx.fillText('X', width - 20, centerY - 10);
+    ctx.fillText('Y', centerX + 10, 20);
   };
 
   const drawToolpath = (ctx: CanvasRenderingContext2D, pathPoints: Point[], current: number) => {
     if (pathPoints.length < 2) return;
 
+    const centerX = canvasRef.current!.width / 2;
+    const centerY = canvasRef.current!.height / 2;
+
     // Draw path lines
     for (let i = 0; i < pathPoints.length - 1; i++) {
       const point1 = pathPoints[i];
       const point2 = pathPoints[i + 1];
+      
+      const canvasX1 = centerX + point1.x;
+      const canvasY1 = centerY - point1.y;
+      const canvasX2 = centerX + point2.x;
+      const canvasY2 = centerY - point2.y;
 
       // Color finished steps in red during simulation
       if (isSimulating && i < current) {
@@ -301,13 +285,16 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(point1.x, point1.y);
-      ctx.lineTo(point2.x, point2.y);
+      ctx.moveTo(canvasX1, canvasY1);
+      ctx.lineTo(canvasX2, canvasY2);
       ctx.stroke();
     }
 
     // Draw points
     pathPoints.forEach((point, index) => {
+      const canvasX = centerX + point.x;
+      const canvasY = centerY - point.y;
+
       // Current point during simulation
       if (isSimulating && index === current) {
         ctx.fillStyle = '#22c55e'; // Green for current
@@ -318,7 +305,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       }
       
       ctx.beginPath();
-      ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+      ctx.arc(canvasX, canvasY, 4, 0, 2 * Math.PI);
       ctx.fill();
 
       // Draw point coordinates in mm
@@ -326,7 +313,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       const mmY = (point.y * MM_PER_PIXEL).toFixed(1);
       ctx.fillStyle = '#374151';
       ctx.font = '10px sans-serif';
-      ctx.fillText(`(${mmX}, ${mmY})mm`, point.x + 8, point.y - 8);
+      ctx.fillText(`(${mmX}, ${mmY})mm`, canvasX + 8, canvasY - 8);
     });
   };
 
@@ -340,16 +327,18 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     if (points.length === 0) return;
 
     const canvas = canvasRef.current!;
-    const lastPoint = points[points.length - 1];
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
     
-    // Convert last point to screen coordinates
-    const screenCoords = worldToScreenCoords(lastPoint.x, lastPoint.y);
+    const lastPoint = points[points.length - 1];
+    const lastCanvasX = centerX + lastPoint.x * zoom + panOffset.x;
+    const lastCanvasY = centerY - lastPoint.y * zoom + panOffset.y;
     
     const cursorX = mousePos.x;
     const cursorY = mousePos.y;
     
     const pixelDistance = Math.sqrt(
-      Math.pow(cursorX - screenCoords.x, 2) + Math.pow(cursorY - screenCoords.y, 2)
+      Math.pow(cursorX - lastCanvasX, 2) + Math.pow(cursorY - lastCanvasY, 2)
     );
     const mmDistance = (pixelDistance * MM_PER_PIXEL / zoom).toFixed(1);
 
@@ -358,7 +347,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
-    ctx.moveTo(screenCoords.x, screenCoords.y);
+    ctx.moveTo(lastCanvasX, lastCanvasY);
     ctx.lineTo(cursorX, cursorY);
     ctx.stroke();
     ctx.setLineDash([]);
@@ -375,56 +364,33 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 10, canvasRef.current!.height - 10);
   };
 
-  // Convert world coordinates to screen coordinates
-  const worldToScreenCoords = (worldX: number, worldY: number) => {
-    const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    const screenX = centerX + (worldX * zoom) + panOffset.x;
-    const screenY = centerY + (worldY * zoom) + panOffset.y;
-    
-    return { x: screenX, y: screenY };
-  };
-
-  // Convert screen coordinates to world coordinates - FIXED VERSION
-  const screenToWorldCoords = (screenX: number, screenY: number) => {
-    const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    // The exact inverse of worldToScreenCoords
-    // screenX = centerX + (worldX * zoom) + panOffset.x
-    // Therefore: worldX = (screenX - centerX - panOffset.x) / zoom
-    const worldX = (screenX - centerX - panOffset.x) / zoom;
-    const worldY = (screenY - centerY - panOffset.y) / zoom;
-    
-    console.log('Screen to World conversion FIXED:', {
-      screenX, screenY,
-      centerX, centerY,
-      panOffset, zoom,
-      calculation: {
-        worldX_calc: `(${screenX} - ${centerX} - ${panOffset.x}) / ${zoom} = ${worldX}`,
-        worldY_calc: `(${screenY} - ${centerY} - ${panOffset.y}) / ${zoom} = ${worldY}`
-      },
-      worldX: Math.round(worldX), 
-      worldY: Math.round(worldY)
-    });
-    
-    return { x: Math.round(worldX), y: Math.round(worldY) };
-  };
-
   const getPointAtPosition = (x: number, y: number): number | null => {
+    const canvas = canvasRef.current!;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
-      const screenCoords = worldToScreenCoords(point.x, point.y);
+      const canvasX = centerX + point.x * zoom + panOffset.x;
+      const canvasY = centerY - point.y * zoom + panOffset.y;
       
-      const distance = Math.sqrt(Math.pow(x - screenCoords.x, 2) + Math.pow(y - screenCoords.y, 2));
+      const distance = Math.sqrt(Math.pow(x - canvasX, 2) + Math.pow(y - canvasY, 2));
       if (distance <= 8) { // 8px radius for click detection
         return i;
       }
     }
     return null;
+  };
+
+  const canvasToWorldCoords = (canvasX: number, canvasY: number) => {
+    const canvas = canvasRef.current!;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    const worldX = Math.round((canvasX - centerX - panOffset.x) / zoom);
+    const worldY = Math.round((centerY - canvasY + panOffset.y) / zoom);
+    
+    return { x: worldX, y: worldY };
   };
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -450,7 +416,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     setMousePos({ x, y });
 
     if (isDragging && draggedPointIndex !== null) {
-      const worldCoords = screenToWorldCoords(x, y);
+      const worldCoords = canvasToWorldCoords(x, y);
       setPoints(prev => {
         const newPoints = [...prev];
         newPoints[draggedPointIndex] = worldCoords;
@@ -482,8 +448,8 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     // Don't add new point if clicking on existing point
     if (getPointAtPosition(x, y) !== null) return;
 
-    const worldCoords = screenToWorldCoords(x, y);
-    console.log('Adding point at cursor:', { x, y }, 'world coords:', worldCoords);
+    const worldCoords = canvasToWorldCoords(x, y);
+    console.log('Adding point:', worldCoords);
     setPoints(prev => [...prev, worldCoords]);
   };
 
@@ -614,25 +580,11 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       
       if (response.ok) {
         console.log('G-code sent successfully');
-        toast({
-          title: "G-Code Sent",
-          description: "G-code has been sent to the machine successfully.",
-        });
       } else {
         console.error('Failed to send G-code');
-        toast({
-          title: "Send Failed",
-          description: "Failed to send G-code to machine. Please check the endpoint.",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error('Error sending G-code:', error);
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to the machine. Please check the endpoint.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -725,10 +677,9 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
             </div>
             <canvas
               ref={canvasRef}
-              width={800}
+              width={600}
               height={400}
-              className="border border-gray-300 cursor-crosshair w-full"
-              style={{ maxWidth: '100%', height: 'auto', touchAction: 'none' }}
+              className="border border-gray-300 cursor-crosshair"
               onClick={handleCanvasClick}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
@@ -841,16 +792,6 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
           {/* G-Code Endpoint Configuration */}
           <div className="mb-4">
             <h4 className="font-medium text-gray-900 mb-2">G-Code Endpoint</h4>
-            {selectedMachine?.endpoint_url && (
-              <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-blue-900">Current Endpoint:</span>
-                  <span className="text-sm text-blue-700 font-mono bg-blue-100 px-2 py-1 rounded">
-                    {selectedMachine.endpoint_url}
-                  </span>
-                </div>
-              </div>
-            )}
             <div className="flex gap-2">
               <Input
                 placeholder="http://machine-ip:port/gcode"
