@@ -412,8 +412,9 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    const worldX = Math.round((canvasX - centerX - panOffset.x) / zoom);
-    const worldY = Math.round((centerY - canvasY + panOffset.y) / zoom);
+    // Convert canvas coordinates to world coordinates accounting for zoom and pan
+    const worldX = Math.round(((canvasX - centerX - panOffset.x) / zoom));
+    const worldY = Math.round(((centerY - canvasY + panOffset.y) / zoom));
     
     return { x: worldX, y: worldY };
   };
