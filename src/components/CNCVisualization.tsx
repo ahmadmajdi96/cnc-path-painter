@@ -393,8 +393,21 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    const worldX = (screenX - centerX - panOffset.x) / zoom;
-    const worldY = (screenY - centerY - panOffset.y) / zoom;
+    // Remove the canvas center offset first
+    const relativeX = screenX - centerX;
+    const relativeY = screenY - centerY;
+    
+    // Then remove pan offset and scale by zoom
+    const worldX = (relativeX - panOffset.x) / zoom;
+    const worldY = (relativeY - panOffset.y) / zoom;
+    
+    console.log('Screen to World conversion:', {
+      screenX, screenY,
+      centerX, centerY,
+      relativeX, relativeY,
+      panOffset, zoom,
+      worldX, worldY
+    });
     
     return { x: Math.round(worldX), y: Math.round(worldY) };
   };
