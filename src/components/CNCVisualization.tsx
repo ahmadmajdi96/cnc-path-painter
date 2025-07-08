@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,6 @@ type Toolpath = Tables<'toolpaths'>;
 interface Point {
   x: number;
   y: number;
-  z?: number;
 }
 
 interface MachineParams {
@@ -136,6 +136,15 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       });
     }
   }, [selectedMachine]);
+
+  // Auto-load latest toolpath when machine is selected
+  useEffect(() => {
+    if (toolpaths.length > 0 && selectedMachineId) {
+      const latestToolpath = toolpaths[0]; // Already sorted by created_at desc
+      console.log('Auto-loading latest toolpath:', latestToolpath);
+      loadToolpath(latestToolpath);
+    }
+  }, [toolpaths, selectedMachineId]);
 
   // Canvas setup and drawing
   useEffect(() => {
@@ -416,6 +425,9 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
+    // Don't add new point if clicking on existing point
+    if (getPointAtPosition(x, y) !== null) return;
+
     const worldCoords = canvasToWorldCoords(x, y);
     console.log('Adding point:', worldCoords);
     setPoints(prev => [...prev, worldCoords]);
@@ -581,7 +593,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">2D CNC Visualization</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">2D CNC Visualization (X/Y View)</h3>
         {!selectedMachineId && (
           <p className="text-gray-600 text-sm">Select a machine to start creating toolpaths</p>
         )}
