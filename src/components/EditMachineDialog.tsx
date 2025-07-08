@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-interface AddMachineDialogProps {
+interface Machine {
+  id: string;
+  name: string;
+  model: string;
+  manufacturer?: string;
+  status: 'active' | 'idle' | 'offline';
+  work_area?: string;
+  max_spindle_speed?: number;
+  max_feed_rate?: number;
+  plunge_rate?: number;
+  safe_height?: number;
+  work_height?: number;
+  ip_address?: string;
+  port?: number;
+  protocol?: string;
+}
+
+interface EditMachineDialogProps {
+  machine: Machine | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const AddMachineDialog = ({ open, onOpenChange }: AddMachineDialogProps) => {
+export const EditMachineDialog = ({ machine, open, onOpenChange }: EditMachineDialogProps) => {
   const [formData, setFormData] = useState({
     name: '',
     model: '',
@@ -32,12 +50,14 @@ export const AddMachineDialog = ({ open, onOpenChange }: AddMachineDialogProps) 
 
   const queryClient = useQueryClient();
 
-  // Add machine mutation
-  const addMachineMutation = useMutation({
+  // Update machine mutation
+  const updateMachineMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      if (!machine) return;
+      
       const { error } = await supabase
         .from('cnc_machines')
-        .insert({
+        .update({
           name: data.name,
           model: data.model,
           manufacturer: data.manufacturer,
@@ -51,46 +71,54 @@ export const AddMachineDialog = ({ open, onOpenChange }: AddMachineDialogProps) 
           port: data.port ? Number(data.port) : null,
           protocol: data.protocol,
           status: data.status
-        });
+        })
+        .eq('id', machine.id);
       
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cnc-machines'] });
       onOpenChange(false);
-      // Reset form
-      setFormData({
-        name: '',
-        model: '',
-        manufacturer: '',
-        work_area: '',
-        max_spindle_speed: '',
-        max_feed_rate: '',
-        plunge_rate: '',
-        safe_height: '',
-        work_height: '',
-        ip_address: '',
-        port: '',
-        protocol: 'modbus',
-        status: 'idle'
-      });
     }
   });
 
+  // Load machine data when dialog opens
+  useEffect(() => {
+    if (machine && open) {
+      setFormData({
+        name: machine.name || '',
+        model: machine.model || '',
+        manufacturer: machine.manufacturer || '',
+        work_area: machine.work_area || '',
+        max_spindle_speed: machine.max_spindle_speed?.toString() || '',
+        max_feed_rate: machine.max_feed_rate?.toString() || '',
+        plunge_rate: machine.plunge_rate?.toString() || '',
+        safe_height: machine.safe_height?.toString() || '',
+        work_height: machine.work_height?.toString() || '',
+        ip_address: machine.ip_address || '',
+        port: machine.port?.toString() || '',
+        protocol: machine.protocol || 'modbus',
+        status: machine.status || 'idle'
+      });
+    }
+  }, [machine, open]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    addMachineMutation.mutate(formData);
+    updateMachineMutation.mutate(formData);
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  if (!machine) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add New CNC Machine</DialogTitle>
+          <DialogTitle>Edit CNC Machine</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -235,7 +263,7 @@ export const AddMachineDialog = ({ open, onOpenChange }: AddMachineDialogProps) 
               </Select>
             </div>
             <div>
-              <Label htmlFor="status">Initial Status</Label>
+              <Label htmlFor="status">Status</Label>
               <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -256,9 +284,9 @@ export const AddMachineDialog = ({ open, onOpenChange }: AddMachineDialogProps) 
             <Button 
               type="submit" 
               className="bg-blue-600 hover:bg-blue-700"
-              disabled={addMachineMutation.isPending}
+              disabled={updateMachineMutation.isPending}
             >
-              {addMachineMutation.isPending ? 'Adding...' : 'Add CNC Machine'}
+              {updateMachineMutation.isPending ? 'Updating...' : 'Update Machine'}
             </Button>
           </div>
         </form>

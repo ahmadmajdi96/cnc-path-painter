@@ -4,8 +4,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Play, Upload, Square, RotateCcw, Edit3, Trash2 } from 'lucide-react';
+import { Play, Upload, Square, RotateCcw, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Point {
   id: string;
@@ -22,15 +24,18 @@ interface MachineParams {
   workHeight: number;
 }
 
-export const CNCVisualization = () => {
+interface CNCVisualizationProps {
+  selectedMachineId?: string;
+}
+
+export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [currentPoint, setCurrentPoint] = useState(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showDistance, setShowDistance] = useState(false);
-  const [editingPoint, setEditingPoint] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState({ x: 0, y: 0, z: 0 });
+  const [pathName, setPathName] = useState('New Toolpath');
   
   const [machineParams, setMachineParams] = useState<MachineParams>({
     spindleSpeed: 15000,
@@ -39,6 +44,76 @@ export const CNCVisualization = () => {
     safeHeight: 5,
     workHeight: -2
   });
+
+  const queryClient = useQueryClient();
+
+  // Fetch selected machine data
+  const { data: selectedMachine } = useQuery({
+    queryKey: ['cnc-machine', selectedMachineId],
+    queryFn: async () => {
+      if (!selectedMachineId) return null;
+      const { data, error } = await supabase
+        .from('cnc_machines')
+        .select('*')
+        .eq('id', selectedMachineId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedMachineId
+  });
+
+  // Fetch toolpaths for selected machine
+  const { data: toolpaths = [] } = useQuery({
+    queryKey: ['toolpaths', selectedMachineId],
+    queryFn: async () => {
+      if (!selectedMachineId) return [];
+      const { data, error } = await supabase
+        .from('toolpaths')
+        .select('*')
+        .eq('cnc_machine_id', selectedMachineId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedMachineId
+  });
+
+  // Save toolpath mutation
+  const saveToolpathMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedMachineId || points.length === 0) return;
+      
+      const { error } = await supabase
+        .from('toolpaths')
+        .insert({
+          cnc_machine_id: selectedMachineId,
+          name: pathName,
+          points: points,
+          machine_params: machineParams
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['toolpaths', selectedMachineId] });
+      setPoints([]);
+      setPathName('New Toolpath');
+    }
+  });
+
+  // Update machine params when selected machine changes
+  useEffect(() => {
+    if (selectedMachine) {
+      setMachineParams({
+        spindleSpeed: selectedMachine.max_spindle_speed || 15000,
+        feedRate: selectedMachine.max_feed_rate || 1000,
+        plungeRate: selectedMachine.plunge_rate || 300,
+        safeHeight: selectedMachine.safe_height || 5,
+        workHeight: selectedMachine.work_height || -2
+      });
+    }
+  }, [selectedMachine]);
 
   const calculateDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
     return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
@@ -52,38 +127,33 @@ export const CNCVisualization = () => {
     
     for (let i = 0; i < points.length; i++) {
       if (i === 0) {
-        // Initial positioning
         const distance = Math.sqrt(points[0].x ** 2 + points[0].y ** 2);
-        totalTime += (distance / feedRate) * 60; // Convert to seconds
+        totalTime += (distance / feedRate) * 60;
         totalTime += (Math.abs(safeHeight - workHeight) / plungeRate) * 60;
       } else {
-        // Move between points
         const distance = calculateDistance(points[i-1], points[i]);
         totalTime += (distance / feedRate) * 60;
       }
     }
     
-    // Return to safe height at the end
     totalTime += (Math.abs(workHeight - safeHeight) / plungeRate) * 60;
-    
     return Math.round(totalTime);
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || isRunning) return;
     
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-    // Convert canvas coordinates to machine coordinates
-    const machineX = ((x / canvas.width) * 200) - 100; // -100 to 100mm
-    const machineY = (((canvas.height - y) / canvas.height) * 200) - 100; // -100 to 100mm
+    const machineX = ((x / canvas.width) * 200) - 100;
+    const machineY = (((canvas.height - y) / canvas.height) * 200) - 100;
     
     const newPoint: Point = {
       id: Date.now().toString(),
-      x: Math.round(machineX * 10) / 10, // Round to 1 decimal
+      x: Math.round(machineX * 10) / 10,
       y: Math.round(machineY * 10) / 10,
       z: machineParams.workHeight
     };
@@ -103,33 +173,7 @@ export const CNCVisualization = () => {
     setShowDistance(points.length > 0);
   };
 
-  const handleCanvasMouseLeave = () => {
-    setShowDistance(false);
-  };
-
-  const startEditing = (point: Point) => {
-    setEditingPoint(point.id);
-    setEditValues({ x: point.x, y: point.y, z: point.z });
-  };
-
-  const saveEdit = () => {
-    if (!editingPoint) return;
-    
-    setPoints(prev => prev.map(p => 
-      p.id === editingPoint 
-        ? { ...p, ...editValues }
-        : p
-    ));
-    setEditingPoint(null);
-  };
-
-  const cancelEdit = () => {
-    setEditingPoint(null);
-  };
-
-  const deletePoint = (pointId: string) => {
-    setPoints(prev => prev.filter(p => p.id !== pointId));
-  };
+  const handleCanvasMouseLeave = () => setShowDistance(false);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -138,7 +182,6 @@ export const CNCVisualization = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Clear canvas
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -165,13 +208,11 @@ export const CNCVisualization = () => {
     ctx.strokeStyle = '#64748b';
     ctx.lineWidth = 2;
     
-    // X-axis
     ctx.beginPath();
     ctx.moveTo(0, canvas.height / 2);
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.stroke();
     
-    // Y-axis
     ctx.beginPath();
     ctx.moveTo(canvas.width / 2, 0);
     ctx.lineTo(canvas.width / 2, canvas.height);
@@ -202,7 +243,6 @@ export const CNCVisualization = () => {
       const canvasX = ((point.x + 100) / 200) * canvas.width;
       const canvasY = canvas.height - (((point.y + 100) / 200) * canvas.height);
       
-      // Highlight current point during simulation
       if (isRunning && index <= currentPoint) {
         ctx.fillStyle = index === currentPoint ? '#ef4444' : '#22c55e';
       } else {
@@ -213,7 +253,6 @@ export const CNCVisualization = () => {
       ctx.arc(canvasX, canvasY, 6, 0, 2 * Math.PI);
       ctx.fill();
       
-      // Draw point number
       ctx.fillStyle = '#ffffff';
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
@@ -226,7 +265,6 @@ export const CNCVisualization = () => {
       const lastCanvasX = ((lastPoint.x + 100) / 200) * canvas.width;
       const lastCanvasY = canvas.height - (((lastPoint.y + 100) / 200) * canvas.height);
       
-      // Convert mouse pos to machine coordinates for distance calculation
       const mouseMachineX = ((mousePos.x / canvas.width) * 200) - 100;
       const mouseMachineY = (((canvas.height - mousePos.y) / canvas.height) * 200) - 100;
       
@@ -235,7 +273,6 @@ export const CNCVisualization = () => {
         { x: mouseMachineX, y: mouseMachineY }
       );
       
-      // Draw line from last point to mouse
       ctx.strokeStyle = '#fbbf24';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
@@ -245,7 +282,6 @@ export const CNCVisualization = () => {
       ctx.stroke();
       ctx.setLineDash([]);
       
-      // Draw distance text
       ctx.fillStyle = '#000000';
       ctx.font = '14px Arial';
       ctx.textAlign = 'left';
@@ -283,10 +319,26 @@ export const CNCVisualization = () => {
 
   const estimatedTime = calculateEstimatedTime();
 
+  if (!selectedMachineId) {
+    return (
+      <Card className="p-4 bg-white border border-gray-200 h-full flex items-center justify-center">
+        <div className="text-center text-gray-500">
+          <h3 className="text-lg font-semibold mb-2">No Machine Selected</h3>
+          <p>Please select a CNC machine from the list to view its toolpath visualization.</p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">2D Toolpath Visualization</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">2D Toolpath Visualization</h3>
+          {selectedMachine && (
+            <p className="text-sm text-gray-600">{selectedMachine.name} - {selectedMachine.model}</p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {estimatedTime > 0 && (
             <Badge variant="outline" className="bg-blue-50 text-blue-700">
@@ -322,6 +374,15 @@ export const CNCVisualization = () => {
               Stop
             </Button>
             <Button
+              onClick={() => saveToolpathMutation.mutate()}
+              disabled={points.length === 0 || saveToolpathMutation.isPending}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="w-4 h-4 mr-1" />
+              Save
+            </Button>
+            <Button
               size="sm"
               variant="outline"
             >
@@ -345,11 +406,21 @@ export const CNCVisualization = () => {
             onMouseLeave={handleCanvasMouseLeave}
           />
           <p className="text-sm text-gray-600 mt-2">
-            Click on the canvas to add points. The yellow dashed line shows distance from the last point.
+            Click on the canvas to add points. Yellow dashed line shows distance from the last point.
           </p>
         </div>
 
         <div className="w-64 space-y-4">
+          <div>
+            <Label htmlFor="pathName">Toolpath Name</Label>
+            <Input
+              id="pathName"
+              value={pathName}
+              onChange={(e) => setPathName(e.target.value)}
+              className="h-8"
+            />
+          </div>
+
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Machine Parameters</h4>
             <div className="space-y-2 text-sm">
@@ -428,68 +499,27 @@ export const CNCVisualization = () => {
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {points.map((point, index) => (
                 <div key={point.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                  {editingPoint === point.id ? (
-                    <div className="flex-1 space-y-1">
-                      <div className="flex gap-1">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={editValues.x}
-                          onChange={(e) => setEditValues(prev => ({ ...prev, x: Number(e.target.value) }))}
-                          className="h-6 text-xs"
-                          placeholder="X"
-                        />
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={editValues.y}
-                          onChange={(e) => setEditValues(prev => ({ ...prev, y: Number(e.target.value) }))}
-                          className="h-6 text-xs"
-                          placeholder="Y"
-                        />
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={editValues.z}
-                          onChange={(e) => setEditValues(prev => ({ ...prev, z: Number(e.target.value) }))}
-                          className="h-6 text-xs"
-                          placeholder="Z"
-                        />
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="sm" onClick={saveEdit} className="h-6 text-xs px-2">Save</Button>
-                        <Button size="sm" variant="outline" onClick={cancelEdit} className="h-6 text-xs px-2">Cancel</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="flex-1">
-                        P{index + 1}: X{point.x} Y{point.y} Z{point.z}
-                      </span>
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEditing(point)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deletePoint(point.id)}
-                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                  <span className="flex-1">
+                    P{index + 1}: X{point.x} Y{point.y} Z{point.z}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
+
+          {toolpaths.length > 0 && (
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {toolpaths.map((toolpath) => (
+                  <div key={toolpath.id} className="p-2 bg-gray-50 rounded text-sm">
+                    <div className="font-medium">{toolpath.name}</div>
+                    <div className="text-gray-500">{Array.isArray(toolpath.points) ? toolpath.points.length : 0} points</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Card>

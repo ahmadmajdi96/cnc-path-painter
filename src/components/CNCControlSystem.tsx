@@ -10,6 +10,7 @@ import { AddMachineDialog } from './AddMachineDialog';
 
 export const CNCControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedMachine, setSelectedMachine] = useState<string>('');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,12 +46,15 @@ export const CNCControlSystem = () => {
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
         {/* Left Sidebar - Machine List */}
         <div className="w-80">
-          <MachineList />
+          <MachineList 
+            selectedMachine={selectedMachine}
+            onMachineSelect={setSelectedMachine}
+          />
         </div>
 
         {/* Center - 2D Visualization */}
         <div className="flex-1">
-          <CNCVisualization />
+          <CNCVisualization selectedMachineId={selectedMachine} />
         </div>
 
         {/* Right Sidebar - Control Panel */}
