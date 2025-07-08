@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,12 +50,17 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     queryKey: ['cnc-machine', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return null;
+      console.log('Fetching machine:', selectedMachineId);
       const { data, error } = await supabase
         .from('cnc_machines')
         .select('*')
         .eq('id', selectedMachineId)
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching machine:', error);
+        throw error;
+      }
+      console.log('Fetched machine:', data);
       return data;
     },
     enabled: !!selectedMachineId
@@ -67,12 +71,17 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     queryKey: ['toolpaths', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return [];
+      console.log('Fetching toolpaths for machine:', selectedMachineId);
       const { data, error } = await supabase
         .from('toolpaths')
         .select('*')
         .eq('cnc_machine_id', selectedMachineId)
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching toolpaths:', error);
+        throw error;
+      }
+      console.log('Fetched toolpaths:', data);
       return data;
     },
     enabled: !!selectedMachineId
@@ -83,6 +92,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
+      console.log('Saving toolpath:', { selectedMachineId, points, machineParams });
       const { error } = await supabase
         .from('toolpaths')
         .insert({
@@ -92,7 +102,11 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
           machine_params: machineParams as any
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving toolpath:', error);
+        throw error;
+      }
+      console.log('Toolpath saved successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['toolpaths', selectedMachineId] });
@@ -103,6 +117,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   // Update machine parameters when selected machine changes
   useEffect(() => {
     if (selectedMachine) {
+      console.log('Updating machine params from selected machine:', selectedMachine);
       setMachineParams({
         spindleSpeed: selectedMachine.max_spindle_speed || 10000,
         feedRate: selectedMachine.max_feed_rate || 1000,
@@ -243,6 +258,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const x = event.clientX - rect.left - canvas.width / 2;
     const y = -(event.clientY - rect.top - canvas.height / 2); // Flip Y for normal coordinates
 
+    console.log('Adding point:', { x: Math.round(x), y: Math.round(y) });
     setPoints(prev => [...prev, { x: Math.round(x), y: Math.round(y) }]);
   };
 
@@ -275,6 +291,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   };
 
   const loadToolpath = (toolpath: Toolpath) => {
+    console.log('Loading toolpath:', toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
       ? (toolpath.points as unknown as Point[])
       : [];

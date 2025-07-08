@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,15 +25,21 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
   const queryClient = useQueryClient();
 
   // Fetch CNC machines from database
-  const { data: machines = [], isLoading } = useQuery({
+  const { data: machines = [], isLoading, error } = useQuery({
     queryKey: ['cnc-machines'],
     queryFn: async () => {
+      console.log('Fetching CNC machines...');
       const { data, error } = await supabase
         .from('cnc_machines')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching machines:', error);
+        throw error;
+      }
+      
+      console.log('Fetched machines:', data);
       return data;
     }
   });
@@ -84,6 +91,16 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
     );
   }
 
+  if (error) {
+    return (
+      <Card className="p-4 bg-white border border-gray-200 h-full">
+        <div className="text-center text-red-600">
+          Error loading machines: {error.message}
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <>
       <Card className="p-4 bg-white border border-gray-200 h-full">
@@ -104,64 +121,71 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
           </div>
         </div>
 
-        <div className="space-y-3">
-          {filteredMachines.map((machine) => (
-            <div
-              key={machine.id}
-              className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                selectedMachine === machine.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => onMachineSelect(machine.id)}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-900">{machine.name}</h4>
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(machine.status)}>
-                    {machine.status.toUpperCase()}
-                  </Badge>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(machine);
-                      }}
-                      className="h-6 w-6 p-0"
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(machine.id);
-                      }}
-                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                      disabled={deleteMachineMutation.isPending}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+        {machines.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">No CNC machines found</p>
+            <p className="text-sm text-gray-400">Click "Add Machine" to get started</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredMachines.map((machine) => (
+              <div
+                key={machine.id}
+                className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                  selectedMachine === machine.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => onMachineSelect(machine.id)}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-900">{machine.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getStatusColor(machine.status)}>
+                      {machine.status.toUpperCase()}
+                    </Badge>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(machine);
+                        }}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(machine.id);
+                        }}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        disabled={deleteMachineMutation.isPending}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
+                <p className="text-sm text-gray-600 mb-2">
+                  {machine.manufacturer} {machine.model}
+                </p>
+                <div className="text-xs text-gray-500 space-y-1">
+                  <div>Work Area: {machine.work_area || 'Not specified'}</div>
+                  <div>Spindle: {machine.max_spindle_speed || 0} RPM</div>
+                  <div>Feed Rate: {machine.max_feed_rate || 0} mm/min</div>
+                  {machine.ip_address && (
+                    <div>IP: {machine.ip_address}:{machine.port || 502}</div>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mb-2">
-                {machine.manufacturer} {machine.model}
-              </p>
-              <div className="text-xs text-gray-500 space-y-1">
-                <div>Work Area: {machine.work_area || 'Not specified'}</div>
-                <div>Spindle: {machine.max_spindle_speed || 0} RPM</div>
-                <div>Feed Rate: {machine.max_feed_rate || 0} mm/min</div>
-                {machine.ip_address && (
-                  <div>IP: {machine.ip_address}:{machine.port || 502}</div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       <EditMachineDialog
