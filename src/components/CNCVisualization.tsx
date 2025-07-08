@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 type CNCMachine = Tables<'cnc_machines'>;
 type Toolpath = Tables<'toolpaths'>;
@@ -49,6 +50,8 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [gcodeEndpoint, setGcodeEndpoint] = useState('');
+
+  const { toast } = useToast();
 
   // Scale factor: 1 pixel = 0.1 mm (can be adjusted)
   const MM_PER_PIXEL = 0.1;
@@ -97,7 +100,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     enabled: !!selectedMachineId
   });
 
-  // Save toolpath mutation
+  // Save toolpath mutation with toast
   const saveToolpathMutation = useMutation({
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
@@ -121,10 +124,21 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['toolpaths', selectedMachineId] });
       setToolpathName('');
+      toast({
+        title: "Toolpath Saved",
+        description: "Your toolpath has been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save toolpath. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
-  // Update machine endpoint mutation
+  // Update machine endpoint mutation with toast
   const updateEndpointMutation = useMutation({
     mutationFn: async (endpoint: string) => {
       if (!selectedMachineId) return;
@@ -142,6 +156,17 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cnc-machine', selectedMachineId] });
+      toast({
+        title: "Endpoint Updated",
+        description: "Machine endpoint has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update endpoint. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
@@ -580,11 +605,25 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       
       if (response.ok) {
         console.log('G-code sent successfully');
+        toast({
+          title: "G-Code Sent",
+          description: "G-code has been sent to the machine successfully.",
+        });
       } else {
         console.error('Failed to send G-code');
+        toast({
+          title: "Send Failed",
+          description: "Failed to send G-code to machine. Please check the endpoint.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error sending G-code:', error);
+      toast({
+        title: "Connection Error",
+        description: "Unable to connect to the machine. Please check the endpoint.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -677,9 +716,10 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
             </div>
             <canvas
               ref={canvasRef}
-              width={600}
+              width={800}
               height={400}
-              className="border border-gray-300 cursor-crosshair"
+              className="border border-gray-300 cursor-crosshair w-full"
+              style={{ maxWidth: '100%', height: 'auto' }}
               onClick={handleCanvasClick}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
@@ -792,6 +832,13 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
           {/* G-Code Endpoint Configuration */}
           <div className="mb-4">
             <h4 className="font-medium text-gray-900 mb-2">G-Code Endpoint</h4>
+            {selectedMachine?.endpoint_url && (
+              <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                <span className="text-sm text-blue-700">
+                  Current endpoint: <strong>{selectedMachine.endpoint_url}</strong>
+                </span>
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 placeholder="http://machine-ip:port/gcode"
