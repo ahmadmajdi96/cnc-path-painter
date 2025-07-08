@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -412,9 +413,21 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    // Convert canvas coordinates to world coordinates accounting for zoom and pan
-    const worldX = Math.round(((canvasX - centerX - panOffset.x) / zoom));
-    const worldY = Math.round(((centerY - canvasY + panOffset.y) / zoom));
+    // First, translate to the center of the canvas
+    let x = canvasX - centerX;
+    let y = canvasY - centerY;
+    
+    // Apply inverse pan transformation
+    x -= panOffset.x;
+    y -= panOffset.y;
+    
+    // Apply inverse zoom transformation
+    x /= zoom;
+    y /= zoom;
+    
+    // Convert to world coordinates (flip Y axis)
+    const worldX = Math.round(x);
+    const worldY = Math.round(-y);
     
     return { x: worldX, y: worldY };
   };
