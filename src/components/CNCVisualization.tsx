@@ -202,90 +202,86 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Save context and apply zoom/pan transformations
+    // Set up coordinate system with origin at center
     ctx.save();
-    ctx.translate(canvas.width / 2 + panOffset.x, canvas.height / 2 + panOffset.y);
+    ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(zoom, zoom);
+    ctx.translate(panOffset.x / zoom, panOffset.y / zoom);
 
-    // Draw grid (in transformed space)
+    // Draw grid
     drawGrid(ctx, canvas.width, canvas.height);
 
-    // Draw axes (in transformed space)
+    // Draw axes
     drawAxes(ctx, canvas.width, canvas.height);
 
-    // Draw toolpath (in transformed space)
+    // Draw toolpath
     if (points.length > 0) {
       drawToolpath(ctx, points, currentPoint);
     }
 
-    // Restore context
     ctx.restore();
 
-    // Draw machine info (not affected by zoom/pan)
+    // Draw machine info (not affected by transformations)
     if (selectedMachine) {
       drawMachineInfo(ctx, selectedMachine);
     }
 
-    // Draw cursor distance (not affected by zoom/pan)
+    // Draw cursor distance (not affected by transformations)
     if (points.length > 0 && !isDragging) {
       drawCursorDistance(ctx);
     }
 
-    // Draw zoom level (not affected by zoom/pan)
+    // Draw zoom level (not affected by transformations)
     drawZoomLevel(ctx);
   }, [points, currentPoint, selectedMachine, mousePos, isDragging, zoom, panOffset]);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 1 / zoom; // Adjust line width for zoom
+    ctx.lineWidth = 1;
 
-    const gridSize = 20; // 20 pixels = 2mm
-
-    // Calculate grid bounds in world space
-    const halfWidth = width / (2 * zoom);
-    const halfHeight = height / (2 * zoom);
+    const gridSize = 20; // 20 pixels = 2mm at current scale
+    const extent = Math.max(width, height) / zoom;
 
     // Vertical lines
-    for (let x = -Math.ceil(halfWidth / gridSize) * gridSize; x <= halfWidth; x += gridSize) {
+    for (let x = -extent; x <= extent; x += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(x, -halfHeight);
-      ctx.lineTo(x, halfHeight);
+      ctx.moveTo(x, -extent);
+      ctx.lineTo(x, extent);
       ctx.stroke();
     }
 
     // Horizontal lines
-    for (let y = -Math.ceil(halfHeight / gridSize) * gridSize; y <= halfHeight; y += gridSize) {
+    for (let y = -extent; y <= extent; y += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(-halfWidth, y);
-      ctx.lineTo(halfWidth, y);
+      ctx.moveTo(-extent, y);
+      ctx.lineTo(extent, y);
       ctx.stroke();
     }
   };
 
   const drawAxes = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 2 / zoom; // Adjust line width for zoom
+    ctx.lineWidth = 2;
 
-    const halfWidth = width / (2 * zoom);
-    const halfHeight = height / (2 * zoom);
+    const extent = Math.max(width, height) / zoom;
 
     // X-axis
     ctx.beginPath();
-    ctx.moveTo(-halfWidth, 0);
-    ctx.lineTo(halfWidth, 0);
+    ctx.moveTo(-extent, 0);
+    ctx.lineTo(extent, 0);
     ctx.stroke();
 
     // Y-axis
     ctx.beginPath();
-    ctx.moveTo(0, -halfHeight);
-    ctx.lineTo(0, halfHeight);
+    ctx.moveTo(0, -extent);
+    ctx.lineTo(0, extent);
     ctx.stroke();
 
     // Axis labels
     ctx.fillStyle = '#374151';
-    ctx.font = `${12 / zoom}px sans-serif`;
-    ctx.fillText('X', halfWidth - 20 / zoom, -10 / zoom);
-    ctx.fillText('Y', 10 / zoom, -halfHeight + 20 / zoom);
+    ctx.font = '12px sans-serif';
+    ctx.fillText('X', extent - 20, -10);
+    ctx.fillText('Y', 10, -extent + 20);
   };
 
   const drawToolpath = (ctx: CanvasRenderingContext2D, pathPoints: Point[], current: number) => {
@@ -303,10 +299,10 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
         ctx.strokeStyle = '#3b82f6';
       }
       
-      ctx.lineWidth = 2 / zoom;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(point1.x, -point1.y); // Flip Y coordinate
-      ctx.lineTo(point2.x, -point2.y); // Flip Y coordinate
+      ctx.moveTo(point1.x, point1.y);
+      ctx.lineTo(point2.x, point2.y);
       ctx.stroke();
     }
 
@@ -322,15 +318,15 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       }
       
       ctx.beginPath();
-      ctx.arc(point.x, -point.y, 4 / zoom, 0, 2 * Math.PI); // Flip Y and adjust radius for zoom
+      ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
       ctx.fill();
 
       // Draw point coordinates in mm
       const mmX = (point.x * MM_PER_PIXEL).toFixed(1);
       const mmY = (point.y * MM_PER_PIXEL).toFixed(1);
       ctx.fillStyle = '#374151';
-      ctx.font = `${10 / zoom}px sans-serif`;
-      ctx.fillText(`(${mmX}, ${mmY})mm`, point.x + 8 / zoom, -point.y - 8 / zoom);
+      ctx.font = '10px sans-serif';
+      ctx.fillText(`(${mmX}, ${mmY})mm`, point.x + 8, point.y - 8);
     });
   };
 
@@ -347,14 +343,13 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const lastPoint = points[points.length - 1];
     
     // Convert last point to screen coordinates
-    const lastCanvasX = canvas.width / 2 + panOffset.x + lastPoint.x * zoom;
-    const lastCanvasY = canvas.height / 2 + panOffset.y - lastPoint.y * zoom;
+    const screenCoords = worldToScreenCoords(lastPoint.x, lastPoint.y);
     
     const cursorX = mousePos.x;
     const cursorY = mousePos.y;
     
     const pixelDistance = Math.sqrt(
-      Math.pow(cursorX - lastCanvasX, 2) + Math.pow(cursorY - lastCanvasY, 2)
+      Math.pow(cursorX - screenCoords.x, 2) + Math.pow(cursorY - screenCoords.y, 2)
     );
     const mmDistance = (pixelDistance * MM_PER_PIXEL / zoom).toFixed(1);
 
@@ -363,7 +358,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
-    ctx.moveTo(lastCanvasX, lastCanvasY);
+    ctx.moveTo(screenCoords.x, screenCoords.y);
     ctx.lineTo(cursorX, cursorY);
     ctx.stroke();
     ctx.setLineDash([]);
@@ -380,33 +375,41 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 10, canvasRef.current!.height - 10);
   };
 
-  const getPointAtPosition = (x: number, y: number): number | null => {
+  // Convert world coordinates to screen coordinates
+  const worldToScreenCoords = (worldX: number, worldY: number) => {
     const canvas = canvasRef.current!;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    const screenX = centerX + (worldX * zoom) + panOffset.x;
+    const screenY = centerY + (worldY * zoom) + panOffset.y;
+    
+    return { x: screenX, y: screenY };
+  };
 
+  // Convert screen coordinates to world coordinates
+  const screenToWorldCoords = (screenX: number, screenY: number) => {
+    const canvas = canvasRef.current!;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    const worldX = (screenX - centerX - panOffset.x) / zoom;
+    const worldY = (screenY - centerY - panOffset.y) / zoom;
+    
+    return { x: Math.round(worldX), y: Math.round(worldY) };
+  };
+
+  const getPointAtPosition = (x: number, y: number): number | null => {
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
-      // Convert world coordinates to screen coordinates
-      const screenX = canvas.width / 2 + panOffset.x + point.x * zoom;
-      const screenY = canvas.height / 2 + panOffset.y - point.y * zoom;
+      const screenCoords = worldToScreenCoords(point.x, point.y);
       
-      const distance = Math.sqrt(Math.pow(x - screenX, 2) + Math.pow(y - screenY, 2));
+      const distance = Math.sqrt(Math.pow(x - screenCoords.x, 2) + Math.pow(y - screenCoords.y, 2));
       if (distance <= 8) { // 8px radius for click detection
         return i;
       }
     }
     return null;
-  };
-
-  const canvasToWorldCoords = (canvasX: number, canvasY: number) => {
-    const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    // Convert screen coordinates to world coordinates
-    const worldX = Math.round((canvasX - centerX - panOffset.x) / zoom);
-    const worldY = Math.round((centerY - canvasY + panOffset.y) / zoom);
-    
-    return { x: worldX, y: worldY };
   };
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -432,7 +435,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     setMousePos({ x, y });
 
     if (isDragging && draggedPointIndex !== null) {
-      const worldCoords = canvasToWorldCoords(x, y);
+      const worldCoords = screenToWorldCoords(x, y);
       setPoints(prev => {
         const newPoints = [...prev];
         newPoints[draggedPointIndex] = worldCoords;
@@ -464,8 +467,8 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     // Don't add new point if clicking on existing point
     if (getPointAtPosition(x, y) !== null) return;
 
-    const worldCoords = canvasToWorldCoords(x, y);
-    console.log('Adding point:', worldCoords);
+    const worldCoords = screenToWorldCoords(x, y);
+    console.log('Adding point at cursor:', { x, y }, 'world coords:', worldCoords);
     setPoints(prev => [...prev, worldCoords]);
   };
 
