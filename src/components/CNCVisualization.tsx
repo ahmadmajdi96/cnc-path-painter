@@ -364,17 +364,47 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 10, canvasRef.current!.height - 10);
   };
 
-  const getPointAtPosition = (x: number, y: number): number | null => {
+  const screenToWorldCoords = (screenX: number, screenY: number) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Get canvas coordinates
+    const canvasX = screenX - rect.left;
+    const canvasY = screenY - rect.top;
+    
+    // Transform from screen space to world space (exact inverse of rendering)
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    // Undo the transformations applied during rendering
+    const worldX = (canvasX - centerX - panOffset.x) / zoom;
+    const worldY = (centerY - canvasY + panOffset.y) / zoom;
+    
+    return { x: Math.round(worldX), y: Math.round(worldY) };
+  };
+
+  const worldToScreenCoords = (worldX: number, worldY: number) => {
     const canvas = canvasRef.current!;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
+    
+    // Apply the same transformations as in rendering
+    const screenX = centerX + worldX * zoom + panOffset.x;
+    const screenY = centerY - worldY * zoom + panOffset.y;
+    
+    return { x: screenX, y: screenY };
+  };
 
+  const getPointAtPosition = (screenX: number, screenY: number): number | null => {
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
-      const canvasX = centerX + point.x * zoom + panOffset.x;
-      const canvasY = centerY - point.y * zoom + panOffset.y;
+      const screenCoords = worldToScreenCoords(point.x, point.y);
       
-      const distance = Math.sqrt(Math.pow(x - canvasX, 2) + Math.pow(y - canvasY, 2));
+      const distance = Math.sqrt(
+        Math.pow(screenX - screenCoords.x, 2) + 
+        Math.pow(screenY - screenCoords.y, 2)
+      );
+      
       if (distance <= 8) { // 8px radius for click detection
         return i;
       }
@@ -382,24 +412,15 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     return null;
   };
 
-  const canvasToWorldCoords = (canvasX: number, canvasY: number) => {
-    const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    const worldX = Math.round((canvasX - centerX - panOffset.x) / zoom);
-    const worldY = Math.round((centerY - canvasY + panOffset.y) / zoom);
-    
-    return { x: worldX, y: worldY };
-  };
-
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const screenX = event.clientX;
+    const screenY = event.clientY;
+    const canvasX = screenX - rect.left;
+    const canvasY = screenY - rect.top;
 
-    const pointIndex = getPointAtPosition(x, y);
+    const pointIndex = getPointAtPosition(canvasX, canvasY);
     if (pointIndex !== null) {
       setDraggedPointIndex(pointIndex);
       setIsDragging(true);
@@ -410,13 +431,15 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   const handleCanvasMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const screenX = event.clientX;
+    const screenY = event.clientY;
+    const canvasX = screenX - rect.left;
+    const canvasY = screenY - rect.top;
     
-    setMousePos({ x, y });
+    setMousePos({ x: canvasX, y: canvasY });
 
     if (isDragging && draggedPointIndex !== null) {
-      const worldCoords = canvasToWorldCoords(x, y);
+      const worldCoords = screenToWorldCoords(screenX, screenY);
       setPoints(prev => {
         const newPoints = [...prev];
         newPoints[draggedPointIndex] = worldCoords;
@@ -424,7 +447,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       });
     } else {
       // Check if hovering over a point
-      const pointIndex = getPointAtPosition(x, y);
+      const pointIndex = getPointAtPosition(canvasX, canvasY);
       canvas.style.cursor = pointIndex !== null ? 'grab' : 'crosshair';
     }
   };
@@ -442,14 +465,16 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
 
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const screenX = event.clientX;
+    const screenY = event.clientY;
+    const canvasX = screenX - rect.left;
+    const canvasY = screenY - rect.top;
 
     // Don't add new point if clicking on existing point
-    if (getPointAtPosition(x, y) !== null) return;
+    if (getPointAtPosition(canvasX, canvasY) !== null) return;
 
-    const worldCoords = canvasToWorldCoords(x, y);
-    console.log('Adding point:', worldCoords);
+    const worldCoords = screenToWorldCoords(screenX, screenY);
+    console.log('Adding point at world coords:', worldCoords);
     setPoints(prev => [...prev, worldCoords]);
   };
 
@@ -677,9 +702,9 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
             </div>
             <canvas
               ref={canvasRef}
-              width={600}
-              height={400}
-              className="border border-gray-300 cursor-crosshair"
+              width={1200}
+              height={600}
+              className="border border-gray-300 cursor-crosshair w-full"
               onClick={handleCanvasClick}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}

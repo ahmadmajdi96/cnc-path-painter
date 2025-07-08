@@ -41,20 +41,20 @@ export const CNCControlSystem = () => {
       {/* Main Content */}
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
         {/* Left Sidebar - Machine List */}
-        <div className="w-80">
+        <div className="w-80 flex-shrink-0">
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
           />
         </div>
 
-        {/* Center - 2D Visualization */}
-        <div className="flex-1">
+        {/* Center - 2D Visualization (Full Width) */}
+        <div className="flex-1 min-w-0">
           <CNCVisualization selectedMachineId={selectedMachine} />
         </div>
 
         {/* Right Sidebar - Control Panel */}
-        <div className="w-80">
+        <div className="w-80 flex-shrink-0">
           <ControlPanel />
         </div>
       </div>
