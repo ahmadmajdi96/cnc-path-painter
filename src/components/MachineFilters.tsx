@@ -26,8 +26,8 @@ export const MachineFilters = ({
 
   return (
     <Card className="p-4 bg-white border border-gray-200 mb-4">
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
+      <div className="flex items-center gap-4">
+        <div className="flex-1">
           <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
           <Select value={statusFilter} onValueChange={onStatusFilterChange}>
             <SelectTrigger>
@@ -43,7 +43,7 @@ export const MachineFilters = ({
           </Select>
         </div>
 
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1">
           <label className="text-sm font-medium text-gray-700 mb-2 block">Manufacturer</label>
           <Select value={manufacturerFilter} onValueChange={onManufacturerFilterChange}>
             <SelectTrigger>
