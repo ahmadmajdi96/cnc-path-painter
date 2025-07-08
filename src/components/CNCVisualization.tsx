@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Save, Download, Play, Pause, RotateCcw, Upload, ZoomIn, ZoomOut } from 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type CNCMachine = Tables<'cnc_machines'>;
 type Toolpath = Tables<'toolpaths'>;
@@ -48,6 +48,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   const [isDragging, setIsDragging] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [gcodeEndpoint, setGcodeEndpoint] = useState('');
 
   // Scale factor: 1 pixel = 0.1 mm (can be adjusted)
   const MM_PER_PIXEL = 0.1;
@@ -123,6 +124,27 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     }
   });
 
+  // Update machine endpoint mutation
+  const updateEndpointMutation = useMutation({
+    mutationFn: async (endpoint: string) => {
+      if (!selectedMachineId) return;
+      
+      const { error } = await supabase
+        .from('cnc_machines')
+        .update({ endpoint_url: endpoint })
+        .eq('id', selectedMachineId);
+      
+      if (error) {
+        console.error('Error updating endpoint:', error);
+        throw error;
+      }
+      console.log('Endpoint updated successfully');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cnc-machine', selectedMachineId] });
+    }
+  });
+
   // Update machine parameters when selected machine changes
   useEffect(() => {
     if (selectedMachine) {
@@ -134,6 +156,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
         safeHeight: Number(selectedMachine.safe_height) || 5,
         workHeight: Number(selectedMachine.work_height) || -2
       });
+      setGcodeEndpoint(selectedMachine.endpoint_url || '');
     }
   }, [selectedMachine]);
 
@@ -146,7 +169,6 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     }
   }, [toolpaths, selectedMachineId]);
 
-  // Canvas setup and drawing
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -549,6 +571,29 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     URL.revokeObjectURL(url);
   };
 
+  const sendGCodeToMachine = async () => {
+    if (!gcodeEndpoint || points.length === 0) return;
+    
+    const gcode = generateGCode();
+    try {
+      const response = await fetch(gcodeEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: gcode,
+      });
+      
+      if (response.ok) {
+        console.log('G-code sent successfully');
+      } else {
+        console.error('Failed to send G-code');
+      }
+    } catch (error) {
+      console.error('Error sending G-code:', error);
+    }
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -726,27 +771,57 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
 
           {/* Saved Toolpaths */}
           {toolpaths.length > 0 && (
-            <div>
+            <div className="mb-4">
               <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
-              <div className="space-y-2">
-                {toolpaths.map((toolpath) => (
-                  <div
-                    key={toolpath.id}
-                    className="flex items-center justify-between p-2 border border-gray-200 rounded"
-                  >
-                    <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
-                    <Button
-                      onClick={() => loadToolpath(toolpath)}
-                      size="sm"
-                      variant="outline"
+              <ScrollArea className="h-40 border border-gray-200 rounded p-2">
+                <div className="space-y-2">
+                  {toolpaths.map((toolpath) => (
+                    <div
+                      key={toolpath.id}
+                      className="flex items-center justify-between p-2 border border-gray-200 rounded"
                     >
-                      Load
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                      <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
+                      <Button
+                        onClick={() => loadToolpath(toolpath)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Load
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
+
+          {/* G-Code Endpoint Configuration */}
+          <div className="mb-4">
+            <h4 className="font-medium text-gray-900 mb-2">G-Code Endpoint</h4>
+            <div className="flex gap-2">
+              <Input
+                placeholder="http://machine-ip:port/gcode"
+                value={gcodeEndpoint}
+                onChange={(e) => setGcodeEndpoint(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                onClick={() => updateEndpointMutation.mutate(gcodeEndpoint)}
+                disabled={updateEndpointMutation.isPending}
+                size="sm"
+                variant="outline"
+              >
+                Save
+              </Button>
+              <Button
+                onClick={sendGCodeToMachine}
+                disabled={!gcodeEndpoint || points.length === 0}
+                size="sm"
+              >
+                Send G-Code
+              </Button>
+            </div>
+          </div>
         </>
       )}
     </Card>

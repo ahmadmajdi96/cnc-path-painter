@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -80,11 +81,6 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
     }
   };
 
-  const handleClearFilters = () => {
-    setStatusFilter('all');
-    setManufacturerFilter('all');
-  };
-
   // Get unique manufacturers for filter
   const manufacturers = [...new Set(machines
     .map(m => m.manufacturer)
@@ -125,7 +121,6 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
           manufacturerFilter={manufacturerFilter}
           onStatusFilterChange={setStatusFilter}
           onManufacturerFilterChange={setManufacturerFilter}
-          onClearFilters={handleClearFilters}
           manufacturers={manufacturers}
         />
 
@@ -144,9 +139,6 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
           ) : filteredMachines.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500 mb-4">No machines match the current filters</p>
-              <Button variant="outline" onClick={handleClearFilters}>
-                Clear Filters
-              </Button>
             </div>
           ) : (
             <ScrollArea className="flex-1">

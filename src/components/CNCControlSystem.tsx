@@ -5,7 +5,7 @@ import { MachineList } from './MachineList';
 import { CNCVisualization } from './CNCVisualization';
 import { ControlPanel } from './ControlPanel';
 import { Button } from '@/components/ui/button';
-import { Settings, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
 
 export const CNCControlSystem = () => {
@@ -28,10 +28,6 @@ export const CNCControlSystem = () => {
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Machine
-            </Button>
-            <Button variant="outline">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
             </Button>
           </div>
         </div>
