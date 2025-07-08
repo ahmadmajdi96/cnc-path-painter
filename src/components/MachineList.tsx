@@ -39,20 +39,20 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
   const { data: machines = [], isLoading } = useQuery({
     queryKey: ['cnc-machines'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('cnc_machines')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as Machine[];
     }
   });
 
   // Delete machine mutation
   const deleteMachineMutation = useMutation({
     mutationFn: async (machineId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('cnc_machines')
         .delete()
         .eq('id', machineId);

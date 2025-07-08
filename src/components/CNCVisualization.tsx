@@ -24,6 +24,24 @@ interface MachineParams {
   workHeight: number;
 }
 
+interface CNCMachine {
+  id: string;
+  name: string;
+  model: string;
+  manufacturer?: string;
+  max_spindle_speed?: number;
+  max_feed_rate?: number;
+  plunge_rate?: number;
+  safe_height?: number;
+  work_height?: number;
+}
+
+interface Toolpath {
+  id: string;
+  name: string;
+  points: Point[];
+}
+
 interface CNCVisualizationProps {
   selectedMachineId?: string;
 }
@@ -52,13 +70,13 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     queryKey: ['cnc-machine', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('cnc_machines')
         .select('*')
         .eq('id', selectedMachineId)
         .single();
       if (error) throw error;
-      return data;
+      return data as CNCMachine;
     },
     enabled: !!selectedMachineId
   });
@@ -68,13 +86,13 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     queryKey: ['toolpaths', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('toolpaths')
         .select('*')
         .eq('cnc_machine_id', selectedMachineId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as Toolpath[];
     },
     enabled: !!selectedMachineId
   });
@@ -84,7 +102,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('toolpaths')
         .insert({
           cnc_machine_id: selectedMachineId,

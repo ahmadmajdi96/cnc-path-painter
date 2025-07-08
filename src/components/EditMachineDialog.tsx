@@ -55,7 +55,7 @@ export const EditMachineDialog = ({ machine, open, onOpenChange }: EditMachineDi
     mutationFn: async (data: typeof formData) => {
       if (!machine) return;
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('cnc_machines')
         .update({
           name: data.name,
