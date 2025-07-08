@@ -1,9 +1,10 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Download, Play, Pause, RotateCcw } from 'lucide-react';
+import { Save, Download, Play, Pause, RotateCcw, Upload } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -31,6 +32,7 @@ interface CNCVisualizationProps {
 
 export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [machineParams, setMachineParams] = useState<MachineParams>({
     spindleSpeed: 10000,
@@ -42,6 +44,9 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
   const [isSimulating, setIsSimulating] = useState(false);
   const [currentPoint, setCurrentPoint] = useState(0);
   const [toolpathName, setToolpathName] = useState('');
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [draggedPointIndex, setDraggedPointIndex] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -154,7 +159,12 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     if (selectedMachine) {
       drawMachineInfo(ctx, selectedMachine);
     }
-  }, [points, currentPoint, selectedMachine]);
+
+    // Draw cursor distance
+    if (points.length > 0 && !isDragging) {
+      drawCursorDistance(ctx);
+    }
+  }, [points, currentPoint, selectedMachine, mousePos, isDragging]);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.strokeStyle = '#e5e7eb';
@@ -209,38 +219,52 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const centerX = canvasRef.current!.width / 2;
     const centerY = canvasRef.current!.height / 2;
 
-    // Draw path
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
+    // Draw path lines
+    for (let i = 0; i < pathPoints.length - 1; i++) {
+      const point1 = pathPoints[i];
+      const point2 = pathPoints[i + 1];
+      
+      const canvasX1 = centerX + point1.x;
+      const canvasY1 = centerY - point1.y;
+      const canvasX2 = centerX + point2.x;
+      const canvasY2 = centerY - point2.y;
 
-    for (let i = 0; i < pathPoints.length; i++) {
-      const point = pathPoints[i];
-      const canvasX = centerX + point.x;
-      const canvasY = centerY - point.y; // Flip Y for canvas coordinates
-
-      if (i === 0) {
-        ctx.moveTo(canvasX, canvasY);
+      // Color finished steps in red during simulation
+      if (isSimulating && i < current) {
+        ctx.strokeStyle = '#ef4444';
       } else {
-        ctx.lineTo(canvasX, canvasY);
+        ctx.strokeStyle = '#3b82f6';
       }
+      
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(canvasX1, canvasY1);
+      ctx.lineTo(canvasX2, canvasY2);
+      ctx.stroke();
     }
-    ctx.stroke();
 
     // Draw points
     pathPoints.forEach((point, index) => {
       const canvasX = centerX + point.x;
       const canvasY = centerY - point.y;
 
-      ctx.fillStyle = index === current ? '#ef4444' : '#3b82f6';
+      // Current point during simulation
+      if (isSimulating && index === current) {
+        ctx.fillStyle = '#22c55e'; // Green for current
+      } else if (isSimulating && index < current) {
+        ctx.fillStyle = '#ef4444'; // Red for finished
+      } else {
+        ctx.fillStyle = '#3b82f6'; // Blue for unprocessed
+      }
+      
       ctx.beginPath();
-      ctx.arc(canvasX, canvasY, 4, 0, 2 * Math.PI);
+      ctx.arc(canvasX, canvasY, 6, 0, 2 * Math.PI);
       ctx.fill();
 
       // Draw point coordinates
       ctx.fillStyle = '#374151';
       ctx.font = '10px sans-serif';
-      ctx.fillText(`(${point.x}, ${point.y})`, canvasX + 6, canvasY - 6);
+      ctx.fillText(`(${point.x}, ${point.y})`, canvasX + 8, canvasY - 8);
     });
   };
 
@@ -250,13 +274,113 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     ctx.fillText(`Machine: ${machine.name} - ${machine.model}`, 10, 30);
   };
 
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const drawCursorDistance = (ctx: CanvasRenderingContext2D) => {
+    if (points.length === 0) return;
 
+    const canvas = canvasRef.current!;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    const lastPoint = points[points.length - 1];
+    const lastCanvasX = centerX + lastPoint.x;
+    const lastCanvasY = centerY - lastPoint.y;
+    
+    const cursorX = mousePos.x;
+    const cursorY = mousePos.y;
+    
+    const distance = Math.sqrt(
+      Math.pow(cursorX - lastCanvasX, 2) + Math.pow(cursorY - lastCanvasY, 2)
+    ).toFixed(1);
+
+    // Draw line from last point to cursor
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(lastCanvasX, lastCanvasY);
+    ctx.lineTo(cursorX, cursorY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw distance text
+    ctx.fillStyle = '#374151';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(`${distance}px`, cursorX + 10, cursorY - 10);
+  };
+
+  const getPointAtPosition = (x: number, y: number): number | null => {
+    const canvas = canvasRef.current!;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    for (let i = 0; i < points.length; i++) {
+      const point = points[i];
+      const canvasX = centerX + point.x;
+      const canvasY = centerY - point.y;
+      
+      const distance = Math.sqrt(Math.pow(x - canvasX, 2) + Math.pow(y - canvasY, 2));
+      if (distance <= 8) { // 8px radius for click detection
+        return i;
+      }
+    }
+    return null;
+  };
+
+  const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const pointIndex = getPointAtPosition(x, y);
+    if (pointIndex !== null) {
+      setDraggedPointIndex(pointIndex);
+      setIsDragging(true);
+      canvas.style.cursor = 'grabbing';
+    }
+  };
+
+  const handleCanvasMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    setMousePos({ x, y });
+
+    if (isDragging && draggedPointIndex !== null) {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const worldX = Math.round(x - centerX);
+      const worldY = Math.round(centerY - y);
+
+      setPoints(prev => {
+        const newPoints = [...prev];
+        newPoints[draggedPointIndex] = { x: worldX, y: worldY };
+        return newPoints;
+      });
+    } else {
+      // Check if hovering over a point
+      const pointIndex = getPointAtPosition(x, y);
+      canvas.style.cursor = pointIndex !== null ? 'grab' : 'crosshair';
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    setIsDragging(false);
+    setDraggedPointIndex(null);
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = 'crosshair';
+    }
+  };
+
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isDragging) return;
+
+    const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left - canvas.width / 2;
-    const y = -(event.clientY - rect.top - canvas.height / 2); // Flip Y for normal coordinates
+    const y = -(event.clientY - rect.top - canvas.height / 2);
 
     console.log('Adding point:', { x: Math.round(x), y: Math.round(y) });
     setPoints(prev => [...prev, { x: Math.round(x), y: Math.round(y) }]);
@@ -349,6 +473,44 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     URL.revokeObjectURL(url);
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const parsedPoints = parseGCode(content);
+      if (parsedPoints.length > 0) {
+        setPoints(parsedPoints);
+        console.log('Loaded G-code with', parsedPoints.length, 'points');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const parseGCode = (gcode: string): Point[] => {
+    const lines = gcode.split('\n');
+    const points: Point[] = [];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('G1') || trimmedLine.startsWith('G0')) {
+        const xMatch = trimmedLine.match(/X([-\d.]+)/);
+        const yMatch = trimmedLine.match(/Y([-\d.]+)/);
+        
+        if (xMatch && yMatch) {
+          points.push({
+            x: parseFloat(xMatch[1]),
+            y: parseFloat(yMatch[1])
+          });
+        }
+      }
+    }
+    
+    return points;
+  };
+
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full">
       <div className="mb-4">
@@ -390,6 +552,10 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
               height={400}
               className="border border-gray-300 cursor-crosshair"
               onClick={handleCanvasClick}
+              onMouseDown={handleCanvasMouseDown}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseUp}
             />
           </div>
 
@@ -428,7 +594,24 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
               <Download className="w-4 h-4 mr-2" />
               G-Code
             </Button>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              size="sm"
+              variant="outline"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload G-Code
+            </Button>
           </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".gcode,.nc,.cnc"
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
 
           {/* Save Toolpath */}
           {points.length > 0 && (
