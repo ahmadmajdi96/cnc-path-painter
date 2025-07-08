@@ -88,8 +88,8 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
         .insert({
           cnc_machine_id: selectedMachineId,
           name: toolpathName || `Toolpath ${Date.now()}`,
-          points: points,
-          machine_params: machineParams
+          points: points as any,
+          machine_params: machineParams as any
         });
       
       if (error) throw error;
@@ -276,7 +276,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
 
   const loadToolpath = (toolpath: Toolpath) => {
     const pathPoints = Array.isArray(toolpath.points) 
-      ? toolpath.points as Point[]
+      ? (toolpath.points as unknown as Point[])
       : [];
     setPoints(pathPoints);
     setCurrentPoint(0);
@@ -443,7 +443,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
                     key={toolpath.id}
                     className="flex items-center justify-between p-2 border border-gray-200 rounded"
                   >
-                    <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? toolpath.points.length : 0} points)</span>
+                    <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
                     <Button
                       onClick={() => loadToolpath(toolpath)}
                       size="sm"
