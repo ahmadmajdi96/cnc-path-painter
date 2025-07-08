@@ -145,7 +145,6 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     }
   });
 
-  // Update machine parameters when selected machine changes
   useEffect(() => {
     if (selectedMachine) {
       console.log('Updating machine params from selected machine:', selectedMachine);
@@ -160,10 +159,9 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     }
   }, [selectedMachine]);
 
-  // Auto-load latest toolpath when machine is selected
   useEffect(() => {
     if (toolpaths.length > 0 && selectedMachineId) {
-      const latestToolpath = toolpaths[0]; // Already sorted by created_at desc
+      const latestToolpath = toolpaths[0];
       console.log('Auto-loading latest toolpath:', latestToolpath);
       loadToolpath(latestToolpath);
     }
@@ -477,7 +475,6 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     setPanOffset({ x: 0, y: 0 });
   };
 
-  // Start simulation
   const startSimulation = () => {
     if (points.length === 0) return;
     
@@ -496,19 +493,16 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     }, 1000);
   };
 
-  // Reset simulation
   const resetSimulation = () => {
     setIsSimulating(false);
     setCurrentPoint(0);
   };
 
-  // Clear points
   const clearPoints = () => {
     setPoints([]);
     setCurrentPoint(0);
   };
 
-  // Load toolpath
   const loadToolpath = (toolpath: Toolpath) => {
     console.log('Loading toolpath:', toolpath);
     const pathPoints = Array.isArray(toolpath.points) 

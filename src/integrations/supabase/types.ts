@@ -161,6 +161,7 @@ export type Database = {
       cnc_machines: {
         Row: {
           created_at: string
+          endpoint_url: string | null
           id: string
           ip_address: string | null
           manufacturer: string | null
@@ -179,6 +180,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          endpoint_url?: string | null
           id?: string
           ip_address?: string | null
           manufacturer?: string | null
@@ -197,6 +199,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          endpoint_url?: string | null
           id?: string
           ip_address?: string | null
           manufacturer?: string | null
