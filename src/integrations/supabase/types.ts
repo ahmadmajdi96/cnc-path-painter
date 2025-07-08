@@ -158,6 +158,63 @@ export type Database = {
           },
         ]
       }
+      cnc_machines: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          manufacturer: string | null
+          max_feed_rate: number | null
+          max_spindle_speed: number | null
+          model: string
+          name: string
+          plunge_rate: number | null
+          port: number | null
+          protocol: string | null
+          safe_height: number | null
+          status: string
+          updated_at: string
+          work_area: string | null
+          work_height: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          manufacturer?: string | null
+          max_feed_rate?: number | null
+          max_spindle_speed?: number | null
+          model: string
+          name: string
+          plunge_rate?: number | null
+          port?: number | null
+          protocol?: string | null
+          safe_height?: number | null
+          status?: string
+          updated_at?: string
+          work_area?: string | null
+          work_height?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          manufacturer?: string | null
+          max_feed_rate?: number | null
+          max_spindle_speed?: number | null
+          model?: string
+          name?: string
+          plunge_rate?: number | null
+          port?: number | null
+          protocol?: string | null
+          safe_height?: number | null
+          status?: string
+          updated_at?: string
+          work_area?: string | null
+          work_height?: number | null
+        }
+        Relationships: []
+      }
       conveyor_belts: {
         Row: {
           belt_length: number
@@ -1049,6 +1106,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      toolpaths: {
+        Row: {
+          cnc_machine_id: string
+          created_at: string
+          id: string
+          machine_params: Json | null
+          name: string
+          points: Json
+          updated_at: string
+        }
+        Insert: {
+          cnc_machine_id: string
+          created_at?: string
+          id?: string
+          machine_params?: Json | null
+          name: string
+          points?: Json
+          updated_at?: string
+        }
+        Update: {
+          cnc_machine_id?: string
+          created_at?: string
+          id?: string
+          machine_params?: Json | null
+          name?: string
+          points?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolpaths_cnc_machine_id_fkey"
+            columns: ["cnc_machine_id"]
+            isOneToOne: false
+            referencedRelation: "cnc_machines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       traceability_records: {
         Row: {

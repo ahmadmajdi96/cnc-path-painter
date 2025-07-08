@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,7 @@ export const AddMachineDialog = ({ open, onOpenChange }: AddMachineDialogProps) 
   // Add machine mutation
   const addMachineMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('cnc_machines')
         .insert({
           name: data.name,

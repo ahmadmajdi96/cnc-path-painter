@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,20 +7,9 @@ import { Edit, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EditMachineDialog } from './EditMachineDialog';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Machine {
-  id: string;
-  name: string;
-  model: string;
-  manufacturer?: string;
-  status: 'active' | 'idle' | 'offline';
-  work_area?: string;
-  max_spindle_speed?: number;
-  max_feed_rate?: number;
-  ip_address?: string;
-  port?: number;
-  protocol?: string;
-}
+type Machine = Tables<'cnc_machines'>;
 
 interface MachineListProps {
   selectedMachine?: string;
@@ -39,20 +27,20 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
   const { data: machines = [], isLoading } = useQuery({
     queryKey: ['cnc-machines'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('cnc_machines')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Machine[];
+      return data;
     }
   });
 
   // Delete machine mutation
   const deleteMachineMutation = useMutation({
     mutationFn: async (machineId: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('cnc_machines')
         .delete()
         .eq('id', machineId);

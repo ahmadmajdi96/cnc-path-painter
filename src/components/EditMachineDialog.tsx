@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,23 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Machine {
-  id: string;
-  name: string;
-  model: string;
-  manufacturer?: string;
-  status: 'active' | 'idle' | 'offline';
-  work_area?: string;
-  max_spindle_speed?: number;
-  max_feed_rate?: number;
-  plunge_rate?: number;
-  safe_height?: number;
-  work_height?: number;
-  ip_address?: string;
-  port?: number;
-  protocol?: string;
-}
+type Machine = Tables<'cnc_machines'>;
 
 interface EditMachineDialogProps {
   machine: Machine | null;
@@ -55,7 +40,7 @@ export const EditMachineDialog = ({ machine, open, onOpenChange }: EditMachineDi
     mutationFn: async (data: typeof formData) => {
       if (!machine) return;
       
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('cnc_machines')
         .update({
           name: data.name,
