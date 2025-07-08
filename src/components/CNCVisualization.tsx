@@ -387,22 +387,28 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     return { x: screenX, y: screenY };
   };
 
-  // Convert screen coordinates to world coordinates
+  // Convert screen coordinates to world coordinates - FIXED VERSION
   const screenToWorldCoords = (screenX: number, screenY: number) => {
     const canvas = canvasRef.current!;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    // Convert screen coordinates to world coordinates
-    // This is the inverse of worldToScreenCoords
+    // The exact inverse of worldToScreenCoords
+    // screenX = centerX + (worldX * zoom) + panOffset.x
+    // Therefore: worldX = (screenX - centerX - panOffset.x) / zoom
     const worldX = (screenX - centerX - panOffset.x) / zoom;
     const worldY = (screenY - centerY - panOffset.y) / zoom;
     
-    console.log('Screen to World conversion (FIXED):', {
+    console.log('Screen to World conversion FIXED:', {
       screenX, screenY,
       centerX, centerY,
       panOffset, zoom,
-      worldX, worldY
+      calculation: {
+        worldX_calc: `(${screenX} - ${centerX} - ${panOffset.x}) / ${zoom} = ${worldX}`,
+        worldY_calc: `(${screenY} - ${centerY} - ${panOffset.y}) / ${zoom} = ${worldY}`
+      },
+      worldX: Math.round(worldX), 
+      worldY: Math.round(worldY)
     });
     
     return { x: Math.round(worldX), y: Math.round(worldY) };
