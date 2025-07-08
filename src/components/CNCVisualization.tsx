@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -203,19 +202,18 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Save context and apply zoom/pan
+    // Save context and apply zoom/pan transformations
     ctx.save();
     ctx.translate(canvas.width / 2 + panOffset.x, canvas.height / 2 + panOffset.y);
     ctx.scale(zoom, zoom);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
-    // Draw grid
+    // Draw grid (in transformed space)
     drawGrid(ctx, canvas.width, canvas.height);
 
-    // Draw axes
+    // Draw axes (in transformed space)
     drawAxes(ctx, canvas.width, canvas.height);
 
-    // Draw toolpath
+    // Draw toolpath (in transformed space)
     if (points.length > 0) {
       drawToolpath(ctx, points, currentPoint);
     }
@@ -223,84 +221,80 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     // Restore context
     ctx.restore();
 
-    // Draw machine info (not affected by zoom)
+    // Draw machine info (not affected by zoom/pan)
     if (selectedMachine) {
       drawMachineInfo(ctx, selectedMachine);
     }
 
-    // Draw cursor distance (not affected by zoom)
+    // Draw cursor distance (not affected by zoom/pan)
     if (points.length > 0 && !isDragging) {
       drawCursorDistance(ctx);
     }
 
-    // Draw zoom level
+    // Draw zoom level (not affected by zoom/pan)
     drawZoomLevel(ctx);
   }, [points, currentPoint, selectedMachine, mousePos, isDragging, zoom, panOffset]);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 / zoom; // Adjust line width for zoom
 
     const gridSize = 20; // 20 pixels = 2mm
 
+    // Calculate grid bounds in world space
+    const halfWidth = width / (2 * zoom);
+    const halfHeight = height / (2 * zoom);
+
     // Vertical lines
-    for (let x = 0; x <= width; x += gridSize) {
+    for (let x = -Math.ceil(halfWidth / gridSize) * gridSize; x <= halfWidth; x += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
+      ctx.moveTo(x, -halfHeight);
+      ctx.lineTo(x, halfHeight);
       ctx.stroke();
     }
 
     // Horizontal lines
-    for (let y = 0; y <= height; y += gridSize) {
+    for (let y = -Math.ceil(halfHeight / gridSize) * gridSize; y <= halfHeight; y += gridSize) {
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
+      ctx.moveTo(-halfWidth, y);
+      ctx.lineTo(halfWidth, y);
       ctx.stroke();
     }
   };
 
   const drawAxes = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    const centerX = width / 2;
-    const centerY = height / 2;
-
     ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 / zoom; // Adjust line width for zoom
+
+    const halfWidth = width / (2 * zoom);
+    const halfHeight = height / (2 * zoom);
 
     // X-axis
     ctx.beginPath();
-    ctx.moveTo(0, centerY);
-    ctx.lineTo(width, centerY);
+    ctx.moveTo(-halfWidth, 0);
+    ctx.lineTo(halfWidth, 0);
     ctx.stroke();
 
     // Y-axis
     ctx.beginPath();
-    ctx.moveTo(centerX, 0);
-    ctx.lineTo(centerX, height);
+    ctx.moveTo(0, -halfHeight);
+    ctx.lineTo(0, halfHeight);
     ctx.stroke();
 
     // Axis labels
     ctx.fillStyle = '#374151';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('X', width - 20, centerY - 10);
-    ctx.fillText('Y', centerX + 10, 20);
+    ctx.font = `${12 / zoom}px sans-serif`;
+    ctx.fillText('X', halfWidth - 20 / zoom, -10 / zoom);
+    ctx.fillText('Y', 10 / zoom, -halfHeight + 20 / zoom);
   };
 
   const drawToolpath = (ctx: CanvasRenderingContext2D, pathPoints: Point[], current: number) => {
     if (pathPoints.length < 2) return;
 
-    const centerX = canvasRef.current!.width / 2;
-    const centerY = canvasRef.current!.height / 2;
-
     // Draw path lines
     for (let i = 0; i < pathPoints.length - 1; i++) {
       const point1 = pathPoints[i];
       const point2 = pathPoints[i + 1];
-      
-      const canvasX1 = centerX + point1.x;
-      const canvasY1 = centerY - point1.y;
-      const canvasX2 = centerX + point2.x;
-      const canvasY2 = centerY - point2.y;
 
       // Color finished steps in red during simulation
       if (isSimulating && i < current) {
@@ -309,18 +303,15 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
         ctx.strokeStyle = '#3b82f6';
       }
       
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 / zoom;
       ctx.beginPath();
-      ctx.moveTo(canvasX1, canvasY1);
-      ctx.lineTo(canvasX2, canvasY2);
+      ctx.moveTo(point1.x, -point1.y); // Flip Y coordinate
+      ctx.lineTo(point2.x, -point2.y); // Flip Y coordinate
       ctx.stroke();
     }
 
     // Draw points
     pathPoints.forEach((point, index) => {
-      const canvasX = centerX + point.x;
-      const canvasY = centerY - point.y;
-
       // Current point during simulation
       if (isSimulating && index === current) {
         ctx.fillStyle = '#22c55e'; // Green for current
@@ -331,15 +322,15 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
       }
       
       ctx.beginPath();
-      ctx.arc(canvasX, canvasY, 4, 0, 2 * Math.PI);
+      ctx.arc(point.x, -point.y, 4 / zoom, 0, 2 * Math.PI); // Flip Y and adjust radius for zoom
       ctx.fill();
 
       // Draw point coordinates in mm
       const mmX = (point.x * MM_PER_PIXEL).toFixed(1);
       const mmY = (point.y * MM_PER_PIXEL).toFixed(1);
       ctx.fillStyle = '#374151';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`(${mmX}, ${mmY})mm`, canvasX + 8, canvasY - 8);
+      ctx.font = `${10 / zoom}px sans-serif`;
+      ctx.fillText(`(${mmX}, ${mmY})mm`, point.x + 8 / zoom, -point.y - 8 / zoom);
     });
   };
 
@@ -353,12 +344,11 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     if (points.length === 0) return;
 
     const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
     const lastPoint = points[points.length - 1];
-    const lastCanvasX = centerX + lastPoint.x * zoom + panOffset.x;
-    const lastCanvasY = centerY - lastPoint.y * zoom + panOffset.y;
+    
+    // Convert last point to screen coordinates
+    const lastCanvasX = canvas.width / 2 + panOffset.x + lastPoint.x * zoom;
+    const lastCanvasY = canvas.height / 2 + panOffset.y - lastPoint.y * zoom;
     
     const cursorX = mousePos.x;
     const cursorY = mousePos.y;
@@ -392,15 +382,14 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
 
   const getPointAtPosition = (x: number, y: number): number | null => {
     const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
 
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
-      const canvasX = centerX + point.x * zoom + panOffset.x;
-      const canvasY = centerY - point.y * zoom + panOffset.y;
+      // Convert world coordinates to screen coordinates
+      const screenX = canvas.width / 2 + panOffset.x + point.x * zoom;
+      const screenY = canvas.height / 2 + panOffset.y - point.y * zoom;
       
-      const distance = Math.sqrt(Math.pow(x - canvasX, 2) + Math.pow(y - canvasY, 2));
+      const distance = Math.sqrt(Math.pow(x - screenX, 2) + Math.pow(y - screenY, 2));
       if (distance <= 8) { // 8px radius for click detection
         return i;
       }
@@ -413,21 +402,9 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
-    // First, translate to the center of the canvas
-    let x = canvasX - centerX;
-    let y = canvasY - centerY;
-    
-    // Apply inverse pan transformation
-    x -= panOffset.x;
-    y -= panOffset.y;
-    
-    // Apply inverse zoom transformation
-    x /= zoom;
-    y /= zoom;
-    
-    // Convert to world coordinates (flip Y axis)
-    const worldX = Math.round(x);
-    const worldY = Math.round(-y);
+    // Convert screen coordinates to world coordinates
+    const worldX = Math.round((canvasX - centerX - panOffset.x) / zoom);
+    const worldY = Math.round((centerY - canvasY + panOffset.y) / zoom);
     
     return { x: worldX, y: worldY };
   };
@@ -733,7 +710,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
               width={800}
               height={400}
               className="border border-gray-300 cursor-crosshair w-full"
-              style={{ maxWidth: '100%', height: 'auto' }}
+              style={{ maxWidth: '100%', height: 'auto', touchAction: 'none' }}
               onClick={handleCanvasClick}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
@@ -847,10 +824,13 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
           <div className="mb-4">
             <h4 className="font-medium text-gray-900 mb-2">G-Code Endpoint</h4>
             {selectedMachine?.endpoint_url && (
-              <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded">
-                <span className="text-sm text-blue-700">
-                  Current endpoint: <strong>{selectedMachine.endpoint_url}</strong>
-                </span>
+              <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-blue-900">Current Endpoint:</span>
+                  <span className="text-sm text-blue-700 font-mono bg-blue-100 px-2 py-1 rounded">
+                    {selectedMachine.endpoint_url}
+                  </span>
+                </div>
               </div>
             )}
             <div className="flex gap-2">
