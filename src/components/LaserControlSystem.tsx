@@ -2,14 +2,13 @@
 import React, { useState } from 'react';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
-import { CNCVisualization } from './CNCVisualization';
-import { ControlPanel } from './ControlPanel';
+import { LaserVisualization } from './LaserVisualization';
+import { LaserControlPanel } from './LaserControlPanel';
 import { Button } from '@/components/ui/button';
-import { Plus, Zap } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
-import { Link } from 'react-router-dom';
 
-export const CNCControlSystem = () => {
+export const LaserControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
 
@@ -19,22 +18,16 @@ export const CNCControlSystem = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">CNC Control System</h1>
-            <p className="text-gray-600">Monitor and control industrial CNC machines</p>
+            <h1 className="text-2xl font-bold text-gray-900">Laser Marking Control System</h1>
+            <p className="text-gray-600">Monitor and control industrial laser marking machines</p>
           </div>
           <div className="flex gap-2">
-            <Link to="/laser">
-              <Button variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50">
-                <Zap className="w-4 h-4 mr-2" />
-                Laser Control
-              </Button>
-            </Link>
             <Button 
               onClick={() => setIsAddDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-purple-600 hover:bg-purple-700"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add Machine
+              Add Laser Machine
             </Button>
           </div>
         </div>
@@ -52,25 +45,25 @@ export const CNCControlSystem = () => {
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
-            machineType="cnc"
+            machineType="laser"
           />
         </div>
 
         {/* Center - 2D Visualization (Full Width) */}
         <div className="flex-1 min-w-0">
-          <CNCVisualization selectedMachineId={selectedMachine} />
+          <LaserVisualization selectedMachineId={selectedMachine} />
         </div>
 
         {/* Right Sidebar - Control Panel */}
         <div className="w-80 flex-shrink-0">
-          <ControlPanel />
+          <LaserControlPanel />
         </div>
       </div>
 
       <AddMachineDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
-        machineType="cnc"
+        machineType="laser"
       />
     </div>
   );
