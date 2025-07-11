@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -92,12 +91,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     queryFn: async () => {
       if (!selectedMachineId) return null;
       const { data, error } = await supabase
-        .from('laser_machines' as any)
+        .from('laser_machines')
         .select('*')
         .eq('id', selectedMachineId)
         .single();
       if (error) throw error;
-      return data as LaserMachine;
+      return data;
     },
     enabled: !!selectedMachineId
   });
@@ -108,12 +107,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     queryFn: async () => {
       if (!selectedMachineId) return [];
       const { data, error } = await supabase
-        .from('laser_toolpaths' as any)
+        .from('laser_toolpaths')
         .select('*')
         .eq('laser_machine_id', selectedMachineId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as LaserToolpath[];
+      return data;
     },
     enabled: !!selectedMachineId
   });
@@ -124,12 +123,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       if (!selectedMachineId || points.length === 0) return;
       
       const { error } = await supabase
-        .from('laser_toolpaths' as any)
+        .from('laser_toolpaths')
         .insert({
           laser_machine_id: selectedMachineId,
           name: toolpathName || `Laser Path ${Date.now()}`,
-          points: points as any,
-          laser_params: laserParams as any
+          points: points,
+          laser_params: laserParams
         });
       
       if (error) throw error;
@@ -146,7 +145,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       if (!selectedMachineId) return;
       
       const { error } = await supabase
-        .from('laser_machines' as any)
+        .from('laser_machines')
         .update({ endpoint_url: endpoint })
         .eq('id', selectedMachineId);
       
@@ -330,7 +329,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     });
   };
 
-  const drawMachineInfo = (ctx: CanvasRenderingContext2D, machine: LaserMachine) => {
+  const drawMachineInfo = (ctx: CanvasRenderingContext2D, machine: any) => {
     ctx.fillStyle = '#374151';
     ctx.font = '14px sans-serif';
     ctx.fillText(`Laser: ${machine.name} - ${machine.model}`, 10, 30);
@@ -543,9 +542,9 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     setCurrentPoint(0);
   };
 
-  const loadToolpath = (toolpath: LaserToolpath) => {
+  const loadToolpath = (toolpath: any) => {
     const pathPoints = Array.isArray(toolpath.points) 
-      ? (toolpath.points as unknown as Point[])
+      ? (toolpath.points as Point[])
       : [];
     setPoints(pathPoints);
     setCurrentPoint(0);
@@ -763,7 +762,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
                       key={toolpath.id}
                       className="flex items-center justify-between p-2 border border-gray-200 rounded"
                     >
-                      <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
+                      <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as Point[]).length : 0} points)</span>
                       <Button
                         onClick={() => loadToolpath(toolpath)}
                         size="sm"
