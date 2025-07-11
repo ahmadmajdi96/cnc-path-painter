@@ -472,6 +472,98 @@ export type Database = {
           },
         ]
       }
+      laser_machines: {
+        Row: {
+          beam_diameter: number | null
+          created_at: string
+          endpoint_url: string | null
+          id: string
+          ip_address: string | null
+          manufacturer: string | null
+          max_frequency: number | null
+          max_power: number | null
+          max_speed: number | null
+          model: string
+          name: string
+          port: number | null
+          protocol: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          beam_diameter?: number | null
+          created_at?: string
+          endpoint_url?: string | null
+          id?: string
+          ip_address?: string | null
+          manufacturer?: string | null
+          max_frequency?: number | null
+          max_power?: number | null
+          max_speed?: number | null
+          model: string
+          name: string
+          port?: number | null
+          protocol?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          beam_diameter?: number | null
+          created_at?: string
+          endpoint_url?: string | null
+          id?: string
+          ip_address?: string | null
+          manufacturer?: string | null
+          max_frequency?: number | null
+          max_power?: number | null
+          max_speed?: number | null
+          model?: string
+          name?: string
+          port?: number | null
+          protocol?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      laser_toolpaths: {
+        Row: {
+          created_at: string
+          id: string
+          laser_machine_id: string
+          laser_params: Json | null
+          name: string
+          points: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          laser_machine_id: string
+          laser_params?: Json | null
+          name: string
+          points?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          laser_machine_id?: string
+          laser_params?: Json | null
+          name?: string
+          points?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laser_toolpaths_laser_machine_id_fkey"
+            columns: ["laser_machine_id"]
+            isOneToOne: false
+            referencedRelation: "laser_machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_production_feed: {
         Row: {
           event_type: string

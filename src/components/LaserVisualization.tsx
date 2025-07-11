@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,11 +7,35 @@ import { Label } from '@/components/ui/label';
 import { Save, Download, Play, Pause, RotateCcw, Upload, ZoomIn, ZoomOut } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-type LaserMachine = Tables<'laser_machines'>;
-type LaserToolpath = Tables<'laser_toolpaths'>;
+interface LaserMachine {
+  id: string;
+  name: string;
+  model: string;
+  manufacturer?: string;
+  status: string;
+  max_power?: number;
+  max_frequency?: number;
+  max_speed?: number;
+  beam_diameter?: number;
+  endpoint_url?: string;
+  ip_address?: string;
+  port?: number;
+  protocol?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface LaserToolpath {
+  id: string;
+  laser_machine_id: string;
+  name: string;
+  points: any;
+  laser_params?: any;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Point {
   x: number;
@@ -67,12 +92,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     queryFn: async () => {
       if (!selectedMachineId) return null;
       const { data, error } = await supabase
-        .from('laser_machines')
+        .from('laser_machines' as any)
         .select('*')
         .eq('id', selectedMachineId)
         .single();
       if (error) throw error;
-      return data;
+      return data as LaserMachine;
     },
     enabled: !!selectedMachineId
   });
@@ -83,12 +108,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     queryFn: async () => {
       if (!selectedMachineId) return [];
       const { data, error } = await supabase
-        .from('laser_toolpaths')
+        .from('laser_toolpaths' as any)
         .select('*')
         .eq('laser_machine_id', selectedMachineId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as LaserToolpath[];
     },
     enabled: !!selectedMachineId
   });
@@ -99,7 +124,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       if (!selectedMachineId || points.length === 0) return;
       
       const { error } = await supabase
-        .from('laser_toolpaths')
+        .from('laser_toolpaths' as any)
         .insert({
           laser_machine_id: selectedMachineId,
           name: toolpathName || `Laser Path ${Date.now()}`,
@@ -121,7 +146,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       if (!selectedMachineId) return;
       
       const { error } = await supabase
-        .from('laser_machines')
+        .from('laser_machines' as any)
         .update({ endpoint_url: endpoint })
         .eq('id', selectedMachineId);
       
@@ -142,7 +167,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
         zOffset: 0,
         passes: 1,
         laserMode: 'pulsed',
-        beamDiameter: Number(selectedMachine.beam_diameter) || 0.1
+        beamDiameter: selectedMachine.beam_diameter || 0.1
       });
       setLaserEndpoint(selectedMachine.endpoint_url || '');
     }

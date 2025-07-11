@@ -5,8 +5,9 @@ import { MachineList } from './MachineList';
 import { LaserVisualization } from './LaserVisualization';
 import { LaserControlPanel } from './LaserControlPanel';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowLeft } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
+import { Link } from 'react-router-dom';
 
 export const LaserControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -17,11 +18,21 @@ export const LaserControlSystem = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Laser Marking Control System</h1>
-            <p className="text-gray-600">Monitor and control industrial laser marking machines</p>
+          <div className="flex items-center gap-4">
+            <Link to="/" className="text-gray-600 hover:text-gray-900">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Laser Marking Control System</h1>
+              <p className="text-gray-600">Monitor and control industrial laser marking machines</p>
+            </div>
           </div>
           <div className="flex gap-2">
+            <Link to="/">
+              <Button variant="outline">
+                Switch to CNC Control
+              </Button>
+            </Link>
             <Button 
               onClick={() => setIsAddDialogOpen(true)}
               className="bg-purple-600 hover:bg-purple-700"
@@ -45,7 +56,6 @@ export const LaserControlSystem = () => {
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
-            machineType="laser"
           />
         </div>
 
@@ -63,7 +73,6 @@ export const LaserControlSystem = () => {
       <AddMachineDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
-        machineType="laser"
       />
     </div>
   );
