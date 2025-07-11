@@ -424,7 +424,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     if (pointIndex !== null) {
       setDraggedPointIndex(pointIndex);
       setIsDragging(true);
-      canvas.style.cursor = 'grabbing';
+      canvas.style.cursor = 'none'; // Hide cursor when dragging
     }
   };
 
@@ -448,7 +448,7 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     } else {
       // Check if hovering over a point
       const pointIndex = getPointAtPosition(canvasX, canvasY);
-      canvas.style.cursor = pointIndex !== null ? 'grab' : 'crosshair';
+      canvas.style.cursor = pointIndex !== null ? 'none' : 'none'; // Always hide default cursor
     }
   };
 
@@ -456,8 +456,24 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
     setIsDragging(false);
     setDraggedPointIndex(null);
     if (canvasRef.current) {
-      canvasRef.current.style.cursor = 'crosshair';
+      canvasRef.current.style.cursor = 'none'; // Keep cursor hidden
     }
+  };
+
+  const handleCanvasMouseEnter = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.cursor = 'none'; // Hide cursor when entering canvas
+    }
+  };
+
+  const handleCanvasMouseLeave = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.cursor = 'default'; // Restore cursor when leaving canvas
+    }
+    // Reset mouse position when leaving canvas
+    setMousePos({ x: -1, y: -1 });
   };
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -702,14 +718,16 @@ export const CNCVisualization = ({ selectedMachineId }: CNCVisualizationProps) =
             </div>
             <canvas
               ref={canvasRef}
-              width={1200}
-              height={600}
-              className="border border-gray-300 cursor-crosshair w-full"
+              width={1400}
+              height={700}
+              className="border border-gray-300 w-full"
+              style={{ cursor: 'none' }}
               onClick={handleCanvasClick}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseUp}
+              onMouseEnter={handleCanvasMouseEnter}
+              onMouseLeave={handleCanvasMouseLeave}
               onWheel={handleCanvasWheel}
             />
           </div>
