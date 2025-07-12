@@ -96,7 +96,7 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
   // Apply filters
   const filteredMachines = machines.filter(machine => {
     const statusMatch = statusFilter === 'all' || machine.status === statusFilter;
-    const manufacturerMatch = manufacturerFilter === 'all' || machine.manufacturer === manufacturerMatch;
+    const manufacturerMatch = manufacturerFilter === 'all' || machine.manufacturer === manufacturerFilter;
     return statusMatch && manufacturerMatch;
   });
 
