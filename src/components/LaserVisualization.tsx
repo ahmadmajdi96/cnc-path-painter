@@ -124,12 +124,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       
       const { error } = await supabase
         .from('laser_toolpaths')
-        .insert({
+        .insert([{
           laser_machine_id: selectedMachineId,
           name: toolpathName || `Laser Path ${Date.now()}`,
-          points: points,
-          laser_params: laserParams
-        });
+          points: points as unknown as any,
+          laser_params: laserParams as unknown as any
+        }]);
       
       if (error) throw error;
     },
@@ -544,7 +544,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
 
   const loadToolpath = (toolpath: any) => {
     const pathPoints = Array.isArray(toolpath.points) 
-      ? (toolpath.points as Point[])
+      ? (toolpath.points as unknown as Point[])
       : [];
     setPoints(pathPoints);
     setCurrentPoint(0);
@@ -762,7 +762,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
                       key={toolpath.id}
                       className="flex items-center justify-between p-2 border border-gray-200 rounded"
                     >
-                      <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as Point[]).length : 0} points)</span>
+                      <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
                       <Button
                         onClick={() => loadToolpath(toolpath)}
                         size="sm"
