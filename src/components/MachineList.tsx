@@ -245,7 +245,7 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
       </div>
 
       <EditMachineDialog
-        machine={editingMachine}
+        machine={editingMachine as any}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
       />
