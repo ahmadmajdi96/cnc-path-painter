@@ -74,6 +74,7 @@ export const LaserControlSystem = () => {
       <AddMachineDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
+        machineType="laser"
       />
     </div>
   );
