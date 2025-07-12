@@ -11,14 +11,17 @@ import { EditMachineDialog } from './EditMachineDialog';
 import { MachineFilters } from './MachineFilters';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Machine = Tables<'cnc_machines'>;
+type CNCMachine = Tables<'cnc_machines'>;
+type LaserMachine = Tables<'laser_machines'>;
+type Machine = CNCMachine | LaserMachine;
 
 interface MachineListProps {
   selectedMachine?: string;
   onMachineSelect: (machineId: string) => void;
+  machineType: 'cnc' | 'laser';
 }
 
-export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListProps) => {
+export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: MachineListProps) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [manufacturerFilter, setManufacturerFilter] = useState('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -26,22 +29,23 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
   
   const queryClient = useQueryClient();
 
-  // Fetch CNC machines from database
+  // Fetch machines from appropriate table based on type
   const { data: machines = [], isLoading, error } = useQuery({
-    queryKey: ['cnc-machines'],
+    queryKey: [`${machineType}-machines`],
     queryFn: async () => {
-      console.log('Fetching CNC machines...');
+      console.log(`Fetching ${machineType} machines...`);
+      const tableName = machineType === 'cnc' ? 'cnc_machines' : 'laser_machines';
       const { data, error } = await supabase
-        .from('cnc_machines')
+        .from(tableName)
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching machines:', error);
+        console.error(`Error fetching ${machineType} machines:`, error);
         throw error;
       }
       
-      console.log('Fetched machines:', data);
+      console.log(`Fetched ${machineType} machines:`, data);
       return data;
     }
   });
@@ -49,19 +53,20 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
   // Delete machine mutation
   const deleteMachineMutation = useMutation({
     mutationFn: async (machineId: string) => {
+      const tableName = machineType === 'cnc' ? 'cnc_machines' : 'laser_machines';
       const { error } = await supabase
-        .from('cnc_machines')
+        .from(tableName)
         .delete()
         .eq('id', machineId);
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cnc-machines'] });
+      queryClient.invalidateQueries({ queryKey: [`${machineType}-machines`] });
     }
   });
 
-  const getStatusColor = (status: Machine['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'idle': return 'bg-yellow-100 text-yellow-800';
@@ -91,9 +96,28 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
   // Apply filters
   const filteredMachines = machines.filter(machine => {
     const statusMatch = statusFilter === 'all' || machine.status === statusFilter;
-    const manufacturerMatch = manufacturerFilter === 'all' || machine.manufacturer === manufacturerFilter;
+    const manufacturerMatch = manufacturerFilter === 'all' || machine.manufacturer === manufacturerMatch;
     return statusMatch && manufacturerMatch;
   });
+
+  // Get machine-specific specs
+  const getMachineSpecs = (machine: Machine) => {
+    if (machineType === 'cnc') {
+      const cncMachine = machine as CNCMachine;
+      return {
+        workArea: cncMachine.work_area || 'Not specified',
+        spindle: `${cncMachine.max_spindle_speed || 0} RPM`,
+        feedRate: `${cncMachine.max_feed_rate || 0} mm/min`
+      };
+    } else {
+      const laserMachine = machine as LaserMachine;
+      return {
+        power: `${laserMachine.max_power || 0}W`,
+        frequency: `${laserMachine.max_frequency || 0} Hz`,
+        speed: `${laserMachine.max_speed || 0} mm/min`
+      };
+    }
+  };
 
   if (isLoading) {
     return (
@@ -113,6 +137,8 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
     );
   }
 
+  const machineTypeLabel = machineType === 'cnc' ? 'CNC' : 'Laser';
+
   return (
     <>
       <div className="space-y-4 h-full flex flex-col">
@@ -127,13 +153,13 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
         <Card className="p-4 bg-white border border-gray-200 flex-1 flex flex-col min-h-0">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              CNC Machines ({filteredMachines.length} of {machines.length})
+              {machineTypeLabel} Machines ({filteredMachines.length} of {machines.length})
             </h3>
           </div>
 
           {machines.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No CNC machines found</p>
+              <p className="text-gray-500 mb-4">No {machineTypeLabel} machines found</p>
               <p className="text-sm text-gray-400">Click "Add Machine" to get started</p>
             </div>
           ) : filteredMachines.length === 0 ? (
@@ -143,62 +169,75 @@ export const MachineList = ({ selectedMachine, onMachineSelect }: MachineListPro
           ) : (
             <ScrollArea className="flex-1">
               <div className="space-y-3 pr-4">
-                {filteredMachines.map((machine) => (
-                  <div
-                    key={machine.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      selectedMachine === machine.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => onMachineSelect(machine.id)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{machine.name}</h4>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(machine.status)}>
-                          {machine.status.toUpperCase()}
-                        </Badge>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(machine);
-                            }}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(machine.id);
-                            }}
-                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                            disabled={deleteMachineMutation.isPending}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                {filteredMachines.map((machine) => {
+                  const specs = getMachineSpecs(machine);
+                  return (
+                    <div
+                      key={machine.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                        selectedMachine === machine.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => onMachineSelect(machine.id)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900">{machine.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(machine.status)}>
+                            {machine.status.toUpperCase()}
+                          </Badge>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(machine);
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(machine.id);
+                              }}
+                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                              disabled={deleteMachineMutation.isPending}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {machine.manufacturer} {machine.model}
+                      </p>
+                      <div className="text-xs text-gray-500 space-y-1">
+                        {machineType === 'cnc' ? (
+                          <>
+                            <div>Work Area: {specs.workArea}</div>
+                            <div>Spindle: {specs.spindle}</div>
+                            <div>Feed Rate: {specs.feedRate}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div>Power: {specs.power}</div>
+                            <div>Frequency: {specs.frequency}</div>
+                            <div>Speed: {specs.speed}</div>
+                          </>
+                        )}
+                        {machine.ip_address && (
+                          <div>IP: {machine.ip_address}:{machine.port || 502}</div>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {machine.manufacturer} {machine.model}
-                    </p>
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>Work Area: {machine.work_area || 'Not specified'}</div>
-                      <div>Spindle: {machine.max_spindle_speed || 0} RPM</div>
-                      <div>Feed Rate: {machine.max_feed_rate || 0} mm/min</div>
-                      {machine.ip_address && (
-                        <div>IP: {machine.ip_address}:{machine.port || 502}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           )}

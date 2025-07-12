@@ -56,6 +56,7 @@ export const CNCControlSystem = () => {
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
+            machineType="cnc"
           />
         </div>
 

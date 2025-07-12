@@ -56,6 +56,7 @@ export const LaserControlSystem = () => {
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
+            machineType="laser"
           />
         </div>
 
