@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -8,13 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LaserControlPanelProps {
+  selectedMachineId?: string;
   onParametersChange?: (params: any) => void;
   selectedEndpoint?: string;
 }
 
-export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: LaserControlPanelProps) => {
+export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selectedEndpoint }: LaserControlPanelProps) => {
   const [laserPower, setLaserPower] = useState([79]);
   const [pulseFrequency, setPulseFrequency] = useState([4300]);
   const [markingSpeed, setMarkingSpeed] = useState([1050]);
@@ -25,6 +28,32 @@ export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: Lase
   const [beamDiameter, setBeamDiameter] = useState([0.1]);
   const [material, setMaterial] = useState('steel');
   const { toast } = useToast();
+
+  // Fetch selected machine data to set machine-specific parameters
+  const { data: selectedMachine } = useQuery({
+    queryKey: ['laser-machine-params', selectedMachineId],
+    queryFn: async () => {
+      if (!selectedMachineId) return null;
+      const { data, error } = await supabase
+        .from('laser_machines')
+        .select('*')
+        .eq('id', selectedMachineId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedMachineId
+  });
+
+  // Update parameters when machine changes
+  useEffect(() => {
+    if (selectedMachine) {
+      setLaserPower([selectedMachine.max_power || 100]);
+      setPulseFrequency([selectedMachine.max_frequency || 10000]);
+      setMarkingSpeed([selectedMachine.max_speed || 2000]);
+      setBeamDiameter([selectedMachine.beam_diameter || 0.1]);
+    }
+  }, [selectedMachine]);
 
   // Update parent component when parameters change
   React.useEffect(() => {
@@ -119,9 +148,25 @@ export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: Lase
     }
   };
 
+  if (!selectedMachineId) {
+    return (
+      <Card className="p-4 bg-white border border-gray-200 h-full">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Laser Control Panel</h3>
+        <p className="text-gray-600 text-sm">Select a laser machine to view controls</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Laser Control Panel</h3>
+      
+      {selectedMachine && (
+        <div className="mb-4">
+          <h4 className="font-medium text-gray-900 mb-2">Machine: {selectedMachine.name}</h4>
+          <p className="text-sm text-gray-600">{selectedMachine.model}</p>
+        </div>
+      )}
       
       {/* Machine Status */}
       <div className="mb-6">
@@ -149,13 +194,13 @@ export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: Lase
         <div className="space-y-4">
           <div>
             <label className="text-sm text-gray-600 mb-2 block">
-              Laser Power: {laserPower[0]}%
+              Laser Power: {laserPower[0]}% {selectedMachine && `(Max: ${selectedMachine.max_power || 'N/A'})`}
             </label>
             <Slider
               value={laserPower}
               onValueChange={setLaserPower}
               min={1}
-              max={100}
+              max={selectedMachine?.max_power || 100}
               step={1}
               className="w-full"
             />
@@ -163,13 +208,13 @@ export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: Lase
 
           <div>
             <label className="text-sm text-gray-600 mb-2 block">
-              Pulse Frequency: {pulseFrequency[0]} Hz
+              Pulse Frequency: {pulseFrequency[0]} Hz {selectedMachine && `(Max: ${selectedMachine.max_frequency || 'N/A'})`}
             </label>
             <Slider
               value={pulseFrequency}
               onValueChange={setPulseFrequency}
               min={100}
-              max={10000}
+              max={selectedMachine?.max_frequency || 10000}
               step={100}
               className="w-full"
             />
@@ -177,13 +222,13 @@ export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: Lase
 
           <div>
             <label className="text-sm text-gray-600 mb-2 block">
-              Marking Speed: {markingSpeed[0]} mm/min
+              Marking Speed: {markingSpeed[0]} mm/min {selectedMachine && `(Max: ${selectedMachine.max_speed || 'N/A'})`}
             </label>
             <Slider
               value={markingSpeed}
               onValueChange={setMarkingSpeed}
               min={50}
-              max={2000}
+              max={selectedMachine?.max_speed || 2000}
               step={50}
               className="w-full"
             />
@@ -219,7 +264,7 @@ export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: Lase
 
           <div>
             <label className="text-sm text-gray-600 mb-2 block">
-              Beam Diameter: {beamDiameter[0]} mm
+              Beam Diameter: {beamDiameter[0]} mm {selectedMachine && `(Spec: ${selectedMachine.beam_diameter || 'N/A'})`}
             </label>
             <Slider
               value={beamDiameter}
