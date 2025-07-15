@@ -4,7 +4,6 @@ import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { LaserVisualization } from './LaserVisualization';
 import { LaserControlPanel } from './LaserControlPanel';
-import { EndpointManager } from './EndpointManager';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
@@ -68,26 +67,22 @@ export const LaserControlSystem = () => {
           />
         </div>
 
-        {/* Center - 2D Visualization (Full Width) */}
-        <div className="flex-1 min-w-0">
+        {/* Center - 2D Visualization and Endpoint Manager */}
+        <div className="flex-1 min-w-0 space-y-6">
           <LaserVisualization 
             selectedMachineId={selectedMachine}
             selectedEndpoint={selectedEndpoint}
             laserParams={laserParams}
+            onEndpointSelect={setSelectedEndpoint}
           />
         </div>
 
-        {/* Right Sidebar - Control Panel and Endpoint Manager */}
-        <div className="w-96 flex-shrink-0 space-y-6">
+        {/* Right Sidebar - Control Panel */}
+        <div className="w-96 flex-shrink-0">
           <LaserControlPanel 
+            selectedMachineId={selectedMachine}
             onParametersChange={setLaserParams}
             selectedEndpoint={selectedEndpoint}
-          />
-          <EndpointManager 
-            selectedMachineId={selectedMachine}
-            onEndpointSelect={setSelectedEndpoint}
-            selectedEndpoint={selectedEndpoint}
-            machineType="laser"
           />
         </div>
       </div>

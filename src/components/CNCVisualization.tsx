@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { EndpointManager } from './EndpointManager';
 import { useToast } from '@/hooks/use-toast';
 
 type CNCMachine = Tables<'cnc_machines'>;
@@ -24,9 +24,10 @@ interface CNCVisualizationProps {
   selectedMachineId?: string;
   selectedEndpoint?: string;
   cncParams?: any;
+  onEndpointSelect?: (endpoint: string) => void;
 }
 
-export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParams }: CNCVisualizationProps) => {
+export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParams, onEndpointSelect }: CNCVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
@@ -213,122 +214,137 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
   };
 
   return (
-    <Card className="p-4 bg-white border border-gray-200 h-full">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">3D CNC Visualization</h3>
-        {!selectedMachineId && (
-          <p className="text-gray-600 text-sm">Select a CNC machine to start creating toolpaths</p>
-        )}
-      </div>
+    <div className="space-y-6">
+      {/* CNC Visualization */}
+      <Card className="p-4 bg-white border border-gray-200">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">2D CNC Visualization</h3>
+          {!selectedMachineId && (
+            <p className="text-gray-600 text-sm">Select a CNC machine to start creating toolpaths</p>
+          )}
+        </div>
 
-      {selectedMachineId && (
-        <>
-          <div className="mb-4">
-            <canvas
-              ref={canvasRef}
-              width={600}
-              height={400}
-              className="border border-gray-300 w-full"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button
-              onClick={() => setIsSimulating(!isSimulating)}
-              disabled={points.length === 0}
-              size="sm"
-            >
-              {isSimulating ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-              {isSimulating ? 'Pause' : 'Simulate'}
-            </Button>
-            <Button
-              onClick={() => setCurrentPoint(0)}
-              size="sm"
-              variant="outline"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-            <Button
-              onClick={downloadGCode}
-              disabled={points.length === 0}
-              size="sm"
-              variant="outline"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              G-Code
-            </Button>
-          </div>
-
-          {points.length > 0 && (
-            <div className="mb-4 flex gap-2">
-              <Input
-                placeholder="Toolpath name"
-                value={toolpathName}
-                onChange={(e) => setToolpathName(e.target.value)}
-                className="flex-1"
+        {selectedMachineId && (
+          <>
+            <div className="mb-4">
+              <canvas
+                ref={canvasRef}
+                width={600}
+                height={400}
+                className="border border-gray-300 w-full"
               />
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-4">
               <Button
-                onClick={() => saveToolpathMutation.mutate()}
-                disabled={saveToolpathMutation.isPending}
+                onClick={() => setIsSimulating(!isSimulating)}
+                disabled={points.length === 0}
                 size="sm"
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save
+                {isSimulating ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                {isSimulating ? 'Pause' : 'Simulate'}
               </Button>
-            </div>
-          )}
-
-          {selectedEndpoint && points.length > 0 && (
-            <div className="mb-4">
               <Button
-                onClick={sendGCodeToEndpoint}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={() => setCurrentPoint(0)}
+                size="sm"
+                variant="outline"
               >
-                Send G-Code to Machine
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset
+              </Button>
+              <Button
+                onClick={downloadGCode}
+                disabled={points.length === 0}
+                size="sm"
+                variant="outline"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                G-Code
               </Button>
             </div>
-          )}
 
-          {toolpaths.length > 0 && (
-            <div className="mb-4">
-              <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
-              <ScrollArea className="h-40 border border-gray-200 rounded p-2">
-                <div className="space-y-2">
-                  {toolpaths.map((toolpath) => (
-                    <div
-                      key={toolpath.id}
-                      className={`flex items-center justify-between p-2 border rounded ${
-                        loadedToolpathId === toolpath.id 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)
-                        </span>
-                        {loadedToolpathId === toolpath.id && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            Loaded
-                          </span>
-                        )}
-                      </div>
-                      <Button
-                        onClick={() => loadToolpath(toolpath)}
-                        size="sm"
-                        variant="outline"
+            {points.length > 0 && (
+              <div className="mb-4 flex gap-2">
+                <Input
+                  placeholder="Toolpath name"
+                  value={toolpathName}
+                  onChange={(e) => setToolpathName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={() => saveToolpathMutation.mutate()}
+                  disabled={saveToolpathMutation.isPending}
+                  size="sm"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save
+                </Button>
+              </div>
+            )}
+
+            {toolpaths.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
+                <ScrollArea className="h-40 border border-gray-200 rounded p-2">
+                  <div className="space-y-2">
+                    {toolpaths.map((toolpath) => (
+                      <div
+                        key={toolpath.id}
+                        className={`flex items-center justify-between p-2 border rounded ${
+                          loadedToolpathId === toolpath.id 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200'
+                        }`}
                       >
-                        Load
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-        </>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)
+                          </span>
+                          {loadedToolpathId === toolpath.id && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              Loaded
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          onClick={() => loadToolpath(toolpath)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Load
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+
+      {/* Endpoint Manager */}
+      {selectedMachineId && (
+        <EndpointManager 
+          selectedMachineId={selectedMachineId}
+          onEndpointSelect={onEndpointSelect || (() => {})}
+          selectedEndpoint={selectedEndpoint || ''}
+          machineType="cnc"
+        />
       )}
-    </Card>
+
+      {/* Send G-Code Section */}
+      {selectedEndpoint && points.length > 0 && (
+        <Card className="p-4">
+          <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
+          <Button
+            onClick={sendGCodeToEndpoint}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            Send G-Code to Machine
+          </Button>
+        </Card>
+      )}
+    </div>
   );
 };

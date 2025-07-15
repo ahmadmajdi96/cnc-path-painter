@@ -4,7 +4,6 @@ import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { CNCVisualization } from './CNCVisualization';
 import { ControlPanel } from './ControlPanel';
-import { EndpointManager } from './EndpointManager';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
@@ -68,26 +67,22 @@ export const CNCControlSystem = () => {
           />
         </div>
 
-        {/* Center - 3D Visualization (Full Width) */}
-        <div className="flex-1 min-w-0">
+        {/* Center - 2D Visualization and Endpoint Manager */}
+        <div className="flex-1 min-w-0 space-y-6">
           <CNCVisualization 
             selectedMachineId={selectedMachine}
             selectedEndpoint={selectedEndpoint}
             cncParams={cncParams}
+            onEndpointSelect={setSelectedEndpoint}
           />
         </div>
 
-        {/* Right Sidebar - Control Panel and Endpoint Manager */}
-        <div className="w-96 flex-shrink-0 space-y-6">
+        {/* Right Sidebar - Control Panel */}
+        <div className="w-96 flex-shrink-0">
           <ControlPanel 
+            selectedMachineId={selectedMachine}
             onParametersChange={setCncParams}
             selectedEndpoint={selectedEndpoint}
-          />
-          <EndpointManager 
-            selectedMachineId={selectedMachine}
-            onEndpointSelect={setSelectedEndpoint}
-            selectedEndpoint={selectedEndpoint}
-            machineType="cnc"
           />
         </div>
       </div>
@@ -95,6 +90,7 @@ export const CNCControlSystem = () => {
       <AddMachineDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
+        machineType="cnc"
       />
     </div>
   );

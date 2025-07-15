@@ -35,9 +35,10 @@ interface LaserVisualizationProps {
   selectedMachineId?: string;
   selectedEndpoint?: string;
   laserParams?: any;
+  onEndpointSelect?: (endpoint: string) => void;
 }
 
-export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: externalSelectedEndpoint }: LaserVisualizationProps) => {
+export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: externalSelectedEndpoint, onEndpointSelect }: LaserVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
@@ -735,186 +736,185 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
-      {/* Left side - Toolpath Visualization */}
-      <div className="lg:col-span-3">
-        <Card className="p-4 bg-white border border-gray-200">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">2D Laser Visualization (X/Y View)</h3>
-            {!selectedMachineId && (
-              <p className="text-gray-600 text-sm">Select a machine to start creating toolpaths</p>
-            )}
-          </div>
-
-          {selectedMachineId && (
-            <>
-              {/* Canvas with zoom controls */}
-              <div className="mb-4">
-                <div className="flex gap-2 mb-2">
-                  <Button onClick={zoomIn} size="sm" variant="outline">
-                    <ZoomIn className="w-4 h-4" />
-                  </Button>
-                  <Button onClick={zoomOut} size="sm" variant="outline">
-                    <ZoomOut className="w-4 h-4" />
-                  </Button>
-                  <Button onClick={resetZoom} size="sm" variant="outline">
-                    Reset View
-                  </Button>
-                </div>
-                <canvas
-                  ref={canvasRef}
-                  width={1400}
-                  height={700}
-                  className="border border-gray-300 w-full"
-                  style={{ cursor: 'none' }}
-                  onClick={handleCanvasClick}
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseEnter={handleCanvasMouseEnter}
-                  onMouseLeave={handleCanvasMouseLeave}
-                  onWheel={handleCanvasWheel}
-                />
-              </div>
-
-              {/* Controls */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Button
-                  onClick={startSimulation}
-                  disabled={isSimulating || points.length === 0}
-                  size="sm"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Simulate
-                </Button>
-                <Button
-                  onClick={resetSimulation}
-                  disabled={!isSimulating && currentPoint === 0}
-                  size="sm"
-                  variant="outline"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Reset
-                </Button>
-                <Button
-                  onClick={clearPoints}
-                  size="sm"
-                  variant="outline"
-                >
-                  Clear
-                </Button>
-                <Button
-                  onClick={downloadGCode}
-                  disabled={points.length === 0}
-                  size="sm"
-                  variant="outline"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  G-Code
-                </Button>
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  size="sm"
-                  variant="outline"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload G-Code
-                </Button>
-              </div>
-
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".gcode,.nc,.cnc"
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-              />
-
-              {/* Save Toolpath */}
-              {points.length > 0 && (
-                <div className="mb-4 flex gap-2">
-                  <Input
-                    placeholder="Toolpath name"
-                    value={toolpathName}
-                    onChange={(e) => setToolpathName(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={() => saveToolpathMutation.mutate()}
-                    disabled={saveToolpathMutation.isPending}
-                    size="sm"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                </div>
-              )}
-
-              {/* Saved Toolpaths */}
-              {toolpaths.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
-                  <ScrollArea className="h-40 border border-gray-200 rounded p-2">
-                    <div className="space-y-2">
-                      {toolpaths.map((toolpath) => (
-                        <div
-                          key={toolpath.id}
-                          className={`flex items-center justify-between p-2 border rounded ${
-                            loadedToolpathId === toolpath.id 
-                              ? 'border-purple-500 bg-purple-50' 
-                              : 'border-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">
-                              {toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)
-                            </span>
-                            {loadedToolpathId === toolpath.id && (
-                              <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                                Loaded
-                              </span>
-                            )}
-                          </div>
-                          <Button
-                            onClick={() => loadToolpath(toolpath)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Load
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-            </>
+    <div className="space-y-6">
+      {/* Laser Visualization */}
+      <Card className="p-4 bg-white border border-gray-200">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">2D Laser Visualization (X/Y View)</h3>
+          {!selectedMachineId && (
+            <p className="text-gray-600 text-sm">Select a machine to start creating toolpaths</p>
           )}
-        </Card>
-      </div>
+        </div>
 
-      {/* Right side - Endpoint Manager */}
-      <div className="space-y-6">
+        {selectedMachineId && (
+          <>
+            {/* Canvas with zoom controls */}
+            <div className="mb-4">
+              <div className="flex gap-2 mb-2">
+                <Button onClick={zoomIn} size="sm" variant="outline">
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+                <Button onClick={zoomOut} size="sm" variant="outline">
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                <Button onClick={resetZoom} size="sm" variant="outline">
+                  Reset View
+                </Button>
+              </div>
+              <canvas
+                ref={canvasRef}
+                width={1400}
+                height={700}
+                className="border border-gray-300 w-full"
+                style={{ cursor: 'none' }}
+                onClick={handleCanvasClick}
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseEnter={handleCanvasMouseEnter}
+                onMouseLeave={handleCanvasMouseLeave}
+                onWheel={handleCanvasWheel}
+              />
+            </div>
+
+            {/* Controls */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button
+                onClick={startSimulation}
+                disabled={isSimulating || points.length === 0}
+                size="sm"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Simulate
+              </Button>
+              <Button
+                onClick={resetSimulation}
+                disabled={!isSimulating && currentPoint === 0}
+                size="sm"
+                variant="outline"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset
+              </Button>
+              <Button
+                onClick={clearPoints}
+                size="sm"
+                variant="outline"
+              >
+                Clear
+              </Button>
+              <Button
+                onClick={downloadGCode}
+                disabled={points.length === 0}
+                size="sm"
+                variant="outline"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                G-Code
+              </Button>
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                size="sm"
+                variant="outline"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload G-Code
+              </Button>
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".gcode,.nc,.cnc"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+
+            {/* Save Toolpath */}
+            {points.length > 0 && (
+              <div className="mb-4 flex gap-2">
+                <Input
+                  placeholder="Toolpath name"
+                  value={toolpathName}
+                  onChange={(e) => setToolpathName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={() => saveToolpathMutation.mutate()}
+                  disabled={saveToolpathMutation.isPending}
+                  size="sm"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save
+                </Button>
+              </div>
+            )}
+
+            {/* Saved Toolpaths */}
+            {toolpaths.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
+                <ScrollArea className="h-40 border border-gray-200 rounded p-2">
+                  <div className="space-y-2">
+                    {toolpaths.map((toolpath) => (
+                      <div
+                        key={toolpath.id}
+                        className={`flex items-center justify-between p-2 border rounded ${
+                          loadedToolpathId === toolpath.id 
+                            ? 'border-purple-500 bg-purple-50' 
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)
+                          </span>
+                          {loadedToolpathId === toolpath.id && (
+                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                              Loaded
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          onClick={() => loadToolpath(toolpath)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          Load
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+
+      {/* Endpoint Manager */}
+      {selectedMachineId && (
         <EndpointManager 
           selectedMachineId={selectedMachineId}
-          onEndpointSelect={setSelectedEndpoint}
-          selectedEndpoint={selectedEndpoint}
+          onEndpointSelect={onEndpointSelect || setSelectedEndpoint}
+          selectedEndpoint={selectedEndpoint || ''}
           machineType="laser"
         />
-        
-        {selectedEndpoint && points.length > 0 && (
-          <Card className="p-4">
-            <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
-            <Button
-              onClick={() => sendGCodeToEndpoint(selectedEndpoint)}
-              className="w-full bg-purple-600 hover:bg-purple-700"
-            >
-              Send G-Code to Machine
-            </Button>
-          </Card>
-        )}
-      </div>
+      )}
+
+      {/* Send G-Code Section */}
+      {selectedEndpoint && points.length > 0 && (
+        <Card className="p-4">
+          <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
+          <Button
+            onClick={() => sendGCodeToEndpoint(selectedEndpoint)}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            Send G-Code to Machine
+          </Button>
+        </Card>
+      )}
     </div>
   );
 };

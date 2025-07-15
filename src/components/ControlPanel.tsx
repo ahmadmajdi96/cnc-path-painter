@@ -1,23 +1,51 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ControlPanelProps {
+  selectedMachineId?: string;
   onParametersChange?: (params: any) => void;
   selectedEndpoint?: string;
 }
 
-export const ControlPanel = ({ onParametersChange, selectedEndpoint }: ControlPanelProps) => {
+export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEndpoint }: ControlPanelProps) => {
   const [feedRate, setFeedRate] = useState([1000]);
   const [spindleSpeed, setSpindleSpeed] = useState([8000]);
   const [plungeDepth, setPlungeDepth] = useState([2]);
   const [material, setMaterial] = useState('aluminum');
   const { toast } = useToast();
+
+  // Fetch selected machine data to set machine-specific parameters
+  const { data: selectedMachine } = useQuery({
+    queryKey: ['cnc-machine-params', selectedMachineId],
+    queryFn: async () => {
+      if (!selectedMachineId) return null;
+      const { data, error } = await supabase
+        .from('cnc_machines')
+        .select('*')
+        .eq('id', selectedMachineId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedMachineId
+  });
+
+  // Update parameters when machine changes
+  useEffect(() => {
+    if (selectedMachine) {
+      setFeedRate([selectedMachine.max_feed_rate || 1000]);
+      setSpindleSpeed([selectedMachine.max_spindle_speed || 8000]);
+      setPlungeDepth([selectedMachine.plunge_rate || 2]);
+    }
+  }, [selectedMachine]);
 
   // Update parent component when parameters change
   React.useEffect(() => {
@@ -67,9 +95,25 @@ export const ControlPanel = ({ onParametersChange, selectedEndpoint }: ControlPa
     }
   };
 
+  if (!selectedMachineId) {
+    return (
+      <Card className="p-4 bg-white border border-gray-200 h-full">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">CNC Control Panel</h3>
+        <p className="text-gray-600 text-sm">Select a CNC machine to view controls</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Control Panel</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">CNC Control Panel</h3>
+      
+      {selectedMachine && (
+        <div className="mb-4">
+          <h4 className="font-medium text-gray-900 mb-2">Machine: {selectedMachine.name}</h4>
+          <p className="text-sm text-gray-600">{selectedMachine.model}</p>
+        </div>
+      )}
       
       {/* Machine Status */}
       <div className="mb-6">
@@ -97,13 +141,13 @@ export const ControlPanel = ({ onParametersChange, selectedEndpoint }: ControlPa
         <div className="space-y-4">
           <div>
             <label className="text-sm text-gray-600 mb-2 block">
-              Feed Rate: {feedRate[0]} mm/min
+              Feed Rate: {feedRate[0]} mm/min {selectedMachine && `(Max: ${selectedMachine.max_feed_rate || 'N/A'})`}
             </label>
             <Slider
               value={feedRate}
               onValueChange={setFeedRate}
               min={100}
-              max={3000}
+              max={selectedMachine?.max_feed_rate || 3000}
               step={100}
               className="w-full"
             />
@@ -111,13 +155,13 @@ export const ControlPanel = ({ onParametersChange, selectedEndpoint }: ControlPa
 
           <div>
             <label className="text-sm text-gray-600 mb-2 block">
-              Spindle Speed: {spindleSpeed[0]} RPM
+              Spindle Speed: {spindleSpeed[0]} RPM {selectedMachine && `(Max: ${selectedMachine.max_spindle_speed || 'N/A'})`}
             </label>
             <Slider
               value={spindleSpeed}
               onValueChange={setSpindleSpeed}
               min={1000}
-              max={15000}
+              max={selectedMachine?.max_spindle_speed || 15000}
               step={500}
               className="w-full"
             />
