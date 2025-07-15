@@ -12,7 +12,7 @@ import { EndpointManager } from './EndpointManager';
 import { useToast } from '@/hooks/use-toast';
 
 type LaserMachine = Tables<'laser_machines'>;
-type Toolpath = Tables<'toolpaths'>;
+type LaserToolpath = Tables<'laser_toolpaths'>;
 
 interface Point {
   x: number;
@@ -49,6 +49,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [selectedEndpoint, setSelectedEndpoint] = useState('');
+  const [loadedToolpathId, setLoadedToolpathId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Scale factor: 1 pixel = 0.1 mm (can be adjusted)
@@ -90,12 +91,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
 
   // Fetch toolpaths for selected machine
   const { data: toolpaths = [] } = useQuery({
-    queryKey: ['toolpaths', selectedMachineId],
+    queryKey: ['laser-toolpaths', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return [];
       console.log('Fetching toolpaths for machine:', selectedMachineId);
       const { data, error } = await supabase
-        .from('toolpaths')
+        .from('laser_toolpaths')
         .select('*')
         .eq('laser_machine_id', selectedMachineId)
         .order('created_at', { ascending: false });
@@ -116,7 +117,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       
       console.log('Saving toolpath:', { selectedMachineId, points, laserParams });
       const { error } = await supabase
-        .from('toolpaths')
+        .from('laser_toolpaths')
         .insert({
           laser_machine_id: selectedMachineId,
           name: toolpathName || `Toolpath ${Date.now()}`,
@@ -131,18 +132,22 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       console.log('Toolpath saved successfully');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['toolpaths', selectedMachineId] });
+      queryClient.invalidateQueries({ queryKey: ['laser-toolpaths', selectedMachineId] });
       setToolpathName('');
+      toast({
+        title: "Success",
+        description: "Toolpath saved successfully",
+      });
     }
   });
 
   useEffect(() => {
-    if (toolpaths.length > 0 && selectedMachineId) {
+    if (toolpaths.length > 0 && selectedMachineId && !loadedToolpathId) {
       const latestToolpath = toolpaths[0];
       console.log('Auto-loading latest toolpath:', latestToolpath);
       loadToolpath(latestToolpath);
     }
-  }, [toolpaths, selectedMachineId]);
+  }, [toolpaths, selectedMachineId, loadedToolpathId]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -521,13 +526,14 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     setCurrentPoint(0);
   };
 
-  const loadToolpath = (toolpath: Toolpath) => {
+  const loadToolpath = (toolpath: LaserToolpath) => {
     console.log('Loading toolpath:', toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
       ? (toolpath.points as unknown as Point[])
       : [];
     setPoints(pathPoints);
     setCurrentPoint(0);
+    setLoadedToolpathId(toolpath.id);
     
     if (toolpath.laser_params) {
       const params = toolpath.laser_params as any;
@@ -605,6 +611,17 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     return gcode;
   };
 
+  const downloadGCode = () => {
+    const gcode = generateGCode();
+    const blob = new Blob([gcode], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${toolpathName || 'laser_toolpath'}.gcode`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const sendGCodeToEndpoint = async (endpoint: string) => {
     if (!endpoint || points.length === 0) return;
     
@@ -652,14 +669,36 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      const parsedPoints = parseGCode(content);
-      if (parsedPoints.length > 0) {
-        setPoints(parsedPoints);
-        console.log('Loaded G-code with', parsedPoints.length, 'points');
+      try {
+        const content = e.target?.result as string;
+        const parsedPoints = parseGCode(content);
+        if (parsedPoints.length > 0) {
+          setPoints(parsedPoints);
+          setLoadedToolpathId(null);
+          toast({
+            title: "G-Code Loaded",
+            description: `Successfully loaded ${parsedPoints.length} points from G-code file`,
+          });
+          console.log('Loaded G-code with', parsedPoints.length, 'points');
+        } else {
+          toast({
+            title: "No Points Found",
+            description: "No valid X/Y coordinates found in the G-code file",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Upload Failed",
+          description: `Error parsing G-code file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive"
+        });
       }
     };
     reader.readAsText(file);
+    
+    // Reset file input
+    event.target.value = '';
   };
 
   const parseGCode = (gcode: string): Point[] => {
@@ -813,9 +852,22 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
                       {toolpaths.map((toolpath) => (
                         <div
                           key={toolpath.id}
-                          className="flex items-center justify-between p-2 border border-gray-200 rounded"
+                          className={`flex items-center justify-between p-2 border rounded ${
+                            loadedToolpathId === toolpath.id 
+                              ? 'border-purple-500 bg-purple-50' 
+                              : 'border-gray-200'
+                          }`}
                         >
-                          <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">
+                              {toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)
+                            </span>
+                            {loadedToolpathId === toolpath.id && (
+                              <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                Loaded
+                              </span>
+                            )}
+                          </div>
                           <Button
                             onClick={() => loadToolpath(toolpath)}
                             size="sm"
