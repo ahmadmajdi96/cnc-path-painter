@@ -166,6 +166,36 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     }
   });
 
+  // Upload G-code mutation
+  const uploadGcodeMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const text = await file.text();
+      const points = parseGCodeToPoints(text);
+      
+      if (points.length === 0) {
+        throw new Error('No valid coordinates found in G-code file');
+      }
+      
+      return points;
+    },
+    onSuccess: (points) => {
+      setPoints(points);
+      setCurrentPoint(0);
+      setLoadedToolpathId(null);
+      toast({
+        title: "Success",
+        description: `G-code uploaded successfully! Found ${points.length} points.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to upload G-code: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
   useEffect(() => {
     if (selectedMachine) {
       setLaserParams({
@@ -405,6 +435,31 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     return gcode;
   };
 
+  const parseGCodeToPoints = (gcode: string): Point[] => {
+    const lines = gcode.split('\n');
+    const points: Point[] = [];
+    
+    for (const line of lines) {
+      const trimmed = line.trim().toUpperCase();
+      
+      // Look for G0, G1, G2, G3 commands with X and Y coordinates
+      if (trimmed.startsWith('G0') || trimmed.startsWith('G1') || 
+          trimmed.startsWith('G2') || trimmed.startsWith('G3')) {
+        
+        const xMatch = trimmed.match(/X(-?\d+\.?\d*)/);
+        const yMatch = trimmed.match(/Y(-?\d+\.?\d*)/);
+        
+        if (xMatch && yMatch) {
+          const x = parseFloat(xMatch[1]) / MM_PER_PIXEL; // Convert mm to pixels
+          const y = parseFloat(yMatch[1]) / MM_PER_PIXEL; // Convert mm to pixels
+          points.push({ x: Math.round(x), y: Math.round(y) });
+        }
+      }
+    }
+    
+    return points;
+  };
+
   const loadToolpath = (toolpath: LaserToolpath) => {
     console.log('Loading toolpath:', toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
@@ -559,6 +614,31 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     setPoints([]);
     setCurrentPoint(0);
     setLoadedToolpathId(null);
+  };
+
+  const handleFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith('.gcode') && !file.name.toLowerCase().endsWith('.nc')) {
+        toast({
+          title: "Invalid File",
+          description: "Please select a .gcode or .nc file",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      uploadGcodeMutation.mutate(file);
+    }
+    
+    // Reset the input
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   return (
@@ -716,6 +796,22 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
               <Download className="w-4 h-4 mr-2" />
               G-Code
             </Button>
+            <Button
+              onClick={handleFileUpload}
+              disabled={uploadGcodeMutation.isPending}
+              size="sm"
+              variant="outline"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {uploadGcodeMutation.isPending ? 'Uploading...' : 'Upload G-Code'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".gcode,.nc"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
           </div>
 
           {/* Save Toolpath */}
