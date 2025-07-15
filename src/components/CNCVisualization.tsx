@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -140,10 +141,15 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     gcode += 'G90 ; Absolute positioning\n';
     
     points.forEach((point, index) => {
+      // Add null checks to prevent undefined errors
+      const x = typeof point.x === 'number' ? point.x : 0;
+      const y = typeof point.y === 'number' ? point.y : 0;
+      const z = typeof point.z === 'number' ? point.z : 0;
+      
       if (index === 0) {
-        gcode += `G0 X${point.x.toFixed(3)} Y${point.y.toFixed(3)} Z${point.z.toFixed(3)} ; Rapid to start\n`;
+        gcode += `G0 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} ; Rapid to start\n`;
       } else {
-        gcode += `G1 X${point.x.toFixed(3)} Y${point.y.toFixed(3)} Z${point.z.toFixed(3)} ; Linear move\n`;
+        gcode += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)} ; Linear move\n`;
       }
     });
 
@@ -179,9 +185,9 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
       gcode,
       parameters: cncParams,
       points: points.map(p => ({
-        x: p.x.toFixed(3),
-        y: p.y.toFixed(3),
-        z: p.z.toFixed(3)
+        x: (typeof p.x === 'number' ? p.x : 0).toFixed(3),
+        y: (typeof p.y === 'number' ? p.y : 0).toFixed(3),
+        z: (typeof p.z === 'number' ? p.z : 0).toFixed(3)
       })),
       machine_id: selectedMachineId,
       timestamp: new Date().toISOString()
