@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 export const LaserControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
+  const [laserParams, setLaserParams] = useState({});
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,12 +63,17 @@ export const LaserControlSystem = () => {
 
         {/* Center - 2D Visualization (Full Width) */}
         <div className="flex-1 min-w-0">
-          <LaserVisualization selectedMachineId={selectedMachine} />
+          <LaserVisualization 
+            selectedMachineId={selectedMachine}
+            laserParams={laserParams}
+          />
         </div>
 
         {/* Right Sidebar - Control Panel */}
         <div className="w-80 flex-shrink-0">
-          <LaserControlPanel />
+          <LaserControlPanel 
+            onParametersChange={setLaserParams}
+          />
         </div>
       </div>
 

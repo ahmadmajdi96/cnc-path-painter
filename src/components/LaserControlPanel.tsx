@@ -7,16 +7,117 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
-export const LaserControlPanel = () => {
-  const [laserPower, setLaserPower] = useState([50]);
-  const [pulseFrequency, setPulseFrequency] = useState([1000]);
-  const [markingSpeed, setMarkingSpeed] = useState([500]);
+interface LaserControlPanelProps {
+  onParametersChange?: (params: any) => void;
+  selectedEndpoint?: string;
+}
+
+export const LaserControlPanel = ({ onParametersChange, selectedEndpoint }: LaserControlPanelProps) => {
+  const [laserPower, setLaserPower] = useState([79]);
+  const [pulseFrequency, setPulseFrequency] = useState([4300]);
+  const [markingSpeed, setMarkingSpeed] = useState([1050]);
   const [pulseDuration, setPulseDuration] = useState([100]);
   const [zOffset, setZOffset] = useState([0]);
   const [passes, setPasses] = useState([1]);
   const [laserMode, setLaserMode] = useState('pulsed');
   const [beamDiameter, setBeamDiameter] = useState([0.1]);
+  const [material, setMaterial] = useState('steel');
+  const { toast } = useToast();
+
+  // Update parent component when parameters change
+  React.useEffect(() => {
+    if (onParametersChange) {
+      onParametersChange({
+        laserPower: laserPower[0],
+        pulseFrequency: pulseFrequency[0],
+        markingSpeed: markingSpeed[0],
+        pulseDuration: pulseDuration[0],
+        zOffset: zOffset[0],
+        passes: passes[0],
+        laserMode,
+        beamDiameter: beamDiameter[0],
+        material
+      });
+    }
+  }, [laserPower, pulseFrequency, markingSpeed, pulseDuration, zOffset, passes, laserMode, beamDiameter, material, onParametersChange]);
+
+  const sendEmergencyStop = async () => {
+    if (!selectedEndpoint) {
+      toast({
+        title: "No Endpoint",
+        description: "Please select an endpoint first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${selectedEndpoint}/emergency-stop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'emergency_stop' }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Emergency Stop Sent",
+          description: "Emergency stop command sent successfully",
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Emergency Stop Failed",
+        description: `Failed to send emergency stop: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sendLaserTest = async () => {
+    if (!selectedEndpoint) {
+      toast({
+        title: "No Endpoint",
+        description: "Please select an endpoint first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${selectedEndpoint}/laser-test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          action: 'laser_test',
+          power: 10, // Low power for testing
+          duration: 1000 // 1 second test
+        }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Laser Test Sent",
+          description: "Low power laser test command sent successfully",
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Laser Test Failed",
+        description: `Failed to send laser test: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full">
@@ -161,7 +262,7 @@ export const LaserControlPanel = () => {
       {/* Material Settings */}
       <div className="mb-6">
         <h4 className="font-medium text-gray-900 mb-2">Material</h4>
-        <Select defaultValue="steel">
+        <Select value={material} onValueChange={setMaterial}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -180,10 +281,18 @@ export const LaserControlPanel = () => {
       <div className="mb-4">
         <h4 className="font-medium text-gray-900 mb-2">Safety</h4>
         <div className="space-y-2">
-          <Button variant="outline" className="w-full bg-red-50 text-red-700 border-red-200">
+          <Button 
+            onClick={sendEmergencyStop}
+            variant="outline" 
+            className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+          >
             Emergency Stop
           </Button>
-          <Button variant="outline" className="w-full bg-yellow-50 text-yellow-700 border-yellow-200">
+          <Button 
+            onClick={sendLaserTest}
+            variant="outline" 
+            className="w-full bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100"
+          >
             Laser Test (Low Power)
           </Button>
         </div>

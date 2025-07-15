@@ -3,8 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Save, Download, Play, Pause, RotateCcw, Upload, ZoomIn, ZoomOut, Send } from 'lucide-react';
+import { Save, Download, Play, Pause, RotateCcw, Upload, ZoomIn, ZoomOut } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -13,7 +12,7 @@ import { EndpointManager } from './EndpointManager';
 import { useToast } from '@/hooks/use-toast';
 
 type LaserMachine = Tables<'laser_machines'>;
-type LaserToolpath = Tables<'laser_toolpaths'>;
+type Toolpath = Tables<'toolpaths'>;
 
 interface Point {
   x: number;
@@ -21,30 +20,29 @@ interface Point {
 }
 
 interface LaserParams {
-  power: number;
-  frequency: number;
-  speed: number;
+  laserPower: number;
+  pulseFrequency: number;
+  markingSpeed: number;
+  pulseDuration: number;
+  zOffset: number;
   passes: number;
+  laserMode: string;
+  beamDiameter: number;
+  material: string;
 }
 
 interface LaserVisualizationProps {
   selectedMachineId?: string;
+  laserParams?: any;
 }
 
 export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
-  const [laserParams, setLaserParams] = useState<LaserParams>({
-    power: 50,
-    frequency: 2000,
-    speed: 100,
-    passes: 1
-  });
   const [isSimulating, setIsSimulating] = useState(false);
   const [currentPoint, setCurrentPoint] = useState(0);
   const [toolpathName, setToolpathName] = useState('');
-  const [loadedToolpathId, setLoadedToolpathId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [draggedPointIndex, setDraggedPointIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -57,18 +55,34 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
   const MM_PER_PIXEL = 0.1;
 
   const queryClient = useQueryClient();
+  const [laserParams, setLaserParams] = useState({
+    laserPower: 79,
+    pulseFrequency: 4300,
+    markingSpeed: 1050,
+    pulseDuration: 100,
+    zOffset: 0,
+    passes: 1,
+    laserMode: 'pulsed',
+    beamDiameter: 0.1,
+    material: 'steel'
+  });
 
   // Fetch selected machine data
   const { data: selectedMachine } = useQuery({
     queryKey: ['laser-machine', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return null;
+      console.log('Fetching machine:', selectedMachineId);
       const { data, error } = await supabase
         .from('laser_machines')
         .select('*')
         .eq('id', selectedMachineId)
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching machine:', error);
+        throw error;
+      }
+      console.log('Fetched machine:', data);
       return data;
     },
     enabled: !!selectedMachineId
@@ -76,15 +90,20 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
 
   // Fetch toolpaths for selected machine
   const { data: toolpaths = [] } = useQuery({
-    queryKey: ['laser-toolpaths', selectedMachineId],
+    queryKey: ['toolpaths', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return [];
+      console.log('Fetching toolpaths for machine:', selectedMachineId);
       const { data, error } = await supabase
-        .from('laser_toolpaths')
+        .from('toolpaths')
         .select('*')
         .eq('laser_machine_id', selectedMachineId)
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching toolpaths:', error);
+        throw error;
+      }
+      console.log('Fetched toolpaths:', data);
       return data;
     },
     enabled: !!selectedMachineId
@@ -95,8 +114,9 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
+      console.log('Saving toolpath:', { selectedMachineId, points, laserParams });
       const { error } = await supabase
-        .from('laser_toolpaths')
+        .from('toolpaths')
         .insert({
           laser_machine_id: selectedMachineId,
           name: toolpathName || `Toolpath ${Date.now()}`,
@@ -104,113 +124,22 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
           laser_params: laserParams as any
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving toolpath:', error);
+        throw error;
+      }
+      console.log('Toolpath saved successfully');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['laser-toolpaths', selectedMachineId] });
+      queryClient.invalidateQueries({ queryKey: ['toolpaths', selectedMachineId] });
       setToolpathName('');
-      toast({
-        title: "Success",
-        description: "Toolpath saved successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to save toolpath",
-        variant: "destructive"
-      });
     }
   });
-
-  // Send G-code mutation
-  const sendGcodeMutation = useMutation({
-    mutationFn: async (endpoint: string) => {
-      if (!endpoint) {
-        throw new Error('No endpoint selected');
-      }
-      
-      const gcode = generateGCode();
-      console.log('Sending G-code to endpoint:', endpoint);
-      console.log('G-code content:', gcode);
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain',
-          'Accept': 'application/json',
-        },
-        body: gcode,
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-      }
-      
-      return response;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "G-code sent successfully to the machine",
-      });
-    },
-    onError: (error) => {
-      console.error('Send G-code error:', error);
-      toast({
-        title: "Error",
-        description: `Failed to send G-code: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Upload G-code mutation
-  const uploadGcodeMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const text = await file.text();
-      const points = parseGCodeToPoints(text);
-      
-      if (points.length === 0) {
-        throw new Error('No valid coordinates found in G-code file');
-      }
-      
-      return points;
-    },
-    onSuccess: (points) => {
-      setPoints(points);
-      setCurrentPoint(0);
-      setLoadedToolpathId(null);
-      toast({
-        title: "Success",
-        description: `G-code uploaded successfully! Found ${points.length} points.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to upload G-code: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-
-  useEffect(() => {
-    if (selectedMachine) {
-      setLaserParams({
-        power: selectedMachine.max_power || 50,
-        frequency: selectedMachine.max_frequency || 2000,
-        speed: selectedMachine.max_speed || 100,
-        passes: 1
-      });
-      setSelectedEndpoint(selectedMachine.endpoint_url || '');
-    }
-  }, [selectedMachine]);
 
   useEffect(() => {
     if (toolpaths.length > 0 && selectedMachineId) {
       const latestToolpath = toolpaths[0];
+      console.log('Auto-loading latest toolpath:', latestToolpath);
       loadToolpath(latestToolpath);
     }
   }, [toolpaths, selectedMachineId]);
@@ -245,10 +174,18 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     // Restore context
     ctx.restore();
 
+    // Draw machine info (not affected by zoom)
+    if (selectedMachine) {
+      drawMachineInfo(ctx, selectedMachine);
+    }
+
     // Draw cursor distance (not affected by zoom)
     if (points.length > 0 && !isDragging) {
       drawCursorDistance(ctx);
     }
+
+    // Draw zoom level
+    drawZoomLevel(ctx);
   }, [points, currentPoint, selectedMachine, mousePos, isDragging, zoom, panOffset]);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
@@ -320,7 +257,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       if (isSimulating && i < current) {
         ctx.strokeStyle = '#ef4444';
       } else {
-        ctx.strokeStyle = '#8b5cf6'; // Purple for laser
+        ctx.strokeStyle = '#3b82f6';
       }
       
       ctx.lineWidth = 2;
@@ -341,7 +278,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       } else if (isSimulating && index < current) {
         ctx.fillStyle = '#ef4444'; // Red for finished
       } else {
-        ctx.fillStyle = '#8b5cf6'; // Purple for unprocessed
+        ctx.fillStyle = '#3b82f6'; // Blue for unprocessed
       }
       
       ctx.beginPath();
@@ -355,6 +292,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       ctx.font = '10px sans-serif';
       ctx.fillText(`(${mmX}, ${mmY})mm`, canvasX + 8, canvasY - 8);
     });
+  };
+
+  const drawMachineInfo = (ctx: CanvasRenderingContext2D, machine: LaserMachine) => {
+    ctx.fillStyle = '#374151';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(`Machine: ${machine.name} - ${machine.model}`, 10, 30);
   };
 
   const drawCursorDistance = (ctx: CanvasRenderingContext2D) => {
@@ -392,125 +335,58 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     ctx.fillText(`${mmDistance}mm`, cursorX + 10, cursorY - 10);
   };
 
-  const generateGCode = () => {
-    if (points.length === 0) return '';
-
-    let gcode = '; Generated Laser G-Code\n';
-    gcode += `; Machine: ${selectedMachine?.name || 'Unknown'}\n`;
-    gcode += `; Power: ${laserParams.power}%\n`;
-    gcode += `; Frequency: ${laserParams.frequency}Hz\n`;
-    gcode += `; Speed: ${laserParams.speed}mm/min\n`;
-    gcode += `; Passes: ${laserParams.passes}\n`;
-    gcode += `; Date: ${new Date().toISOString()}\n\n`;
-    
-    gcode += 'G21 ; Set units to millimeters\n';
-    gcode += 'G90 ; Absolute positioning\n';
-    gcode += 'G0 Z5 ; Move to safe height\n\n';
-
-    for (let pass = 0; pass < laserParams.passes; pass++) {
-      gcode += `; Pass ${pass + 1}\n`;
-      
-      points.forEach((point, index) => {
-        const mmX = (point.x * MM_PER_PIXEL).toFixed(3);
-        const mmY = (point.y * MM_PER_PIXEL).toFixed(3);
-        
-        if (index === 0) {
-          gcode += `G0 X${mmX} Y${mmY} ; Rapid to start position\n`;
-          gcode += `G1 Z0 F${laserParams.speed} ; Lower to work height\n`;
-          gcode += `M3 S${Math.round(laserParams.power * 2.55)} ; Laser on (0-255 scale)\n`;
-        } else {
-          gcode += `G1 X${mmX} Y${mmY} F${laserParams.speed}\n`;
-        }
-      });
-      
-      gcode += 'M5 ; Laser off\n';
-      if (pass < laserParams.passes - 1) {
-        gcode += '\n';
-      }
-    }
-
-    gcode += 'G0 Z5 ; Retract to safe height\n';
-    gcode += 'G0 X0 Y0 ; Return to origin\n';
-
-    return gcode;
+  const drawZoomLevel = (ctx: CanvasRenderingContext2D) => {
+    ctx.fillStyle = '#374151';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 10, canvasRef.current!.height - 10);
   };
 
-  const parseGCodeToPoints = (gcode: string): Point[] => {
-    const lines = gcode.split('\n');
-    const points: Point[] = [];
-    
-    for (const line of lines) {
-      const trimmed = line.trim().toUpperCase();
-      
-      // Look for G0, G1, G2, G3 commands with X and Y coordinates
-      if (trimmed.startsWith('G0') || trimmed.startsWith('G1') || 
-          trimmed.startsWith('G2') || trimmed.startsWith('G3')) {
-        
-        const xMatch = trimmed.match(/X(-?\d+\.?\d*)/);
-        const yMatch = trimmed.match(/Y(-?\d+\.?\d*)/);
-        
-        if (xMatch && yMatch) {
-          const x = parseFloat(xMatch[1]) / MM_PER_PIXEL; // Convert mm to pixels
-          const y = parseFloat(yMatch[1]) / MM_PER_PIXEL; // Convert mm to pixels
-          points.push({ x: Math.round(x), y: Math.round(y) });
-        }
-      }
-    }
-    
-    return points;
-  };
-
-  const loadToolpath = (toolpath: LaserToolpath) => {
-    console.log('Loading toolpath:', toolpath);
-    const pathPoints = Array.isArray(toolpath.points) 
-      ? (toolpath.points as unknown as Point[])
-      : [];
-    setPoints(pathPoints);
-    setCurrentPoint(0);
-    setLoadedToolpathId(toolpath.id);
-    
-    if (toolpath.laser_params) {
-      const params = toolpath.laser_params as any;
-      setLaserParams({
-        power: params.power || laserParams.power,
-        frequency: params.frequency || laserParams.frequency,
-        speed: params.speed || laserParams.speed,
-        passes: params.passes || laserParams.passes
-      });
-    }
-  };
-
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isDragging) return;
-
+  const screenToWorldCoords = (screenX: number, screenY: number) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const screenX = event.clientX;
-    const screenY = event.clientY;
+    
+    // Get canvas coordinates
     const canvasX = screenX - rect.left;
     const canvasY = screenY - rect.top;
-
+    
+    // Transform from screen space to world space (exact inverse of rendering)
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
+    
+    // Undo the transformations applied during rendering
     const worldX = (canvasX - centerX - panOffset.x) / zoom;
     const worldY = (centerY - canvasY + panOffset.y) / zoom;
     
-    setPoints(prev => [...prev, { x: Math.round(worldX), y: Math.round(worldY) }]);
+    return { x: Math.round(worldX), y: Math.round(worldY) };
   };
 
-  const handleCanvasMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  const worldToScreenCoords = (worldX: number, worldY: number) => {
     const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    setMousePos({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    // Apply the same transformations as in rendering
+    const screenX = centerX + worldX * zoom + panOffset.x;
+    const screenY = centerY - worldY * zoom + panOffset.y;
+    
+    return { x: screenX, y: screenY };
   };
 
-  const handleCanvasWheel = (event: React.WheelEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-    const zoomSpeed = 0.1;
-    const newZoom = event.deltaY > 0 
-      ? Math.max(0.1, zoom - zoomSpeed)
-      : Math.min(5, zoom + zoomSpeed);
-    setZoom(newZoom);
+  const getPointAtPosition = (screenX: number, screenY: number): number | null => {
+    for (let i = 0; i < points.length; i++) {
+      const point = points[i];
+      const screenCoords = worldToScreenCoords(point.x, point.y);
+      
+      const distance = Math.sqrt(
+        Math.pow(screenX - screenCoords.x, 2) + 
+        Math.pow(screenY - screenCoords.y, 2)
+      );
+      
+      if (distance <= 8) { // 8px radius for click detection
+        return i;
+      }
+    }
+    return null;
   };
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -526,6 +402,30 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       setDraggedPointIndex(pointIndex);
       setIsDragging(true);
       canvas.style.cursor = 'none'; // Hide cursor when dragging
+    }
+  };
+
+  const handleCanvasMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const screenX = event.clientX;
+    const screenY = event.clientY;
+    const canvasX = screenX - rect.left;
+    const canvasY = screenY - rect.top;
+    
+    setMousePos({ x: canvasX, y: canvasY });
+
+    if (isDragging && draggedPointIndex !== null) {
+      const worldCoords = screenToWorldCoords(screenX, screenY);
+      setPoints(prev => {
+        const newPoints = [...prev];
+        newPoints[draggedPointIndex] = worldCoords;
+        return newPoints;
+      });
+    } else {
+      // Check if hovering over a point
+      const pointIndex = getPointAtPosition(canvasX, canvasY);
+      canvas.style.cursor = pointIndex !== null ? 'none' : 'none'; // Always hide default cursor
     }
   };
 
@@ -553,33 +453,39 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     setMousePos({ x: -1, y: -1 });
   };
 
-  const getPointAtPosition = (screenX: number, screenY: number): number | null => {
-    for (let i = 0; i < points.length; i++) {
-      const point = points[i];
-      const screenCoords = worldToScreenCoords(point.x, point.y);
-      
-      const distance = Math.sqrt(
-        Math.pow(screenX - screenCoords.x, 2) + 
-        Math.pow(screenY - screenCoords.y, 2)
-      );
-      
-      if (distance <= 8) { // 8px radius for click detection
-        return i;
-      }
-    }
-    return null;
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isDragging) return;
+
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const screenX = event.clientX;
+    const screenY = event.clientY;
+    const canvasX = screenX - rect.left;
+    const canvasY = screenY - rect.top;
+
+    // Don't add new point if clicking on existing point
+    if (getPointAtPosition(canvasX, canvasY) !== null) return;
+
+    const worldCoords = screenToWorldCoords(screenX, screenY);
+    console.log('Adding point at world coords:', worldCoords);
+    setPoints(prev => [...prev, worldCoords]);
   };
 
-  const worldToScreenCoords = (worldX: number, worldY: number) => {
-    const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    // Apply the same transformations as in rendering
-    const screenX = centerX + worldX * zoom + panOffset.x;
-    const screenY = centerY - worldY * zoom + panOffset.y;
-    
-    return { x: screenX, y: screenY };
+  const handleCanvasWheel = (event: React.WheelEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    const zoomSpeed = 0.1;
+    const newZoom = event.deltaY > 0 
+      ? Math.max(0.1, zoom - zoomSpeed)
+      : Math.min(5, zoom + zoomSpeed);
+    setZoom(newZoom);
+  };
+
+  const zoomIn = () => {
+    setZoom(prev => Math.min(5, prev + 0.2));
+  };
+
+  const zoomOut = () => {
+    setZoom(prev => Math.max(0.1, prev - 0.2));
   };
 
   const resetZoom = () => {
@@ -613,298 +519,341 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
   const clearPoints = () => {
     setPoints([]);
     setCurrentPoint(0);
-    setLoadedToolpathId(null);
   };
 
-  const handleFileUpload = () => {
-    fileInputRef.current?.click();
+  const loadToolpath = (toolpath: Toolpath) => {
+    console.log('Loading toolpath:', toolpath);
+    const pathPoints = Array.isArray(toolpath.points) 
+      ? (toolpath.points as unknown as Point[])
+      : [];
+    setPoints(pathPoints);
+    setCurrentPoint(0);
+    
+    if (toolpath.laser_params) {
+      const params = toolpath.laser_params as any;
+      setLaserParams({
+        laserPower: params.laserPower || laserParams.laserPower,
+        pulseFrequency: params.pulseFrequency || laserParams.pulseFrequency,
+        markingSpeed: params.markingSpeed || laserParams.markingSpeed,
+        pulseDuration: params.pulseDuration || laserParams.pulseDuration,
+        zOffset: params.zOffset || laserParams.zOffset,
+        passes: params.passes || laserParams.passes,
+        laserMode: params.laserMode || laserParams.laserMode,
+        beamDiameter: params.beamDiameter || laserParams.beamDiameter,
+        material: params.material || laserParams.material
+      });
+    }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.name.toLowerCase().endsWith('.gcode') && !file.name.toLowerCase().endsWith('.nc')) {
-        toast({
-          title: "Invalid File",
-          description: "Please select a .gcode or .nc file",
-          variant: "destructive"
-        });
-        return;
-      }
+  const generateGCode = () => {
+    if (points.length === 0) return '';
+
+    let gcode = '; Generated Laser G-Code\n';
+    gcode += `; Machine: ${selectedMachine?.name || 'Unknown'}\n`;
+    gcode += `; Date: ${new Date().toISOString()}\n`;
+    gcode += `; Laser Power: ${laserParams.laserPower}%\n`;
+    gcode += `; Pulse Frequency: ${laserParams.pulseFrequency} Hz\n`;
+    gcode += `; Marking Speed: ${laserParams.markingSpeed} mm/min\n`;
+    gcode += `; Pulse Duration: ${laserParams.pulseDuration} µs\n`;
+    gcode += `; Z-Offset: ${laserParams.zOffset} mm\n`;
+    gcode += `; Beam Diameter: ${laserParams.beamDiameter} mm\n`;
+    gcode += `; Passes: ${laserParams.passes}\n`;
+    gcode += `; Mode: ${laserParams.laserMode}\n`;
+    gcode += `; Material: ${laserParams.material}\n\n`;
+    
+    gcode += 'G21 ; Set units to millimeters\n';
+    gcode += 'G90 ; Absolute positioning\n';
+    gcode += `G0 Z${laserParams.zOffset} ; Move to Z offset\n`;
+    
+    // Configure laser settings
+    gcode += `M3 S${Math.round((laserParams.laserPower / 100) * 1000)} ; Set laser power\n`;
+    gcode += `M4 P${laserParams.pulseFrequency} ; Set pulse frequency\n`;
+    gcode += `M5 D${laserParams.pulseDuration} ; Set pulse duration\n\n`;
+
+    // Repeat for number of passes
+    for (let pass = 1; pass <= laserParams.passes; pass++) {
+      gcode += `; Pass ${pass}\n`;
       
-      uploadGcodeMutation.mutate(file);
+      points.forEach((point, index) => {
+        const mmX = (point.x * MM_PER_PIXEL).toFixed(3);
+        const mmY = (point.y * MM_PER_PIXEL).toFixed(3);
+        
+        if (index === 0) {
+          gcode += `G0 X${mmX} Y${mmY} ; Rapid to start position\n`;
+          if (laserParams.laserMode === 'continuous') {
+            gcode += 'M3 ; Start laser (continuous mode)\n';
+          }
+        } else {
+          if (laserParams.laserMode === 'pulsed') {
+            gcode += `G1 X${mmX} Y${mmY} F${laserParams.markingSpeed} ; Pulsed laser move\n`;
+          } else {
+            gcode += `G1 X${mmX} Y${mmY} F${laserParams.markingSpeed} ; Continuous laser move\n`;
+          }
+        }
+      });
+      
+      if (laserParams.laserMode === 'continuous') {
+        gcode += 'M5 ; Stop laser\n';
+      }
+      gcode += '\n';
+    }
+
+    gcode += 'G0 Z10 ; Retract\n';
+    gcode += 'M5 ; Ensure laser is off\n';
+    gcode += 'G0 X0 Y0 ; Return to origin\n';
+
+    return gcode;
+  };
+
+  const sendGCodeToEndpoint = async (endpoint: string) => {
+    if (!endpoint || points.length === 0) return;
+    
+    const gcode = generateGCode();
+    const payload = {
+      gcode,
+      parameters: laserParams,
+      points: points.map(p => ({
+        x: (p.x * MM_PER_PIXEL).toFixed(3),
+        y: (p.y * MM_PER_PIXEL).toFixed(3)
+      })),
+      machine_id: selectedMachineId,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "G-Code Sent Successfully",
+          description: `G-code sent to ${endpoint} with ${points.length} points`,
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to Send G-Code",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const parsedPoints = parseGCode(content);
+      if (parsedPoints.length > 0) {
+        setPoints(parsedPoints);
+        console.log('Loaded G-code with', parsedPoints.length, 'points');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const parseGCode = (gcode: string): Point[] => {
+    const lines = gcode.split('\n');
+    const points: Point[] = [];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('G1') || trimmedLine.startsWith('G0')) {
+        const xMatch = trimmedLine.match(/X([-\d.]+)/);
+        const yMatch = trimmedLine.match(/Y([-\d.]+)/);
+        
+        if (xMatch && yMatch) {
+          // Convert from mm to pixels
+          const mmX = parseFloat(xMatch[1]);
+          const mmY = parseFloat(yMatch[1]);
+          points.push({
+            x: Math.round(mmX / MM_PER_PIXEL),
+            y: Math.round(mmY / MM_PER_PIXEL)
+          });
+        }
+      }
     }
     
-    // Reset the input
-    if (event.target) {
-      event.target.value = '';
-    }
+    return points;
   };
 
   return (
-    <Card className="p-4 bg-white border border-gray-200 h-full">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">2D Laser Visualization (X/Y View)</h3>
-        {!selectedMachineId && (
-          <p className="text-gray-600 text-sm">Select a machine to start creating toolpaths</p>
-        )}
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
+      {/* Left side - Toolpath Visualization */}
+      <div className="lg:col-span-3">
+        <Card className="p-4 bg-white border border-gray-200">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">2D Laser Visualization (X/Y View)</h3>
+            {!selectedMachineId && (
+              <p className="text-gray-600 text-sm">Select a machine to start creating toolpaths</p>
+            )}
+          </div>
+
+          {selectedMachineId && (
+            <>
+              {/* Canvas with zoom controls */}
+              <div className="mb-4">
+                <div className="flex gap-2 mb-2">
+                  <Button onClick={zoomIn} size="sm" variant="outline">
+                    <ZoomIn className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={zoomOut} size="sm" variant="outline">
+                    <ZoomOut className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={resetZoom} size="sm" variant="outline">
+                    Reset View
+                  </Button>
+                </div>
+                <canvas
+                  ref={canvasRef}
+                  width={1400}
+                  height={700}
+                  className="border border-gray-300 w-full"
+                  style={{ cursor: 'none' }}
+                  onClick={handleCanvasClick}
+                  onMouseDown={handleCanvasMouseDown}
+                  onMouseMove={handleCanvasMouseMove}
+                  onMouseUp={handleCanvasMouseUp}
+                  onMouseEnter={handleCanvasMouseEnter}
+                  onMouseLeave={handleCanvasMouseLeave}
+                  onWheel={handleCanvasWheel}
+                />
+              </div>
+
+              {/* Controls */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Button
+                  onClick={startSimulation}
+                  disabled={isSimulating || points.length === 0}
+                  size="sm"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Simulate
+                </Button>
+                <Button
+                  onClick={resetSimulation}
+                  disabled={!isSimulating && currentPoint === 0}
+                  size="sm"
+                  variant="outline"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
+                <Button
+                  onClick={clearPoints}
+                  size="sm"
+                  variant="outline"
+                >
+                  Clear
+                </Button>
+                <Button
+                  onClick={downloadGCode}
+                  disabled={points.length === 0}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  G-Code
+                </Button>
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload G-Code
+                </Button>
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".gcode,.nc,.cnc"
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+              />
+
+              {/* Save Toolpath */}
+              {points.length > 0 && (
+                <div className="mb-4 flex gap-2">
+                  <Input
+                    placeholder="Toolpath name"
+                    value={toolpathName}
+                    onChange={(e) => setToolpathName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={() => saveToolpathMutation.mutate()}
+                    disabled={saveToolpathMutation.isPending}
+                    size="sm"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </Button>
+                </div>
+              )}
+
+              {/* Saved Toolpaths */}
+              {toolpaths.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
+                  <ScrollArea className="h-40 border border-gray-200 rounded p-2">
+                    <div className="space-y-2">
+                      {toolpaths.map((toolpath) => (
+                        <div
+                          key={toolpath.id}
+                          className="flex items-center justify-between p-2 border border-gray-200 rounded"
+                        >
+                          <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
+                          <Button
+                            onClick={() => loadToolpath(toolpath)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Load
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </>
+          )}
+        </Card>
       </div>
 
-      {selectedMachineId && (
-        <>
-          {/* Laser Parameters */}
-          <div className="mb-4 grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="power">Power (%)</Label>
-              <Input
-                id="power"
-                type="number"
-                min="0"
-                max="100"
-                value={laserParams.power}
-                onChange={(e) => setLaserParams(p => ({ ...p, power: Number(e.target.value) }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="frequency">Frequency (Hz)</Label>
-              <Input
-                id="frequency"
-                type="number"
-                value={laserParams.frequency}
-                onChange={(e) => setLaserParams(p => ({ ...p, frequency: Number(e.target.value) }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="speed">Speed (mm/min)</Label>
-              <Input
-                id="speed"
-                type="number"
-                value={laserParams.speed}
-                onChange={(e) => setLaserParams(p => ({ ...p, speed: Number(e.target.value) }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="passes">Passes</Label>
-              <Input
-                id="passes"
-                type="number"
-                min="1"
-                value={laserParams.passes}
-                onChange={(e) => setLaserParams(p => ({ ...p, passes: Number(e.target.value) }))}
-              />
-            </div>
-          </div>
-
-          {/* Canvas with zoom controls */}
-          <div className="mb-4">
-            <div className="flex gap-2 mb-2">
-              <Button onClick={() => setZoom(prev => Math.min(5, prev + 0.2))} size="sm" variant="outline">
-                <ZoomIn className="w-4 h-4" />
-              </Button>
-              <Button onClick={() => setZoom(prev => Math.max(0.1, prev - 0.2))} size="sm" variant="outline">
-                <ZoomOut className="w-4 h-4" />
-              </Button>
-              <Button onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} size="sm" variant="outline">
-                Reset View
-              </Button>
-            </div>
-            <canvas
-              ref={canvasRef}
-              width={1400}
-              height={700}
-              className="border border-gray-300 w-full"
-              style={{ cursor: 'none' }}
-              onClick={handleCanvasClick}
-              onMouseMove={handleCanvasMouseMove}
-              onMouseEnter={() => {
-                if (canvasRef.current) {
-                  canvasRef.current.style.cursor = 'none';
-                }
-              }}
-              onMouseLeave={() => {
-                if (canvasRef.current) {
-                  canvasRef.current.style.cursor = 'default';
-                }
-                setMousePos({ x: -1, y: -1 });
-              }}
-              onWheel={handleCanvasWheel}
-            />
-          </div>
-
-          {/* Controls */}
-          <div className="flex flex-wrap gap-2 mb-4">
+      {/* Right side - Endpoint Manager */}
+      <div className="space-y-6">
+        <EndpointManager 
+          selectedMachineId={selectedMachineId}
+          onEndpointSelect={setSelectedEndpoint}
+          selectedEndpoint={selectedEndpoint}
+        />
+        
+        {selectedEndpoint && points.length > 0 && (
+          <Card className="p-4">
+            <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
             <Button
-              onClick={() => {
-                if (points.length === 0) return;
-                setIsSimulating(true);
-                setCurrentPoint(0);
-                const interval = setInterval(() => {
-                  setCurrentPoint(prev => {
-                    if (prev >= points.length - 1) {
-                      setIsSimulating(false);
-                      clearInterval(interval);
-                      return prev;
-                    }
-                    return prev + 1;
-                  });
-                }, 1000);
-              }}
-              disabled={isSimulating || points.length === 0}
-              size="sm"
+              onClick={() => sendGCodeToEndpoint(selectedEndpoint)}
+              className="w-full bg-purple-600 hover:bg-purple-700"
             >
-              <Play className="w-4 h-4 mr-2" />
-              Simulate
+              Send G-Code to Machine
             </Button>
-            <Button
-              onClick={() => {
-                setIsSimulating(false);
-                setCurrentPoint(0);
-              }}
-              disabled={!isSimulating && currentPoint === 0}
-              size="sm"
-              variant="outline"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-            <Button
-              onClick={() => {
-                setPoints([]);
-                setCurrentPoint(0);
-                setLoadedToolpathId(null);
-              }}
-              size="sm"
-              variant="outline"
-            >
-              Clear
-            </Button>
-            <Button
-              onClick={() => {
-                const gcode = generateGCode();
-                const blob = new Blob([gcode], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${toolpathName || 'toolpath'}.gcode`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              disabled={points.length === 0}
-              size="sm"
-              variant="outline"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              G-Code
-            </Button>
-            <Button
-              onClick={handleFileUpload}
-              disabled={uploadGcodeMutation.isPending}
-              size="sm"
-              variant="outline"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              {uploadGcodeMutation.isPending ? 'Uploading...' : 'Upload G-Code'}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".gcode,.nc"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-          </div>
-
-          {/* Save Toolpath */}
-          {points.length > 0 && (
-            <div className="mb-4 flex gap-2">
-              <Input
-                placeholder="Toolpath name"
-                value={toolpathName}
-                onChange={(e) => setToolpathName(e.target.value)}
-                className="flex-1"
-              />
-              <Button
-                onClick={() => saveToolpathMutation.mutate()}
-                disabled={saveToolpathMutation.isPending}
-                size="sm"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save
-              </Button>
-            </div>
-          )}
-
-          {/* Saved Toolpaths */}
-          {toolpaths.length > 0 && (
-            <div className="mb-4">
-              <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
-              <ScrollArea className="h-40 border border-gray-200 rounded p-2">
-                <div className="space-y-2">
-                  {toolpaths.map((toolpath) => (
-                    <div
-                      key={toolpath.id}
-                      className={`flex items-center justify-between p-2 border rounded ${
-                        loadedToolpathId === toolpath.id 
-                          ? 'border-purple-500 bg-purple-50' 
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)
-                        </span>
-                        {loadedToolpathId === toolpath.id && (
-                          <Badge variant="secondary" className="text-xs">
-                            Loaded
-                          </Badge>
-                        )}
-                      </div>
-                      <Button
-                        onClick={() => loadToolpath(toolpath)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Load
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-
-          {/* Endpoint Manager */}
-          <div className="mb-4">
-            <EndpointManager
-              selectedMachineId={selectedMachineId}
-              onEndpointSelect={setSelectedEndpoint}
-              selectedEndpoint={selectedEndpoint}
-            />
-          </div>
-
-          {/* Send G-Code */}
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                if (!selectedEndpoint) {
-                  toast({
-                    title: "Error",
-                    description: "Please select an endpoint first",
-                    variant: "destructive"
-                  });
-                  return;
-                }
-                sendGcodeMutation.mutate(selectedEndpoint);
-              }}
-              disabled={!selectedEndpoint || points.length === 0 || sendGcodeMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {sendGcodeMutation.isPending ? 'Sending...' : 'Send G-Code'}
-            </Button>
-          </div>
-        </>
-      )}
-    </Card>
+          </Card>
+        )}
+      </div>
+    </div>
   );
 };

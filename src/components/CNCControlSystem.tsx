@@ -4,6 +4,7 @@ import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { CNCVisualization } from './CNCVisualization';
 import { ControlPanel } from './ControlPanel';
+import { EndpointManager } from './EndpointManager';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
@@ -12,6 +13,8 @@ import { Link } from 'react-router-dom';
 export const CNCControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
+  const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
+  const [cncParams, setCncParams] = useState({});
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -62,12 +65,24 @@ export const CNCControlSystem = () => {
 
         {/* Center - 3D Visualization (Full Width) */}
         <div className="flex-1 min-w-0">
-          <CNCVisualization selectedMachineId={selectedMachine} />
+          <CNCVisualization 
+            selectedMachineId={selectedMachine}
+            selectedEndpoint={selectedEndpoint}
+            cncParams={cncParams}
+          />
         </div>
 
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-96 flex-shrink-0">
-          <ControlPanel />
+        {/* Right Sidebar - Control Panel and Endpoint Manager */}
+        <div className="w-96 flex-shrink-0 space-y-6">
+          <ControlPanel 
+            onParametersChange={setCncParams}
+            selectedEndpoint={selectedEndpoint}
+          />
+          <EndpointManager 
+            selectedMachineId={selectedMachine}
+            onEndpointSelect={setSelectedEndpoint}
+            selectedEndpoint={selectedEndpoint}
+          />
         </div>
       </div>
 

@@ -5,11 +5,67 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
-export const ControlPanel = () => {
+interface ControlPanelProps {
+  onParametersChange?: (params: any) => void;
+  selectedEndpoint?: string;
+}
+
+export const ControlPanel = ({ onParametersChange, selectedEndpoint }: ControlPanelProps) => {
   const [feedRate, setFeedRate] = useState([1000]);
   const [spindleSpeed, setSpindleSpeed] = useState([8000]);
   const [plungeDepth, setPlungeDepth] = useState([2]);
+  const [material, setMaterial] = useState('aluminum');
+  const { toast } = useToast();
+
+  // Update parent component when parameters change
+  React.useEffect(() => {
+    if (onParametersChange) {
+      onParametersChange({
+        feedRate: feedRate[0],
+        spindleSpeed: spindleSpeed[0],
+        plungeDepth: plungeDepth[0],
+        material
+      });
+    }
+  }, [feedRate, spindleSpeed, plungeDepth, material, onParametersChange]);
+
+  const sendEmergencyStop = async () => {
+    if (!selectedEndpoint) {
+      toast({
+        title: "No Endpoint",
+        description: "Please select an endpoint first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${selectedEndpoint}/emergency-stop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'emergency_stop' }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Emergency Stop Sent",
+          description: "Emergency stop command sent successfully",
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Emergency Stop Failed",
+        description: `Failed to send emergency stop: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full">
@@ -86,7 +142,7 @@ export const ControlPanel = () => {
       {/* Material Settings */}
       <div className="mb-6">
         <h4 className="font-medium text-gray-900 mb-2">Material</h4>
-        <Select defaultValue="aluminum">
+        <Select value={material} onValueChange={setMaterial}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -98,6 +154,18 @@ export const ControlPanel = () => {
             <SelectItem value="brass">Brass</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Safety Controls */}
+      <div className="mb-4">
+        <h4 className="font-medium text-gray-900 mb-2">Safety</h4>
+        <Button 
+          onClick={sendEmergencyStop}
+          variant="outline" 
+          className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+        >
+          Emergency Stop
+        </Button>
       </div>
     </Card>
   );
