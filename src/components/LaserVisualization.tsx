@@ -209,18 +209,10 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     // Restore context
     ctx.restore();
 
-    // Draw machine info (not affected by zoom)
-    if (selectedMachine) {
-      drawMachineInfo(ctx, selectedMachine);
-    }
-
     // Draw cursor distance (not affected by zoom)
     if (points.length > 0 && !isDragging) {
       drawCursorDistance(ctx);
     }
-
-    // Draw zoom level
-    drawZoomLevel(ctx);
   }, [points, currentPoint, selectedMachine, mousePos, isDragging, zoom, panOffset]);
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
@@ -329,12 +321,6 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     });
   };
 
-  const drawMachineInfo = (ctx: CanvasRenderingContext2D, machine: any) => {
-    ctx.fillStyle = '#374151';
-    ctx.font = '14px sans-serif';
-    ctx.fillText(`Laser: ${machine.name} - ${machine.model}`, 10, 30);
-  };
-
   const drawCursorDistance = (ctx: CanvasRenderingContext2D) => {
     if (points.length === 0) return;
 
@@ -368,12 +354,6 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
     ctx.fillText(`${mmDistance}mm`, cursorX + 10, cursorY - 10);
-  };
-
-  const drawZoomLevel = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = '#374151';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 10, canvasRef.current!.height - 10);
   };
 
   const screenToWorldCoords = (screenX: number, screenY: number) => {
