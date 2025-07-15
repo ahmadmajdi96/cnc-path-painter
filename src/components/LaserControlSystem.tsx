@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { LaserVisualization } from './LaserVisualization';
 import { LaserControlPanel } from './LaserControlPanel';
+import { EndpointManager } from './EndpointManager';
 import { Button } from '@/components/ui/button';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
@@ -12,7 +13,13 @@ import { Link } from 'react-router-dom';
 export const LaserControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
+  const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [laserParams, setLaserParams] = useState({});
+
+  // Clear endpoint when machine changes
+  useEffect(() => {
+    setSelectedEndpoint('');
+  }, [selectedMachine]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,14 +72,22 @@ export const LaserControlSystem = () => {
         <div className="flex-1 min-w-0">
           <LaserVisualization 
             selectedMachineId={selectedMachine}
+            selectedEndpoint={selectedEndpoint}
             laserParams={laserParams}
           />
         </div>
 
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-80 flex-shrink-0">
+        {/* Right Sidebar - Control Panel and Endpoint Manager */}
+        <div className="w-96 flex-shrink-0 space-y-6">
           <LaserControlPanel 
             onParametersChange={setLaserParams}
+            selectedEndpoint={selectedEndpoint}
+          />
+          <EndpointManager 
+            selectedMachineId={selectedMachine}
+            onEndpointSelect={setSelectedEndpoint}
+            selectedEndpoint={selectedEndpoint}
+            machineType="laser"
           />
         </div>
       </div>

@@ -19,9 +19,10 @@ interface EndpointManagerProps {
   selectedMachineId?: string;
   onEndpointSelect: (endpoint: string) => void;
   selectedEndpoint: string;
+  machineType: 'cnc' | 'laser';
 }
 
-export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedEndpoint }: EndpointManagerProps) => {
+export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedEndpoint, machineType }: EndpointManagerProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newEndpoint, setNewEndpoint] = useState({ name: '', url: '' });
@@ -29,70 +30,48 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch endpoints (using laser_machines table for now)
-  const { data: endpoints = [] } = useQuery({
-    queryKey: ['endpoints'],
+  const tableName = machineType === 'cnc' ? 'cnc_machines' : 'laser_machines';
+
+  // Fetch machine data to get current endpoint_url
+  const { data: machineData } = useQuery({
+    queryKey: [tableName, selectedMachineId],
     queryFn: async () => {
+      if (!selectedMachineId) return null;
       const { data, error } = await supabase
-        .from('laser_machines')
-        .select('id, name, endpoint_url')
-        .not('endpoint_url', 'is', null);
+        .from(tableName)
+        .select('*')
+        .eq('id', selectedMachineId)
+        .single();
       if (error) throw error;
-      return data.map(m => ({
-        id: m.id,
-        name: m.name,
-        url: m.endpoint_url || ''
-      }));
-    }
+      return data;
+    },
+    enabled: !!selectedMachineId
   });
 
-  // Add endpoint mutation
-  const addEndpointMutation = useMutation({
-    mutationFn: async (endpoint: { name: string; url: string }) => {
-      // For now, we'll create a new laser machine entry
-      const { error } = await supabase
-        .from('laser_machines')
-        .insert({
-          name: endpoint.name,
-          model: 'Endpoint',
-          endpoint_url: endpoint.url,
-          status: 'idle'
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['endpoints'] });
-      setIsAdding(false);
-      setNewEndpoint({ name: '', url: '' });
-      toast({
-        title: "Success",
-        description: "Endpoint added successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to add endpoint",
-        variant: "destructive"
-      });
-    }
-  });
+  // Create a mock endpoints array from the machine's endpoint_url
+  const endpoints: Endpoint[] = machineData?.endpoint_url ? [{
+    id: selectedMachineId || '',
+    name: `${machineData.name} Endpoint`,
+    url: machineData.endpoint_url
+  }] : [];
 
-  // Update endpoint mutation
+  // Update machine endpoint mutation
   const updateEndpointMutation = useMutation({
-    mutationFn: async ({ id, endpoint }: { id: string; endpoint: { name: string; url: string } }) => {
+    mutationFn: async (endpoint: { name: string; url: string }) => {
+      if (!selectedMachineId) return;
       const { error } = await supabase
-        .from('laser_machines')
+        .from(tableName)
         .update({
-          name: endpoint.name,
           endpoint_url: endpoint.url
         })
-        .eq('id', id);
+        .eq('id', selectedMachineId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['endpoints'] });
+      queryClient.invalidateQueries({ queryKey: [tableName, selectedMachineId] });
+      setIsAdding(false);
       setEditingId(null);
+      setNewEndpoint({ name: '', url: '' });
       toast({
         title: "Success",
         description: "Endpoint updated successfully",
@@ -107,41 +86,45 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     }
   });
 
-  // Delete endpoint mutation
+  // Delete endpoint mutation (sets endpoint_url to null)
   const deleteEndpointMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async () => {
+      if (!selectedMachineId) return;
       const { error } = await supabase
-        .from('laser_machines')
-        .delete()
-        .eq('id', id);
+        .from(tableName)
+        .update({
+          endpoint_url: null
+        })
+        .eq('id', selectedMachineId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['endpoints'] });
+      queryClient.invalidateQueries({ queryKey: [tableName, selectedMachineId] });
+      onEndpointSelect(''); // Clear selected endpoint
       toast({
         title: "Success",
-        description: "Endpoint deleted successfully",
+        description: "Endpoint removed successfully",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to delete endpoint",
+        description: "Failed to remove endpoint",
         variant: "destructive"
       });
     }
   });
 
   const handleAddEndpoint = () => {
-    addEndpointMutation.mutate(newEndpoint);
+    updateEndpointMutation.mutate(newEndpoint);
   };
 
-  const handleUpdateEndpoint = (id: string) => {
-    updateEndpointMutation.mutate({ id, endpoint: editEndpoint });
+  const handleUpdateEndpoint = () => {
+    updateEndpointMutation.mutate(editEndpoint);
   };
 
-  const handleDeleteEndpoint = (id: string) => {
-    deleteEndpointMutation.mutate(id);
+  const handleDeleteEndpoint = () => {
+    deleteEndpointMutation.mutate();
   };
 
   const startEditing = (endpoint: Endpoint) => {
@@ -149,18 +132,31 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     setEditEndpoint({ name: endpoint.name, url: endpoint.url });
   };
 
+  if (!selectedMachineId) {
+    return (
+      <Card className="p-4 bg-white border border-gray-200">
+        <h4 className="font-medium text-gray-900 mb-2">Machine Endpoints</h4>
+        <p className="text-gray-500 text-sm">Select a machine to manage its endpoints</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-4 bg-white border border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="font-medium text-gray-900">G-Code Endpoints</h4>
-        <Button
-          onClick={() => setIsAdding(true)}
-          size="sm"
-          variant="outline"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Endpoint
-        </Button>
+        <h4 className="font-medium text-gray-900">
+          {machineType.toUpperCase()} Machine Endpoints
+        </h4>
+        {!endpoints.length && !isAdding && (
+          <Button
+            onClick={() => setIsAdding(true)}
+            size="sm"
+            variant="outline"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Endpoint
+          </Button>
+        )}
       </div>
 
       {/* Add new endpoint form */}
@@ -182,13 +178,13 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
                 id="new-url"
                 value={newEndpoint.url}
                 onChange={(e) => setNewEndpoint(prev => ({ ...prev, url: e.target.value }))}
-                placeholder="http://machine-ip:port/gcode"
+                placeholder={`http://machine-ip:port/${machineType === 'cnc' ? 'gcode' : 'laser'}`}
               />
             </div>
             <div className="flex gap-2">
               <Button
                 onClick={handleAddEndpoint}
-                disabled={!newEndpoint.name || !newEndpoint.url || addEndpointMutation.isPending}
+                disabled={!newEndpoint.name || !newEndpoint.url || updateEndpointMutation.isPending}
                 size="sm"
               >
                 <Save className="w-4 h-4 mr-2" />
@@ -212,74 +208,78 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
 
       {/* Endpoints list */}
       <div className="space-y-2">
-        {endpoints.map((endpoint) => (
-          <div
-            key={endpoint.id}
-            className={`p-3 border rounded cursor-pointer transition-colors ${
-              selectedEndpoint === endpoint.url
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-gray-200 hover:bg-gray-50'
-            }`}
-            onClick={() => onEndpointSelect(endpoint.url)}
-          >
-            {editingId === endpoint.id ? (
-              <div className="space-y-2">
-                <Input
-                  value={editEndpoint.name}
-                  onChange={(e) => setEditEndpoint(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Endpoint name"
-                />
-                <Input
-                  value={editEndpoint.url}
-                  onChange={(e) => setEditEndpoint(prev => ({ ...prev, url: e.target.value }))}
-                  placeholder="http://machine-ip:port/gcode"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleUpdateEndpoint(endpoint.id)}
-                    disabled={updateEndpointMutation.isPending}
-                    size="sm"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button
-                    onClick={() => setEditingId(null)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Cancel
-                  </Button>
+        {endpoints.length === 0 && !isAdding ? (
+          <p className="text-gray-500 text-sm">No endpoint configured for this machine</p>
+        ) : (
+          endpoints.map((endpoint) => (
+            <div
+              key={endpoint.id}
+              className={`p-3 border rounded cursor-pointer transition-colors ${
+                selectedEndpoint === endpoint.url
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'border-gray-200 hover:bg-gray-50'
+              }`}
+              onClick={() => onEndpointSelect(endpoint.url)}
+            >
+              {editingId === endpoint.id ? (
+                <div className="space-y-2">
+                  <Input
+                    value={editEndpoint.name}
+                    onChange={(e) => setEditEndpoint(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Endpoint name"
+                  />
+                  <Input
+                    value={editEndpoint.url}
+                    onChange={(e) => setEditEndpoint(prev => ({ ...prev, url: e.target.value }))}
+                    placeholder={`http://machine-ip:port/${machineType === 'cnc' ? 'gcode' : 'laser'}`}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleUpdateEndpoint}
+                      disabled={updateEndpointMutation.isPending}
+                      size="sm"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button
+                      onClick={() => setEditingId(null)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-sm">{endpoint.name}</div>
-                  <div className="text-xs text-gray-500">{endpoint.url}</div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-sm">{endpoint.name}</div>
+                    <div className="text-xs text-gray-500">{endpoint.url}</div>
+                  </div>
+                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      onClick={() => startEditing(endpoint)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={handleDeleteEndpoint}
+                      size="sm"
+                      variant="ghost"
+                      disabled={deleteEndpointMutation.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    onClick={() => startEditing(endpoint)}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={() => handleDeleteEndpoint(endpoint.id)}
-                    size="sm"
-                    variant="ghost"
-                    disabled={deleteEndpointMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          ))
+        )}
       </div>
     </Card>
   );

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { CNCVisualization } from './CNCVisualization';
@@ -15,6 +15,11 @@ export const CNCControlSystem = () => {
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [cncParams, setCncParams] = useState({});
+
+  // Clear endpoint when machine changes
+  useEffect(() => {
+    setSelectedEndpoint('');
+  }, [selectedMachine]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,6 +87,7 @@ export const CNCControlSystem = () => {
             selectedMachineId={selectedMachine}
             onEndpointSelect={setSelectedEndpoint}
             selectedEndpoint={selectedEndpoint}
+            machineType="cnc"
           />
         </div>
       </div>
