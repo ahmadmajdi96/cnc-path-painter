@@ -3,14 +3,14 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Save, Download, Play, Pause, RotateCcw, Upload } from 'lucide-react';
+import { Save, Download, Upload } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { EndpointManager } from './EndpointManager';
 import { useToast } from '@/hooks/use-toast';
+import { CNC2DVisualization } from './CNC2DVisualization';
 
 type CNCMachine = Tables<'cnc_machines'>;
 type Toolpath = Tables<'toolpaths'>;
@@ -29,7 +29,6 @@ interface CNCVisualizationProps {
 }
 
 export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParams, onEndpointSelect }: CNCVisualizationProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -131,6 +130,51 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     setLoadedToolpathId(toolpath.id);
   };
 
+  const startSimulation = () => {
+    if (points.length === 0) return;
+    
+    setIsSimulating(true);
+    setCurrentPoint(0);
+
+    const interval = setInterval(() => {
+      setCurrentPoint(prev => {
+        if (prev >= points.length - 1) {
+          setIsSimulating(false);
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 800); // Slower for CNC operations
+  };
+
+  const stopSimulation = () => {
+    setIsSimulating(false);
+  };
+
+  const resetSimulation = () => {
+    setIsSimulating(false);
+    setCurrentPoint(0);
+  };
+
+  const handleSimulationToggle = () => {
+    if (isSimulating) {
+      stopSimulation();
+    } else {
+      startSimulation();
+    }
+  };
+
+  const addPoint = (point: Point) => {
+    setPoints(prev => [...prev, point]);
+  };
+
+  const clearPoints = () => {
+    setPoints([]);
+    setCurrentPoint(0);
+    setLoadedToolpathId(null);
+  };
+
   const generateGCode = () => {
     if (points.length === 0) return '';
 
@@ -224,7 +268,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
       {/* CNC Visualization */}
       <Card className="p-4 bg-white border border-gray-200">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">2D CNC Visualization</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Realistic CNC 2D Visualization</h3>
           {!selectedMachineId && (
             <p className="text-gray-600 text-sm">Select a CNC machine to start creating toolpaths</p>
           )}
@@ -232,32 +276,18 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
 
         {selectedMachineId && (
           <>
-            <div className="mb-4">
-              <canvas
-                ref={canvasRef}
-                width={600}
-                height={400}
-                className="border border-gray-300 w-full"
-              />
-            </div>
+            <CNC2DVisualization
+              points={points}
+              isSimulating={isSimulating}
+              currentPoint={currentPoint}
+              onSimulationToggle={handleSimulationToggle}
+              onReset={resetSimulation}
+              onAddPoint={addPoint}
+              onClearPoints={clearPoints}
+              machineName={selectedMachine?.name}
+            />
 
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Button
-                onClick={() => setIsSimulating(!isSimulating)}
-                disabled={points.length === 0}
-                size="sm"
-              >
-                {isSimulating ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                {isSimulating ? 'Pause' : 'Simulate'}
-              </Button>
-              <Button
-                onClick={() => setCurrentPoint(0)}
-                size="sm"
-                variant="outline"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
+            <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 onClick={downloadGCode}
                 disabled={points.length === 0}
@@ -265,12 +295,28 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
                 variant="outline"
               >
                 <Download className="w-4 h-4 mr-2" />
-                G-Code
+                Download G-Code
+              </Button>
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                size="sm"
+                variant="outline"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload G-Code
               </Button>
             </div>
 
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".gcode,.nc,.cnc"
+              style={{ display: 'none' }}
+            />
+
             {points.length > 0 && (
-              <div className="mb-4 flex gap-2">
+              <div className="mt-4 flex gap-2">
                 <Input
                   placeholder="Toolpath name"
                   value={toolpathName}
@@ -289,7 +335,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
             )}
 
             {toolpaths.length > 0 && (
-              <div className="mb-4">
+              <div className="mt-4">
                 <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
                 <ScrollArea className="h-40 border border-gray-200 rounded p-2">
                   <div className="space-y-2">

@@ -2,14 +2,14 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Save, Download, Play, Pause, RotateCcw, Upload, ZoomIn, ZoomOut } from 'lucide-react';
+import { Save, Download, Upload } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { EndpointManager } from './EndpointManager';
 import { useToast } from '@/hooks/use-toast';
+import { Laser2DVisualization } from './Laser2DVisualization';
 
 type LaserMachine = Tables<'laser_machines'>;
 type LaserToolpath = Tables<'laser_toolpaths'>;
@@ -17,18 +17,6 @@ type LaserToolpath = Tables<'laser_toolpaths'>;
 interface Point {
   x: number;
   y: number;
-}
-
-interface LaserParams {
-  laserPower: number;
-  pulseFrequency: number;
-  markingSpeed: number;
-  pulseDuration: number;
-  zOffset: number;
-  passes: number;
-  laserMode: string;
-  beamDiameter: number;
-  material: string;
 }
 
 interface LaserVisualizationProps {
@@ -39,23 +27,14 @@ interface LaserVisualizationProps {
 }
 
 export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: externalSelectedEndpoint, onEndpointSelect }: LaserVisualizationProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
   const [currentPoint, setCurrentPoint] = useState(0);
   const [toolpathName, setToolpathName] = useState('');
-  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [draggedPointIndex, setDraggedPointIndex] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [selectedEndpoint, setSelectedEndpoint] = useState('');
   const [loadedToolpathId, setLoadedToolpathId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  // Scale factor: 1 pixel = 0.1 mm (can be adjusted)
-  const MM_PER_PIXEL = 0.1;
 
   const queryClient = useQueryClient();
   const [laserParams, setLaserParams] = useState({
@@ -158,383 +137,6 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     }
   }, [toolpaths, selectedMachineId, loadedToolpathId]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Save context and apply zoom/pan
-    ctx.save();
-    ctx.translate(canvas.width / 2 + panOffset.x, canvas.height / 2 + panOffset.y);
-    ctx.scale(zoom, zoom);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-    // Draw grid
-    drawGrid(ctx, canvas.width, canvas.height);
-
-    // Draw axes
-    drawAxes(ctx, canvas.width, canvas.height);
-
-    // Draw toolpath
-    if (points.length > 0) {
-      drawToolpath(ctx, points, currentPoint);
-    }
-
-    // Restore context
-    ctx.restore();
-
-    // Draw machine info (not affected by zoom)
-    if (selectedMachine) {
-      drawMachineInfo(ctx, selectedMachine);
-    }
-
-    // Draw cursor distance (not affected by zoom)
-    if (points.length > 0 && !isDragging) {
-      drawCursorDistance(ctx);
-    }
-
-    // Draw zoom level
-    drawZoomLevel(ctx);
-  }, [points, currentPoint, selectedMachine, mousePos, isDragging, zoom, panOffset]);
-
-  const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 1;
-
-    const gridSize = 20; // 20 pixels = 2mm
-
-    // Vertical lines
-    for (let x = 0; x <= width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-
-    // Horizontal lines
-    for (let y = 0; y <= height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-  };
-
-  const drawAxes = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 2;
-
-    // X-axis
-    ctx.beginPath();
-    ctx.moveTo(0, centerY);
-    ctx.lineTo(width, centerY);
-    ctx.stroke();
-
-    // Y-axis
-    ctx.beginPath();
-    ctx.moveTo(centerX, 0);
-    ctx.lineTo(centerX, height);
-    ctx.stroke();
-
-    // Axis labels
-    ctx.fillStyle = '#374151';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('X', width - 20, centerY - 10);
-    ctx.fillText('Y', centerX + 10, 20);
-  };
-
-  const drawToolpath = (ctx: CanvasRenderingContext2D, pathPoints: Point[], current: number) => {
-    if (pathPoints.length < 2) return;
-
-    const centerX = canvasRef.current!.width / 2;
-    const centerY = canvasRef.current!.height / 2;
-
-    // Draw path lines
-    for (let i = 0; i < pathPoints.length - 1; i++) {
-      const point1 = pathPoints[i];
-      const point2 = pathPoints[i + 1];
-      
-      const canvasX1 = centerX + point1.x;
-      const canvasY1 = centerY - point1.y;
-      const canvasX2 = centerX + point2.x;
-      const canvasY2 = centerY - point2.y;
-
-      // Color finished steps in red during simulation
-      if (isSimulating && i < current) {
-        ctx.strokeStyle = '#ef4444';
-      } else {
-        ctx.strokeStyle = '#3b82f6';
-      }
-      
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(canvasX1, canvasY1);
-      ctx.lineTo(canvasX2, canvasY2);
-      ctx.stroke();
-    }
-
-    // Draw points
-    pathPoints.forEach((point, index) => {
-      const canvasX = centerX + point.x;
-      const canvasY = centerY - point.y;
-
-      // Current point during simulation
-      if (isSimulating && index === current) {
-        ctx.fillStyle = '#22c55e'; // Green for current
-      } else if (isSimulating && index < current) {
-        ctx.fillStyle = '#ef4444'; // Red for finished
-      } else {
-        ctx.fillStyle = '#3b82f6'; // Blue for unprocessed
-      }
-      
-      ctx.beginPath();
-      ctx.arc(canvasX, canvasY, 4, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Draw point coordinates in mm
-      const mmX = (point.x * MM_PER_PIXEL).toFixed(1);
-      const mmY = (point.y * MM_PER_PIXEL).toFixed(1);
-      ctx.fillStyle = '#374151';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`(${mmX}, ${mmY})mm`, canvasX + 8, canvasY - 8);
-    });
-  };
-
-  const drawMachineInfo = (ctx: CanvasRenderingContext2D, machine: LaserMachine) => {
-    ctx.fillStyle = '#374151';
-    ctx.font = '14px sans-serif';
-    ctx.fillText(`Machine: ${machine.name} - ${machine.model}`, 10, 30);
-  };
-
-  const drawCursorDistance = (ctx: CanvasRenderingContext2D) => {
-    if (points.length === 0) return;
-
-    const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    const lastPoint = points[points.length - 1];
-    const lastCanvasX = centerX + lastPoint.x * zoom + panOffset.x;
-    const lastCanvasY = centerY - lastPoint.y * zoom + panOffset.y;
-    
-    const cursorX = mousePos.x;
-    const cursorY = mousePos.y;
-    
-    const pixelDistance = Math.sqrt(
-      Math.pow(cursorX - lastCanvasX, 2) + Math.pow(cursorY - lastCanvasY, 2)
-    );
-    const mmDistance = (pixelDistance * MM_PER_PIXEL / zoom).toFixed(1);
-
-    // Draw line from last point to cursor
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(lastCanvasX, lastCanvasY);
-    ctx.lineTo(cursorX, cursorY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Draw distance text
-    ctx.fillStyle = '#374151';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(`${mmDistance}mm`, cursorX + 10, cursorY - 10);
-  };
-
-  const drawZoomLevel = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = '#374151';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 10, canvasRef.current!.height - 10);
-  };
-
-  const screenToWorldCoords = (screenX: number, screenY: number) => {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    
-    // Get canvas coordinates
-    const canvasX = screenX - rect.left;
-    const canvasY = screenY - rect.top;
-    
-    // Transform from screen space to world space (exact inverse of rendering)
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    // Undo the transformations applied during rendering
-    const worldX = (canvasX - centerX - panOffset.x) / zoom;
-    const worldY = (centerY - canvasY + panOffset.y) / zoom;
-    
-    return { x: Math.round(worldX), y: Math.round(worldY) };
-  };
-
-  const worldToScreenCoords = (worldX: number, worldY: number) => {
-    const canvas = canvasRef.current!;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    
-    // Apply the same transformations as in rendering
-    const screenX = centerX + worldX * zoom + panOffset.x;
-    const screenY = centerY - worldY * zoom + panOffset.y;
-    
-    return { x: screenX, y: screenY };
-  };
-
-  const getPointAtPosition = (screenX: number, screenY: number): number | null => {
-    for (let i = 0; i < points.length; i++) {
-      const point = points[i];
-      const screenCoords = worldToScreenCoords(point.x, point.y);
-      
-      const distance = Math.sqrt(
-        Math.pow(screenX - screenCoords.x, 2) + 
-        Math.pow(screenY - screenCoords.y, 2)
-      );
-      
-      if (distance <= 8) { // 8px radius for click detection
-        return i;
-      }
-    }
-    return null;
-  };
-
-  const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    const screenX = event.clientX;
-    const screenY = event.clientY;
-    const canvasX = screenX - rect.left;
-    const canvasY = screenY - rect.top;
-
-    const pointIndex = getPointAtPosition(canvasX, canvasY);
-    if (pointIndex !== null) {
-      setDraggedPointIndex(pointIndex);
-      setIsDragging(true);
-      canvas.style.cursor = 'none'; // Hide cursor when dragging
-    }
-  };
-
-  const handleCanvasMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    const screenX = event.clientX;
-    const screenY = event.clientY;
-    const canvasX = screenX - rect.left;
-    const canvasY = screenY - rect.top;
-    
-    setMousePos({ x: canvasX, y: canvasY });
-
-    if (isDragging && draggedPointIndex !== null) {
-      const worldCoords = screenToWorldCoords(screenX, screenY);
-      setPoints(prev => {
-        const newPoints = [...prev];
-        newPoints[draggedPointIndex] = worldCoords;
-        return newPoints;
-      });
-    } else {
-      // Check if hovering over a point
-      const pointIndex = getPointAtPosition(canvasX, canvasY);
-      canvas.style.cursor = pointIndex !== null ? 'none' : 'none'; // Always hide default cursor
-    }
-  };
-
-  const handleCanvasMouseUp = () => {
-    setIsDragging(false);
-    setDraggedPointIndex(null);
-    if (canvasRef.current) {
-      canvasRef.current.style.cursor = 'none'; // Keep cursor hidden
-    }
-  };
-
-  const handleCanvasMouseEnter = () => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.style.cursor = 'none'; // Hide cursor when entering canvas
-    }
-  };
-
-  const handleCanvasMouseLeave = () => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.style.cursor = 'default'; // Restore cursor when leaving canvas
-    }
-    // Reset mouse position when leaving canvas
-    setMousePos({ x: -1, y: -1 });
-  };
-
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isDragging) return;
-
-    const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
-    const screenX = event.clientX;
-    const screenY = event.clientY;
-    const canvasX = screenX - rect.left;
-    const canvasY = screenY - rect.top;
-
-    // Don't add new point if clicking on existing point
-    if (getPointAtPosition(canvasX, canvasY) !== null) return;
-
-    const worldCoords = screenToWorldCoords(screenX, screenY);
-    console.log('Adding point at world coords:', worldCoords);
-    setPoints(prev => [...prev, worldCoords]);
-  };
-
-  const handleCanvasWheel = (event: React.WheelEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-    const zoomSpeed = 0.1;
-    const newZoom = event.deltaY > 0 
-      ? Math.max(0.1, zoom - zoomSpeed)
-      : Math.min(5, zoom + zoomSpeed);
-    setZoom(newZoom);
-  };
-
-  const zoomIn = () => {
-    setZoom(prev => Math.min(5, prev + 0.2));
-  };
-
-  const zoomOut = () => {
-    setZoom(prev => Math.max(0.1, prev - 0.2));
-  };
-
-  const resetZoom = () => {
-    setZoom(1);
-    setPanOffset({ x: 0, y: 0 });
-  };
-
-  const startSimulation = () => {
-    if (points.length === 0) return;
-    
-    setIsSimulating(true);
-    setCurrentPoint(0);
-
-    const interval = setInterval(() => {
-      setCurrentPoint(prev => {
-        if (prev >= points.length - 1) {
-          setIsSimulating(false);
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-  };
-
-  const resetSimulation = () => {
-    setIsSimulating(false);
-    setCurrentPoint(0);
-  };
-
-  const clearPoints = () => {
-    setPoints([]);
-    setCurrentPoint(0);
-  };
-
   const loadToolpath = (toolpath: LaserToolpath) => {
     console.log('Loading toolpath:', toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
@@ -558,6 +160,51 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
         material: params.material || laserParams.material
       });
     }
+  };
+
+  const startSimulation = () => {
+    if (points.length === 0) return;
+    
+    setIsSimulating(true);
+    setCurrentPoint(0);
+
+    const interval = setInterval(() => {
+      setCurrentPoint(prev => {
+        if (prev >= points.length - 1) {
+          setIsSimulating(false);
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 500); // Faster for laser operations
+  };
+
+  const stopSimulation = () => {
+    setIsSimulating(false);
+  };
+
+  const resetSimulation = () => {
+    setIsSimulating(false);
+    setCurrentPoint(0);
+  };
+
+  const handleSimulationToggle = () => {
+    if (isSimulating) {
+      stopSimulation();
+    } else {
+      startSimulation();
+    }
+  };
+
+  const addPoint = (point: Point) => {
+    setPoints(prev => [...prev, point]);
+  };
+
+  const clearPoints = () => {
+    setPoints([]);
+    setCurrentPoint(0);
+    setLoadedToolpathId(null);
   };
 
   const generateGCode = () => {
@@ -590,8 +237,8 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
       gcode += `; Pass ${pass}\n`;
       
       points.forEach((point, index) => {
-        const mmX = (point.x * MM_PER_PIXEL).toFixed(3);
-        const mmY = (point.y * MM_PER_PIXEL).toFixed(3);
+        const mmX = (point.x).toFixed(3);
+        const mmY = (point.y).toFixed(3);
         
         if (index === 0) {
           gcode += `G0 X${mmX} Y${mmY} ; Rapid to start position\n`;
@@ -639,8 +286,8 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
       gcode,
       parameters: laserParams,
       points: points.map(p => ({
-        x: (p.x * MM_PER_PIXEL).toFixed(3),
-        y: (p.y * MM_PER_PIXEL).toFixed(3)
+        x: p.x.toFixed(3),
+        y: p.y.toFixed(3)
       })),
       machine_id: selectedMachineId,
       timestamp: new Date().toISOString()
@@ -672,75 +319,12 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const parsedPoints = parseGCode(content);
-        if (parsedPoints.length > 0) {
-          setPoints(parsedPoints);
-          setLoadedToolpathId(null);
-          toast({
-            title: "G-Code Loaded",
-            description: `Successfully loaded ${parsedPoints.length} points from G-code file`,
-          });
-          console.log('Loaded G-code with', parsedPoints.length, 'points');
-        } else {
-          toast({
-            title: "No Points Found",
-            description: "No valid X/Y coordinates found in the G-code file",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        toast({
-          title: "Upload Failed",
-          description: `Error parsing G-code file: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          variant: "destructive"
-        });
-      }
-    };
-    reader.readAsText(file);
-    
-    // Reset file input
-    event.target.value = '';
-  };
-
-  const parseGCode = (gcode: string): Point[] => {
-    const lines = gcode.split('\n');
-    const points: Point[] = [];
-    
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (trimmedLine.startsWith('G1') || trimmedLine.startsWith('G0')) {
-        const xMatch = trimmedLine.match(/X([-\d.]+)/);
-        const yMatch = trimmedLine.match(/Y([-\d.]+)/);
-        
-        if (xMatch && yMatch) {
-          // Convert from mm to pixels
-          const mmX = parseFloat(xMatch[1]);
-          const mmY = parseFloat(yMatch[1]);
-          points.push({
-            x: Math.round(mmX / MM_PER_PIXEL),
-            y: Math.round(mmY / MM_PER_PIXEL)
-          });
-        }
-      }
-    }
-    
-    return points;
-  };
-
   return (
     <div className="space-y-6">
       {/* Laser Visualization */}
       <Card className="p-4 bg-white border border-gray-200">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">2D Laser Visualization (X/Y View)</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Realistic Laser 2D Visualization</h3>
           {!selectedMachineId && (
             <p className="text-gray-600 text-sm">Select a machine to start creating toolpaths</p>
           )}
@@ -748,61 +332,19 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
 
         {selectedMachineId && (
           <>
-            {/* Canvas with zoom controls */}
-            <div className="mb-4">
-              <div className="flex gap-2 mb-2">
-                <Button onClick={zoomIn} size="sm" variant="outline">
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-                <Button onClick={zoomOut} size="sm" variant="outline">
-                  <ZoomOut className="w-4 h-4" />
-                </Button>
-                <Button onClick={resetZoom} size="sm" variant="outline">
-                  Reset View
-                </Button>
-              </div>
-              <canvas
-                ref={canvasRef}
-                width={1400}
-                height={700}
-                className="border border-gray-300 w-full"
-                style={{ cursor: 'none' }}
-                onClick={handleCanvasClick}
-                onMouseDown={handleCanvasMouseDown}
-                onMouseMove={handleCanvasMouseMove}
-                onMouseUp={handleCanvasMouseUp}
-                onMouseEnter={handleCanvasMouseEnter}
-                onMouseLeave={handleCanvasMouseLeave}
-                onWheel={handleCanvasWheel}
-              />
-            </div>
+            <Laser2DVisualization
+              points={points}
+              isSimulating={isSimulating}
+              currentPoint={currentPoint}
+              onSimulationToggle={handleSimulationToggle}
+              onReset={resetSimulation}
+              onAddPoint={addPoint}
+              onClearPoints={clearPoints}
+              laserParams={laserParams}
+              machineName={selectedMachine?.name}
+            />
 
-            {/* Controls */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Button
-                onClick={startSimulation}
-                disabled={isSimulating || points.length === 0}
-                size="sm"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Simulate
-              </Button>
-              <Button
-                onClick={resetSimulation}
-                disabled={!isSimulating && currentPoint === 0}
-                size="sm"
-                variant="outline"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
-              <Button
-                onClick={clearPoints}
-                size="sm"
-                variant="outline"
-              >
-                Clear
-              </Button>
+            <div className="flex flex-wrap gap-2 mt-4">
               <Button
                 onClick={downloadGCode}
                 disabled={points.length === 0}
@@ -810,7 +352,7 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
                 variant="outline"
               >
                 <Download className="w-4 h-4 mr-2" />
-                G-Code
+                Download G-Code
               </Button>
               <Button
                 onClick={() => fileInputRef.current?.click()}
@@ -827,13 +369,11 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
               ref={fileInputRef}
               type="file"
               accept=".gcode,.nc,.cnc"
-              onChange={handleFileUpload}
               style={{ display: 'none' }}
             />
 
-            {/* Save Toolpath */}
             {points.length > 0 && (
-              <div className="mb-4 flex gap-2">
+              <div className="mt-4 flex gap-2">
                 <Input
                   placeholder="Toolpath name"
                   value={toolpathName}
@@ -851,9 +391,8 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
               </div>
             )}
 
-            {/* Saved Toolpaths */}
             {toolpaths.length > 0 && (
-              <div className="mb-4">
+              <div className="mt-4">
                 <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
                 <ScrollArea className="h-40 border border-gray-200 rounded p-2">
                   <div className="space-y-2">
