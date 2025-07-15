@@ -33,10 +33,11 @@ interface LaserParams {
 
 interface LaserVisualizationProps {
   selectedMachineId?: string;
+  selectedEndpoint?: string;
   laserParams?: any;
 }
 
-export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProps) => {
+export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: externalSelectedEndpoint }: LaserVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
@@ -67,6 +68,13 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     beamDiameter: 0.1,
     material: 'steel'
   });
+
+  // Use external selectedEndpoint if provided
+  useEffect(() => {
+    if (externalSelectedEndpoint) {
+      setSelectedEndpoint(externalSelectedEndpoint);
+    }
+  }, [externalSelectedEndpoint]);
 
   // Fetch selected machine data
   const { data: selectedMachine } = useQuery({
@@ -892,6 +900,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
           selectedMachineId={selectedMachineId}
           onEndpointSelect={setSelectedEndpoint}
           selectedEndpoint={selectedEndpoint}
+          machineType="laser"
         />
         
         {selectedEndpoint && points.length > 0 && (
