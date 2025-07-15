@@ -1,88 +1,72 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
+import { Wrench, Zap, Wifi, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Machine = Tables<'cnc_machines'>;
 
 export const StatusCards = () => {
-  const { data: machines = [], isLoading } = useQuery({
-    queryKey: ['cnc-machines-status'],
+  // Fetch laser machines data
+  const { data: laserMachines = [] } = useQuery({
+    queryKey: ['laser-machines'],
     queryFn: async () => {
-      console.log('Fetching CNC machines for status cards...');
       const { data, error } = await supabase
-        .from('cnc_machines')
+        .from('laser_machines')
         .select('*');
-      
-      if (error) {
-        console.error('Error fetching machines:', error);
-        throw error;
-      }
-      
-      console.log('Fetched machines for status:', data);
+      if (error) throw error;
       return data;
     }
   });
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-4 gap-4">
-        {[...Array(4)].map((_, index) => (
-          <Card key={index} className="p-4 bg-white border border-gray-200">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-8 bg-gray-200 rounded"></div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  // Calculate status counts
+  const totalMachines = laserMachines.length;
+  const activeMachines = laserMachines.filter(m => m.status === 'active').length;
+  const connectedMachines = laserMachines.filter(m => m.endpoint_url && m.endpoint_url.trim() !== '').length;
+  const errorMachines = laserMachines.filter(m => m.status === 'error').length;
 
-  const totalMachines = machines.length;
-  const activeMachines = machines.filter(m => m.status === 'active').length;
-  const connectedMachines = machines.filter(m => m.ip_address && m.ip_address.trim() !== '').length;
-  const errorMachines = machines.filter(m => m.status === 'offline' || m.status === 'error').length;
-
-  const statusData = [
+  const statusCards = [
     {
-      label: 'Total Machines',
-      value: totalMachines.toString(),
-      icon: '🔧',
-      color: 'blue'
+      title: 'Total Machines',
+      value: totalMachines,
+      icon: Wrench,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
     },
     {
-      label: 'Active',
-      value: activeMachines.toString(),
-      icon: '⚡',
-      color: 'green'
+      title: 'Active',
+      value: activeMachines,
+      icon: Zap,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
     },
     {
-      label: 'Connected',
-      value: connectedMachines.toString(),
-      icon: '📡',
-      color: 'blue'
+      title: 'Connected',
+      value: connectedMachines,
+      icon: Wifi,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
     },
     {
-      label: 'Errors',
-      value: errorMachines.toString(),
-      icon: '⚠️',
-      color: 'red'
+      title: 'Errors',
+      value: errorMachines,
+      icon: AlertTriangle,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50'
     }
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-4">
-      {statusData.map((item, index) => (
-        <Card key={index} className="p-4 bg-white border border-gray-200">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {statusCards.map((card, index) => (
+        <Card key={index} className="p-6 bg-white border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">{item.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{item.value}</p>
+              <p className="text-sm font-medium text-gray-600">{card.title}</p>
+              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
             </div>
-            <div className="text-2xl">{item.icon}</div>
+            <div className={`p-3 rounded-full ${card.bgColor}`}>
+              <card.icon className={`w-6 h-6 ${card.color}`} />
+            </div>
           </div>
         </Card>
       ))}

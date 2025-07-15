@@ -3,38 +3,16 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Download, Play, Pause, RotateCcw, Upload, ZoomIn, ZoomOut } from 'lucide-react';
+import { Save, Download, Play, Pause, RotateCcw, Upload, ZoomIn, ZoomOut, Send } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { EndpointManager } from './EndpointManager';
+import { useToast } from '@/hooks/use-toast';
 
-interface LaserMachine {
-  id: string;
-  name: string;
-  model: string;
-  manufacturer?: string;
-  status: string;
-  max_power?: number;
-  max_frequency?: number;
-  max_speed?: number;
-  beam_diameter?: number;
-  endpoint_url?: string;
-  ip_address?: string;
-  port?: number;
-  protocol?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface LaserToolpath {
-  id: string;
-  laser_machine_id: string;
-  name: string;
-  points: any;
-  laser_params?: any;
-  created_at: string;
-  updated_at: string;
-}
+type LaserMachine = Tables<'laser_machines'>;
+type LaserToolpath = Tables<'laser_toolpaths'>;
 
 interface Point {
   x: number;
@@ -42,14 +20,10 @@ interface Point {
 }
 
 interface LaserParams {
-  laserPower: number;
-  pulseFrequency: number;
-  markingSpeed: number;
-  pulseDuration: number;
-  zOffset: number;
+  power: number;
+  frequency: number;
+  speed: number;
   passes: number;
-  laserMode: string;
-  beamDiameter: number;
 }
 
 interface LaserVisualizationProps {
@@ -61,14 +35,10 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [laserParams, setLaserParams] = useState<LaserParams>({
-    laserPower: 50,
-    pulseFrequency: 1000,
-    markingSpeed: 500,
-    pulseDuration: 100,
-    zOffset: 0,
-    passes: 1,
-    laserMode: 'pulsed',
-    beamDiameter: 0.1
+    power: 50,
+    frequency: 2000,
+    speed: 100,
+    passes: 1
   });
   const [isSimulating, setIsSimulating] = useState(false);
   const [currentPoint, setCurrentPoint] = useState(0);
@@ -78,9 +48,10 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
   const [isDragging, setIsDragging] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [laserEndpoint, setLaserEndpoint] = useState('');
+  const [selectedEndpoint, setSelectedEndpoint] = useState('');
+  const { toast } = useToast();
 
-  // Scale factor: 1 pixel = 0.1 mm
+  // Scale factor: 1 pixel = 0.1 mm (can be adjusted)
   const MM_PER_PIXEL = 0.1;
 
   const queryClient = useQueryClient();
@@ -124,51 +95,74 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
       
       const { error } = await supabase
         .from('laser_toolpaths')
-        .insert([{
+        .insert({
           laser_machine_id: selectedMachineId,
-          name: toolpathName || `Laser Path ${Date.now()}`,
-          points: points as unknown as any,
-          laser_params: laserParams as unknown as any
-        }]);
+          name: toolpathName || `Toolpath ${Date.now()}`,
+          points: points as any,
+          laser_params: laserParams as any
+        });
       
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['laser-toolpaths', selectedMachineId] });
       setToolpathName('');
+      toast({
+        title: "Success",
+        description: "Toolpath saved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save toolpath",
+        variant: "destructive"
+      });
     }
   });
 
-  // Update machine endpoint mutation
-  const updateEndpointMutation = useMutation({
+  // Send G-code mutation
+  const sendGcodeMutation = useMutation({
     mutationFn: async (endpoint: string) => {
-      if (!selectedMachineId) return;
+      const gcode = generateGCode();
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: gcode,
+      });
       
-      const { error } = await supabase
-        .from('laser_machines')
-        .update({ endpoint_url: endpoint })
-        .eq('id', selectedMachineId);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       
-      if (error) throw error;
+      return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['laser-machine', selectedMachineId] });
+      toast({
+        title: "Success",
+        description: "G-code sent successfully to the machine",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to send G-code: ${error.message}`,
+        variant: "destructive"
+      });
     }
   });
 
   useEffect(() => {
     if (selectedMachine) {
       setLaserParams({
-        laserPower: selectedMachine.max_power || 50,
-        pulseFrequency: selectedMachine.max_frequency || 1000,
-        markingSpeed: selectedMachine.max_speed || 500,
-        pulseDuration: 100,
-        zOffset: 0,
-        passes: 1,
-        laserMode: 'pulsed',
-        beamDiameter: selectedMachine.beam_diameter || 0.1
+        power: selectedMachine.max_power || 50,
+        frequency: selectedMachine.max_frequency || 2000,
+        speed: selectedMachine.max_speed || 100,
+        passes: 1
       });
-      setLaserEndpoint(selectedMachine.endpoint_url || '');
+      setSelectedEndpoint(selectedMachine.endpoint_url || '');
     }
   }, [selectedMachine]);
 
@@ -270,7 +264,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     const centerX = canvasRef.current!.width / 2;
     const centerY = canvasRef.current!.height / 2;
 
-    // Draw path lines (laser beam path)
+    // Draw path lines
     for (let i = 0; i < pathPoints.length - 1; i++) {
       const point1 = pathPoints[i];
       const point2 = pathPoints[i + 1];
@@ -282,12 +276,12 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
 
       // Color finished steps in red during simulation
       if (isSimulating && i < current) {
-        ctx.strokeStyle = '#dc2626'; // Red for laser marked
+        ctx.strokeStyle = '#ef4444';
       } else {
-        ctx.strokeStyle = '#7c3aed'; // Purple for laser path
+        ctx.strokeStyle = '#8b5cf6'; // Purple for laser
       }
       
-      ctx.lineWidth = 3; // Thicker line to represent laser beam
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(canvasX1, canvasY1);
       ctx.lineTo(canvasX2, canvasY2);
@@ -301,15 +295,15 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
 
       // Current point during simulation
       if (isSimulating && index === current) {
-        ctx.fillStyle = '#dc2626'; // Red for current laser position
+        ctx.fillStyle = '#22c55e'; // Green for current
       } else if (isSimulating && index < current) {
-        ctx.fillStyle = '#991b1b'; // Dark red for completed
+        ctx.fillStyle = '#ef4444'; // Red for finished
       } else {
-        ctx.fillStyle = '#7c3aed'; // Purple for pending
+        ctx.fillStyle = '#8b5cf6'; // Purple for unprocessed
       }
       
       ctx.beginPath();
-      ctx.arc(canvasX, canvasY, 5, 0, 2 * Math.PI);
+      ctx.arc(canvasX, canvasY, 4, 0, 2 * Math.PI);
       ctx.fill();
 
       // Draw point coordinates in mm
@@ -360,12 +354,15 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     
+    // Get canvas coordinates
     const canvasX = screenX - rect.left;
     const canvasY = screenY - rect.top;
     
+    // Transform from screen space to world space (exact inverse of rendering)
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
+    // Undo the transformations applied during rendering
     const worldX = (canvasX - centerX - panOffset.x) / zoom;
     const worldY = (centerY - canvasY + panOffset.y) / zoom;
     
@@ -377,6 +374,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     
+    // Apply the same transformations as in rendering
     const screenX = centerX + worldX * zoom + panOffset.x;
     const screenY = centerY - worldY * zoom + panOffset.y;
     
@@ -393,7 +391,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
         Math.pow(screenY - screenCoords.y, 2)
       );
       
-      if (distance <= 8) {
+      if (distance <= 8) { // 8px radius for click detection
         return i;
       }
     }
@@ -412,7 +410,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     if (pointIndex !== null) {
       setDraggedPointIndex(pointIndex);
       setIsDragging(true);
-      canvas.style.cursor = 'none';
+      canvas.style.cursor = 'none'; // Hide cursor when dragging
     }
   };
 
@@ -434,8 +432,9 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
         return newPoints;
       });
     } else {
+      // Check if hovering over a point
       const pointIndex = getPointAtPosition(canvasX, canvasY);
-      canvas.style.cursor = 'none';
+      canvas.style.cursor = pointIndex !== null ? 'none' : 'none'; // Always hide default cursor
     }
   };
 
@@ -443,22 +442,23 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     setIsDragging(false);
     setDraggedPointIndex(null);
     if (canvasRef.current) {
-      canvasRef.current.style.cursor = 'none';
+      canvasRef.current.style.cursor = 'none'; // Keep cursor hidden
     }
   };
 
   const handleCanvasMouseEnter = () => {
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.style.cursor = 'none';
+      canvas.style.cursor = 'none'; // Hide cursor when entering canvas
     }
   };
 
   const handleCanvasMouseLeave = () => {
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.style.cursor = 'default';
+      canvas.style.cursor = 'default'; // Restore cursor when leaving canvas
     }
+    // Reset mouse position when leaving canvas
     setMousePos({ x: -1, y: -1 });
   };
 
@@ -472,9 +472,11 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     const canvasX = screenX - rect.left;
     const canvasY = screenY - rect.top;
 
+    // Don't add new point if clicking on existing point
     if (getPointAtPosition(canvasX, canvasY) !== null) return;
 
     const worldCoords = screenToWorldCoords(screenX, screenY);
+    console.log('Adding point at world coords:', worldCoords);
     setPoints(prev => [...prev, worldCoords]);
   };
 
@@ -487,8 +489,46 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     setZoom(newZoom);
   };
 
-  const zoomIn = () => setZoom(prev => Math.min(5, prev + 0.2));
-  const zoomOut = () => setZoom(prev => Math.max(0.1, prev - 0.2));
+  const generateGCode = () => {
+    if (points.length === 0) return '';
+
+    let gcode = '; Generated Laser G-Code\n';
+    gcode += `; Machine: ${selectedMachine?.name || 'Unknown'}\n`;
+    gcode += `; Date: ${new Date().toISOString()}\n\n`;
+    
+    gcode += 'G21 ; Set units to millimeters\n';
+    gcode += 'G90 ; Absolute positioning\n';
+    gcode += `M3 S${laserParams.power} ; Set laser power\n`;
+    gcode += `G0 Z5 ; Move to safe height\n\n`;
+
+    for (let pass = 0; pass < laserParams.passes; pass++) {
+      gcode += `; Pass ${pass + 1}\n`;
+      
+      points.forEach((point, index) => {
+        const mmX = (point.x * MM_PER_PIXEL).toFixed(3);
+        const mmY = (point.y * MM_PER_PIXEL).toFixed(3);
+        
+        if (index === 0) {
+          gcode += `G0 X${mmX} Y${mmY} ; Rapid to start position\n`;
+          gcode += `G1 Z0 F${laserParams.speed} ; Lower to work height\n`;
+          gcode += `M3 S${laserParams.power} ; Laser on\n`;
+        } else {
+          gcode += `G1 X${mmX} Y${mmY} F${laserParams.speed}\n`;
+        }
+      });
+      
+      gcode += 'M5 ; Laser off\n';
+      if (pass < laserParams.passes - 1) {
+        gcode += '\n';
+      }
+    }
+
+    gcode += 'G0 Z5 ; Retract to safe height\n';
+    gcode += 'G0 X0 Y0 ; Return to origin\n';
+
+    return gcode;
+  };
+
   const resetZoom = () => {
     setZoom(1);
     setPanOffset({ x: 0, y: 0 });
@@ -522,7 +562,8 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     setCurrentPoint(0);
   };
 
-  const loadToolpath = (toolpath: any) => {
+  const loadToolpath = (toolpath: LaserToolpath) => {
+    console.log('Loading toolpath:', toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
       ? (toolpath.points as unknown as Point[])
       : [];
@@ -532,92 +573,20 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
     if (toolpath.laser_params) {
       const params = toolpath.laser_params as any;
       setLaserParams({
-        laserPower: params.laserPower || laserParams.laserPower,
-        pulseFrequency: params.pulseFrequency || laserParams.pulseFrequency,
-        markingSpeed: params.markingSpeed || laserParams.markingSpeed,
-        pulseDuration: params.pulseDuration || laserParams.pulseDuration,
-        zOffset: params.zOffset || laserParams.zOffset,
-        passes: params.passes || laserParams.passes,
-        laserMode: params.laserMode || laserParams.laserMode,
-        beamDiameter: params.beamDiameter || laserParams.beamDiameter
+        power: params.power || laserParams.power,
+        frequency: params.frequency || laserParams.frequency,
+        speed: params.speed || laserParams.speed,
+        passes: params.passes || laserParams.passes
       });
-    }
-  };
-
-  const generateLaserCode = () => {
-    if (points.length === 0) return '';
-
-    let code = '; Generated Laser Marking Code\n';
-    code += `; Machine: ${selectedMachine?.name || 'Unknown'}\n`;
-    code += `; Date: ${new Date().toISOString()}\n\n`;
-    
-    code += `LASER_POWER=${laserParams.laserPower}\n`;
-    code += `PULSE_FREQ=${laserParams.pulseFrequency}\n`;
-    code += `MARK_SPEED=${laserParams.markingSpeed}\n`;
-    code += `PULSE_DURATION=${laserParams.pulseDuration}\n`;
-    code += `Z_OFFSET=${laserParams.zOffset}\n`;
-    code += `PASSES=${laserParams.passes}\n`;
-    code += `LASER_MODE=${laserParams.laserMode}\n`;
-    code += `BEAM_DIAMETER=${laserParams.beamDiameter}\n\n`;
-
-    points.forEach((point, index) => {
-      const mmX = (point.x * MM_PER_PIXEL).toFixed(3);
-      const mmY = (point.y * MM_PER_PIXEL).toFixed(3);
-      
-      if (index === 0) {
-        code += `MOVE X${mmX} Y${mmY} ; Move to start position\n`;
-        code += `LASER_ON ; Start laser\n`;
-      } else {
-        code += `MARK X${mmX} Y${mmY} ; Mark to position\n`;
-      }
-    });
-
-    code += `LASER_OFF ; Stop laser\n`;
-    code += `MOVE X0 Y0 ; Return to origin\n`;
-
-    return code;
-  };
-
-  const downloadLaserCode = () => {
-    const code = generateLaserCode();
-    const blob = new Blob([code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${toolpathName || 'laser-path'}.lmc`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const sendLaserCodeToMachine = async () => {
-    if (!laserEndpoint || points.length === 0) return;
-    
-    const code = generateLaserCode();
-    try {
-      const response = await fetch(laserEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        body: code,
-      });
-      
-      if (response.ok) {
-        console.log('Laser code sent successfully');
-      } else {
-        console.error('Failed to send laser code');
-      }
-    } catch (error) {
-      console.error('Error sending laser code:', error);
     }
   };
 
   return (
     <Card className="p-4 bg-white border border-gray-200 h-full">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">2D Laser Marking Visualization (X/Y View)</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">2D Laser Visualization (X/Y View)</h3>
         {!selectedMachineId && (
-          <p className="text-gray-600 text-sm">Select a laser machine to start creating marking paths</p>
+          <p className="text-gray-600 text-sm">Select a machine to start creating toolpaths</p>
         )}
       </div>
 
@@ -626,21 +595,42 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
           {/* Laser Parameters */}
           <div className="mb-4 grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="laserPower">Laser Power (%)</Label>
+              <Label htmlFor="power">Power (%)</Label>
               <Input
-                id="laserPower"
+                id="power"
                 type="number"
-                value={laserParams.laserPower}
-                onChange={(e) => setLaserParams(p => ({ ...p, laserPower: Number(e.target.value) }))}
+                min="0"
+                max="100"
+                value={laserParams.power}
+                onChange={(e) => setLaserParams(p => ({ ...p, power: Number(e.target.value) }))}
               />
             </div>
             <div>
-              <Label htmlFor="markingSpeed">Marking Speed (mm/min)</Label>
+              <Label htmlFor="frequency">Frequency (Hz)</Label>
               <Input
-                id="markingSpeed"
+                id="frequency"
                 type="number"
-                value={laserParams.markingSpeed}
-                onChange={(e) => setLaserParams(p => ({ ...p, markingSpeed: Number(e.target.value) }))}
+                value={laserParams.frequency}
+                onChange={(e) => setLaserParams(p => ({ ...p, frequency: Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="speed">Speed (mm/min)</Label>
+              <Input
+                id="speed"
+                type="number"
+                value={laserParams.speed}
+                onChange={(e) => setLaserParams(p => ({ ...p, speed: Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="passes">Passes</Label>
+              <Input
+                id="passes"
+                type="number"
+                min="1"
+                value={laserParams.passes}
+                onChange={(e) => setLaserParams(p => ({ ...p, passes: Number(e.target.value) }))}
               />
             </div>
           </div>
@@ -648,13 +638,13 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
           {/* Canvas with zoom controls */}
           <div className="mb-4">
             <div className="flex gap-2 mb-2">
-              <Button onClick={zoomIn} size="sm" variant="outline">
+              <Button onClick={() => setZoom(prev => Math.min(5, prev + 0.2))} size="sm" variant="outline">
                 <ZoomIn className="w-4 h-4" />
               </Button>
-              <Button onClick={zoomOut} size="sm" variant="outline">
+              <Button onClick={() => setZoom(prev => Math.max(0.1, prev - 0.2))} size="sm" variant="outline">
                 <ZoomOut className="w-4 h-4" />
               </Button>
-              <Button onClick={resetZoom} size="sm" variant="outline">
+              <Button onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} size="sm" variant="outline">
                 Reset View
               </Button>
             </div>
@@ -664,12 +654,40 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
               height={700}
               className="border border-gray-300 w-full"
               style={{ cursor: 'none' }}
-              onClick={handleCanvasClick}
+              onClick={(e) => {
+                if (isDragging) return;
+                const canvas = canvasRef.current!;
+                const rect = canvas.getBoundingClientRect();
+                const screenX = e.clientX;
+                const screenY = e.clientY;
+                const canvasX = screenX - rect.left;
+                const canvasY = screenY - rect.top;
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const worldX = (canvasX - centerX - panOffset.x) / zoom;
+                const worldY = (centerY - canvasY + panOffset.y) / zoom;
+                
+                setPoints(prev => [...prev, { x: Math.round(worldX), y: Math.round(worldY) }]);
+              }}
+              onMouseMove={(e) => {
+                const canvas = canvasRef.current!;
+                const rect = canvas.getBoundingClientRect();
+                setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+              }}
+              onMouseEnter={() => {
+                if (canvasRef.current) {
+                  canvasRef.current.style.cursor = 'none';
+                }
+              }}
+              onMouseLeave={() => {
+                if (canvasRef.current) {
+                  canvasRef.current.style.cursor = 'default';
+                }
+                setMousePos({ x: -1, y: -1 });
+              }}
               onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
-              onMouseEnter={handleCanvasMouseEnter}
-              onMouseLeave={handleCanvasMouseLeave}
               onWheel={handleCanvasWheel}
             />
           </div>
@@ -677,7 +695,21 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
           {/* Controls */}
           <div className="flex flex-wrap gap-2 mb-4">
             <Button
-              onClick={startSimulation}
+              onClick={() => {
+                if (points.length === 0) return;
+                setIsSimulating(true);
+                setCurrentPoint(0);
+                const interval = setInterval(() => {
+                  setCurrentPoint(prev => {
+                    if (prev >= points.length - 1) {
+                      setIsSimulating(false);
+                      clearInterval(interval);
+                      return prev;
+                    }
+                    return prev + 1;
+                  });
+                }, 1000);
+              }}
               disabled={isSimulating || points.length === 0}
               size="sm"
             >
@@ -685,7 +717,10 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
               Simulate
             </Button>
             <Button
-              onClick={resetSimulation}
+              onClick={() => {
+                setIsSimulating(false);
+                setCurrentPoint(0);
+              }}
               disabled={!isSimulating && currentPoint === 0}
               size="sm"
               variant="outline"
@@ -694,20 +729,32 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
               Reset
             </Button>
             <Button
-              onClick={clearPoints}
+              onClick={() => {
+                setPoints([]);
+                setCurrentPoint(0);
+              }}
               size="sm"
               variant="outline"
             >
               Clear
             </Button>
             <Button
-              onClick={downloadLaserCode}
+              onClick={() => {
+                const gcode = generateGCode();
+                const blob = new Blob([gcode], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${toolpathName || 'toolpath'}.gcode`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
               disabled={points.length === 0}
               size="sm"
               variant="outline"
             >
               <Download className="w-4 h-4 mr-2" />
-              Laser Code
+              G-Code
             </Button>
           </div>
 
@@ -715,7 +762,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
           {points.length > 0 && (
             <div className="mb-4 flex gap-2">
               <Input
-                placeholder="Laser path name"
+                placeholder="Toolpath name"
                 value={toolpathName}
                 onChange={(e) => setToolpathName(e.target.value)}
                 className="flex-1"
@@ -734,7 +781,7 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
           {/* Saved Toolpaths */}
           {toolpaths.length > 0 && (
             <div className="mb-4">
-              <h4 className="font-medium text-gray-900 mb-2">Saved Laser Paths</h4>
+              <h4 className="font-medium text-gray-900 mb-2">Saved Toolpaths</h4>
               <ScrollArea className="h-40 border border-gray-200 rounded p-2">
                 <div className="space-y-2">
                   {toolpaths.map((toolpath) => (
@@ -744,7 +791,23 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
                     >
                       <span className="text-sm">{toolpath.name} ({Array.isArray(toolpath.points) ? (toolpath.points as unknown as Point[]).length : 0} points)</span>
                       <Button
-                        onClick={() => loadToolpath(toolpath)}
+                        onClick={() => {
+                          const pathPoints = Array.isArray(toolpath.points) 
+                            ? (toolpath.points as unknown as Point[])
+                            : [];
+                          setPoints(pathPoints);
+                          setCurrentPoint(0);
+                          
+                          if (toolpath.laser_params) {
+                            const params = toolpath.laser_params as any;
+                            setLaserParams({
+                              power: params.power || laserParams.power,
+                              frequency: params.frequency || laserParams.frequency,
+                              speed: params.speed || laserParams.speed,
+                              passes: params.passes || laserParams.passes
+                            });
+                          }
+                        }}
                         size="sm"
                         variant="outline"
                       >
@@ -757,32 +820,25 @@ export const LaserVisualization = ({ selectedMachineId }: LaserVisualizationProp
             </div>
           )}
 
-          {/* Laser Endpoint Configuration */}
+          {/* Endpoint Manager */}
           <div className="mb-4">
-            <h4 className="font-medium text-gray-900 mb-2">Laser Endpoint</h4>
-            <div className="flex gap-2">
-              <Input
-                placeholder="http://laser-ip:port/mark"
-                value={laserEndpoint}
-                onChange={(e) => setLaserEndpoint(e.target.value)}
-                className="flex-1"
-              />
-              <Button
-                onClick={() => updateEndpointMutation.mutate(laserEndpoint)}
-                disabled={updateEndpointMutation.isPending}
-                size="sm"
-                variant="outline"
-              >
-                Save
-              </Button>
-              <Button
-                onClick={sendLaserCodeToMachine}
-                disabled={!laserEndpoint || points.length === 0}
-                size="sm"
-              >
-                Send Code
-              </Button>
-            </div>
+            <EndpointManager
+              selectedMachineId={selectedMachineId}
+              onEndpointSelect={setSelectedEndpoint}
+              selectedEndpoint={selectedEndpoint}
+            />
+          </div>
+
+          {/* Send G-Code */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => sendGcodeMutation.mutate(selectedEndpoint)}
+              disabled={!selectedEndpoint || points.length === 0 || sendGcodeMutation.isPending}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {sendGcodeMutation.isPending ? 'Sending...' : 'Send G-Code'}
+            </Button>
           </div>
         </>
       )}
