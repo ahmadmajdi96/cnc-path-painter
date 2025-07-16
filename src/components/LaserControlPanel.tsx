@@ -29,7 +29,6 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
   const [materialWidth, setMaterialWidth] = useState([300]);
   const [materialHeight, setMaterialHeight] = useState([200]);
   const { toast } = useToast();
-  const initializedMachineId = useRef<string | null>(null);
 
   // Fetch selected machine data to set machine-specific parameters
   const { data: selectedMachine } = useQuery({
@@ -46,17 +45,6 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
     },
     enabled: !!selectedMachineId
   });
-
-  // Update parameters when machine changes, but only if it's a different machine
-  useEffect(() => {
-    if (selectedMachine && initializedMachineId.current !== selectedMachineId) {
-      setLaserPower([selectedMachine.max_power || 100]);
-      setPulseFrequency([selectedMachine.max_frequency || 10000]);
-      setMarkingSpeed([selectedMachine.max_speed || 2000]);
-      setBeamDiameter([selectedMachine.beam_diameter || 0.1]);
-      initializedMachineId.current = selectedMachineId || null;
-    }
-  }, [selectedMachine, selectedMachineId]);
 
   // Auto-save parameters when they change and immediately notify parent
   useEffect(() => {

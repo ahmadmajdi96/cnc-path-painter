@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,6 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
   const [materialWidth, setMaterialWidth] = useState([300]);
   const [materialHeight, setMaterialHeight] = useState([200]);
   const { toast } = useToast();
-  const initializedMachineId = useRef<string | null>(null);
 
   // Fetch selected machine data to set machine-specific parameters
   const { data: selectedMachine } = useQuery({
@@ -39,16 +39,6 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
     },
     enabled: !!selectedMachineId
   });
-
-  // Update parameters when machine changes, but only if it's a different machine
-  useEffect(() => {
-    if (selectedMachine && initializedMachineId.current !== selectedMachineId) {
-      setFeedRate([selectedMachine.max_feed_rate || 1000]);
-      setSpindleSpeed([selectedMachine.max_spindle_speed || 8000]);
-      setPlungeDepth([selectedMachine.plunge_rate || 2]);
-      initializedMachineId.current = selectedMachineId || null;
-    }
-  }, [selectedMachine, selectedMachineId]);
 
   // Auto-save parameters when they change and immediately notify parent
   useEffect(() => {
