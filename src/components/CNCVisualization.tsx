@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -123,6 +122,64 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
       });
     }
   });
+
+  // Parse G-code file and extract points
+  const parseGCodeFile = (gcode: string): Point[] => {
+    const lines = gcode.split('\n');
+    const extractedPoints: Point[] = [];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('G0') || trimmedLine.startsWith('G1')) {
+        const xMatch = trimmedLine.match(/X([-\d.]+)/);
+        const yMatch = trimmedLine.match(/Y([-\d.]+)/);
+        const zMatch = trimmedLine.match(/Z([-\d.]+)/);
+        
+        if (xMatch && yMatch) {
+          extractedPoints.push({
+            x: parseFloat(xMatch[1]),
+            y: parseFloat(yMatch[1]),
+            z: zMatch ? parseFloat(zMatch[1]) : 0
+          });
+        }
+      }
+    }
+    
+    return extractedPoints;
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        const parsedPoints = parseGCodeFile(content);
+        if (parsedPoints.length > 0) {
+          setPoints(parsedPoints);
+          setCurrentPoint(0);
+          setLoadedToolpathId(null);
+          setToolpathName(file.name.replace(/\.[^/.]+$/, ""));
+          toast({
+            title: "G-Code Loaded",
+            description: `Successfully loaded ${parsedPoints.length} points from ${file.name}`,
+          });
+        } else {
+          toast({
+            title: "No Points Found",
+            description: "The G-code file doesn't contain valid movement commands",
+            variant: "destructive"
+          });
+        }
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset the input value to allow uploading the same file again
+    event.target.value = '';
+  };
 
   useEffect(() => {
     if (toolpaths.length > 0 && selectedMachineId && !loadedToolpathId) {
@@ -341,6 +398,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
               type="file"
               accept=".gcode,.nc,.cnc"
               style={{ display: 'none' }}
+              onChange={handleFileUpload}
             />
 
             {points.length > 0 && (

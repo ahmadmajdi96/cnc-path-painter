@@ -136,6 +136,62 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     }
   });
 
+  // Parse G-code file and extract points
+  const parseGCodeFile = (gcode: string): Point[] => {
+    const lines = gcode.split('\n');
+    const extractedPoints: Point[] = [];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('G0') || trimmedLine.startsWith('G1')) {
+        const xMatch = trimmedLine.match(/X([-\d.]+)/);
+        const yMatch = trimmedLine.match(/Y([-\d.]+)/);
+        
+        if (xMatch && yMatch) {
+          extractedPoints.push({
+            x: parseFloat(xMatch[1]),
+            y: parseFloat(yMatch[1])
+          });
+        }
+      }
+    }
+    
+    return extractedPoints;
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        const parsedPoints = parseGCodeFile(content);
+        if (parsedPoints.length > 0) {
+          setPoints(parsedPoints);
+          setCurrentPoint(0);
+          setLoadedToolpathId(null);
+          setToolpathName(file.name.replace(/\.[^/.]+$/, ""));
+          toast({
+            title: "G-Code Loaded",
+            description: `Successfully loaded ${parsedPoints.length} points from ${file.name}`,
+          });
+        } else {
+          toast({
+            title: "No Points Found",
+            description: "The G-code file doesn't contain valid movement commands",
+            variant: "destructive"
+          });
+        }
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset the input value to allow uploading the same file again
+    event.target.value = '';
+  };
+
   useEffect(() => {
     if (toolpaths.length > 0 && selectedMachineId && !loadedToolpathId) {
       const latestToolpath = toolpaths[0];
@@ -268,8 +324,16 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     URL.revokeObjectURL(url);
   };
 
-  const sendGCodeToEndpoint = async (endpoint: string) => {
-    if (!endpoint || points.length === 0) return;
+  const sendGCodeToEndpoint = async () => {
+    const endpoint = selectedEndpoint || externalSelectedEndpoint;
+    if (!endpoint || points.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please select an endpoint and create a toolpath first",
+        variant: "destructive"
+      });
+      return;
+    }
     
     const gcode = generateGCode();
     const payload = {
@@ -359,6 +423,7 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
               type="file"
               accept=".gcode,.nc,.cnc"
               style={{ display: 'none' }}
+              onChange={handleFileUpload}
             />
 
             {points.length > 0 && (
@@ -432,11 +497,11 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
       )}
 
       {/* Send G-Code Section */}
-      {selectedEndpoint && points.length > 0 && (
+      {(selectedEndpoint || externalSelectedEndpoint) && points.length > 0 && (
         <Card className="p-4">
           <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
           <Button
-            onClick={() => sendGCodeToEndpoint(selectedEndpoint)}
+            onClick={sendGCodeToEndpoint}
             className="w-full bg-purple-600 hover:bg-purple-700"
           >
             Send G-Code to Machine
