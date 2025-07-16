@@ -1,12 +1,21 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, Square } from 'lucide-react';
+import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, Square, Wrench } from 'lucide-react';
 
 interface Point3D {
   x: number;
   y: number;
   z: number;
+}
+
+interface CNCParams {
+  spindleSpeed: number;
+  feedRate: number;
+  plungeRate: number;
+  safeHeight: number;
+  material: string;
+  toolDiameter: number;
 }
 
 interface CNC2DVisualizationProps {
@@ -17,6 +26,7 @@ interface CNC2DVisualizationProps {
   onReset: () => void;
   onAddPoint: (point: Point3D) => void;
   onClearPoints: () => void;
+  cncParams?: CNCParams;
   machineName?: string;
 }
 
@@ -28,34 +38,41 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
   onReset,
   onAddPoint,
   onClearPoints,
+  cncParams = {
+    spindleSpeed: 12000,
+    feedRate: 1000,
+    plungeRate: 500,
+    safeHeight: 5,
+    material: 'aluminum',
+    toolDiameter: 3
+  },
   machineName = 'CNC Machine'
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [workpieceVisible, setWorkpieceVisible] = useState(true);
+  const [materialVisible, setMaterialVisible] = useState(true);
+  const [toolpathVisible, setToolpathVisible] = useState(true);
 
   // Constants for realistic CNC visualization
-  const GRID_SIZE = 10; // 10mm grid
-  const WORKPIECE_WIDTH = 200; // 200mm workpiece
-  const WORKPIECE_HEIGHT = 150; // 150mm workpiece
-  const TOOL_DIAMETER = 6; // 6mm end mill
+  const GRID_SIZE = 5; // 5mm grid
+  const MATERIAL_WIDTH = 300; // 300mm workpiece
+  const MATERIAL_HEIGHT = 200; // 200mm workpiece
   const SCALE_FACTOR = 2; // pixels per mm
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 3;
 
   const drawGrid = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const gridSpacing = GRID_SIZE * SCALE_FACTOR * zoom;
     
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = '#f3f4f6';
     ctx.lineWidth = 1;
     ctx.setLineDash([]);
 
-    // Calculate grid offset based on pan
     const offsetX = (panOffset.x % gridSpacing);
     const offsetY = (panOffset.y % gridSpacing);
 
-    // Draw vertical grid lines
+    // Fine grid lines
     for (let x = offsetX; x <= width; x += gridSpacing) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -63,7 +80,6 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
       ctx.stroke();
     }
 
-    // Draw horizontal grid lines
     for (let y = offsetY; y <= height; y += gridSpacing) {
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -71,10 +87,10 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
       ctx.stroke();
     }
 
-    // Draw major grid lines every 50mm
-    ctx.strokeStyle = '#9ca3af';
+    // Major grid lines every 25mm
+    ctx.strokeStyle = '#e5e7eb';
     ctx.lineWidth = 1.5;
-    const majorGridSpacing = 50 * SCALE_FACTOR * zoom;
+    const majorGridSpacing = 25 * SCALE_FACTOR * zoom;
     
     for (let x = offsetX; x <= width; x += majorGridSpacing) {
       ctx.beginPath();
@@ -91,39 +107,53 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
     }
   }, [zoom, panOffset]);
 
-  const drawWorkpiece = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
-    if (!workpieceVisible) return;
+  const drawMaterial = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
+    if (!materialVisible) return;
 
-    const workpieceW = WORKPIECE_WIDTH * SCALE_FACTOR * zoom;
-    const workpieceH = WORKPIECE_HEIGHT * SCALE_FACTOR * zoom;
+    const materialW = MATERIAL_WIDTH * SCALE_FACTOR * zoom;
+    const materialH = MATERIAL_HEIGHT * SCALE_FACTOR * zoom;
     
-    ctx.fillStyle = '#f3f4f6';
-    ctx.strokeStyle = '#6b7280';
+    const x = centerX - materialW / 2 + panOffset.x;
+    const y = centerY - materialH / 2 + panOffset.y;
+    
+    // Material color based on type
+    switch (cncParams.material.toLowerCase()) {
+      case 'aluminum':
+      case 'aluminium':
+        ctx.fillStyle = '#d1d5db';
+        break;
+      case 'steel':
+        ctx.fillStyle = '#9ca3af';
+        break;
+      case 'wood':
+        ctx.fillStyle = '#d2b48c';
+        break;
+      case 'plastic':
+        ctx.fillStyle = '#f8fafc';
+        break;
+      default:
+        ctx.fillStyle = '#e5e7eb';
+    }
+    
+    ctx.fillRect(x, y, materialW, materialH);
+    
+    // Material border
+    ctx.strokeStyle = '#4b5563';
     ctx.lineWidth = 2;
-    
-    const x = centerX - workpieceW / 2 + panOffset.x;
-    const y = centerY - workpieceH / 2 + panOffset.y;
-    
-    ctx.fillRect(x, y, workpieceW, workpieceH);
-    ctx.strokeRect(x, y, workpieceW, workpieceH);
+    ctx.strokeRect(x, y, materialW, materialH);
 
-    // Add workpiece label
+    // Material label
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
-    ctx.fillText(`Workpiece: ${WORKPIECE_WIDTH}×${WORKPIECE_HEIGHT}mm`, x + 5, y + 20);
-  }, [zoom, panOffset, workpieceVisible]);
+    ctx.fillText(`${cncParams.material}: ${MATERIAL_WIDTH}×${MATERIAL_HEIGHT}mm`, x + 5, y + 20);
+  }, [zoom, panOffset, materialVisible, cncParams.material]);
 
   const drawToolpath = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
-    if (points.length === 0) return;
+    if (points.length === 0 || !toolpathVisible) return;
 
-    const toolRadius = (TOOL_DIAMETER / 2) * SCALE_FACTOR * zoom;
+    const toolRadius = (cncParams.toolDiameter / 2) * SCALE_FACTOR * zoom;
 
-    // Draw rapid moves (dashed lines)
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-
-    // Draw feed moves (solid lines)
+    // Draw toolpath
     for (let i = 0; i < points.length - 1; i++) {
       const point1 = points[i];
       const point2 = points[i + 1];
@@ -133,55 +163,41 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
       const x2 = centerX + point2.x * SCALE_FACTOR * zoom + panOffset.x;
       const y2 = centerY - point2.y * SCALE_FACTOR * zoom + panOffset.y;
 
-      // Color based on simulation progress
+      // Path color based on simulation progress
       if (isSimulating && i < currentPoint) {
-        ctx.strokeStyle = '#ef4444'; // Red for completed
-        ctx.lineWidth = 3;
-        ctx.setLineDash([]);
+        // Completed cut - show material removal
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = Math.max(3, toolRadius);
+        
+        // Show cut groove
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        ctx.strokeStyle = '#7c2d12';
+        ctx.lineWidth = toolRadius * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
       } else if (isSimulating && i === currentPoint) {
-        ctx.strokeStyle = '#22c55e'; // Green for current
-        ctx.lineWidth = 3;
-        ctx.setLineDash([]);
+        // Current cutting position
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = Math.max(2, toolRadius);
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 8;
       } else {
-        ctx.strokeStyle = '#3b82f6'; // Blue for upcoming
-        ctx.lineWidth = 2;
-        ctx.setLineDash([]);
+        // Planned path
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
       }
 
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.stroke();
-
-      // Draw tool path visualization (simulated cut)
-      if (isSimulating && i <= currentPoint) {
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = '#fbbf24';
-        
-        // Draw cut line
-        const angle = Math.atan2(y2 - y1, x2 - x1);
-        const perpAngle = angle + Math.PI / 2;
-        
-        const offset = toolRadius / 2;
-        const px1 = x1 + Math.cos(perpAngle) * offset;
-        const py1 = y1 + Math.sin(perpAngle) * offset;
-        const px2 = x1 - Math.cos(perpAngle) * offset;
-        const py2 = y1 - Math.sin(perpAngle) * offset;
-        const px3 = x2 - Math.cos(perpAngle) * offset;
-        const py3 = y2 - Math.sin(perpAngle) * offset;
-        const px4 = x2 + Math.cos(perpAngle) * offset;
-        const py4 = y2 + Math.sin(perpAngle) * offset;
-
-        ctx.beginPath();
-        ctx.moveTo(px1, py1);
-        ctx.lineTo(px2, py2);
-        ctx.lineTo(px3, py3);
-        ctx.lineTo(px4, py4);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
+      ctx.shadowBlur = 0;
+      ctx.setLineDash([]);
     }
 
     // Draw tool positions
@@ -189,65 +205,67 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
       const x = centerX + point.x * SCALE_FACTOR * zoom + panOffset.x;
       const y = centerY - point.y * SCALE_FACTOR * zoom + panOffset.y;
 
-      // Tool circle
       if (isSimulating && index === currentPoint) {
-        ctx.fillStyle = '#22c55e';
-        ctx.strokeStyle = '#16a34a';
+        // Active tool
+        ctx.save();
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, toolRadius + 1, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
       } else if (isSimulating && index < currentPoint) {
-        ctx.fillStyle = '#ef4444';
-        ctx.strokeStyle = '#dc2626';
+        // Completed position - show cut mark
+        ctx.fillStyle = '#7c2d12';
+        ctx.beginPath();
+        ctx.arc(x, y, toolRadius, 0, 2 * Math.PI);
+        ctx.fill();
       } else {
+        // Planned position
         ctx.fillStyle = '#3b82f6';
-        ctx.strokeStyle = '#2563eb';
+        ctx.strokeStyle = '#1d4ed8';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(2, toolRadius * 0.7), 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
       }
 
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.arc(x, y, toolRadius, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.stroke();
-
-      // Point number and coordinates
+      // Point coordinates and Z-height
       ctx.fillStyle = '#000000';
       ctx.font = '10px sans-serif';
       ctx.fillText(`${index + 1}`, x + toolRadius + 5, y - toolRadius);
-      ctx.fillText(`(${point.x.toFixed(1)}, ${point.y.toFixed(1)}, ${point.z.toFixed(1)})`, x + toolRadius + 5, y + toolRadius + 10);
+      ctx.fillText(`(${point.x.toFixed(1)}, ${point.y.toFixed(1)}, Z${point.z.toFixed(1)})`, x + toolRadius + 5, y + toolRadius + 10);
     });
-
-    // Current tool position during simulation
-    if (isSimulating && currentPoint < points.length) {
-      const currentPos = points[currentPoint];
-      const x = centerX + currentPos.x * SCALE_FACTOR * zoom + panOffset.x;
-      const y = centerY - currentPos.y * SCALE_FACTOR * zoom + panOffset.y;
-
-      // Animated tool
-      ctx.strokeStyle = '#22c55e';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.arc(x, y, toolRadius + 2, 0, 2 * Math.PI);
-      ctx.stroke();
-
-      // Tool center
-      ctx.fillStyle = '#22c55e';
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-  }, [points, isSimulating, currentPoint, zoom, panOffset]);
+  }, [points, isSimulating, currentPoint, zoom, panOffset, toolpathVisible, cncParams.toolDiameter]);
 
   const drawMachineInfo = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = '#374151';
     ctx.font = '14px sans-serif';
-    ctx.fillText(`${machineName} - Tool: Ø${TOOL_DIAMETER}mm End Mill`, 10, 25);
+    ctx.fillText(`${machineName} - Tool: Ø${cncParams.toolDiameter}mm`, 10, 25);
     ctx.font = '12px sans-serif';
-    ctx.fillText(`Scale: ${zoom.toFixed(1)}x | Grid: ${GRID_SIZE}mm`, 10, 45);
+    ctx.fillText(`Spindle: ${cncParams.spindleSpeed}RPM | Feed: ${cncParams.feedRate}mm/min`, 10, 45);
+    ctx.fillText(`Plunge: ${cncParams.plungeRate}mm/min | Safe Height: ${cncParams.safeHeight}mm`, 10, 65);
+    ctx.fillText(`Scale: ${zoom.toFixed(1)}x | Grid: ${GRID_SIZE}mm | Material: ${cncParams.material}`, 10, 85);
     
     if (points.length > 0) {
-      ctx.fillText(`Points: ${points.length} | Progress: ${currentPoint}/${points.length}`, 10, 65);
+      ctx.fillText(`Points: ${points.length} | Progress: ${currentPoint}/${points.length}`, 10, 105);
     }
-  }, [machineName, zoom, points.length, currentPoint]);
+
+    // Machine status
+    if (isSimulating && currentPoint < points.length) {
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(20, 125, 5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = '#374151';
+      ctx.fillText('CUTTING ACTIVE', 35, 130);
+    }
+  }, [machineName, cncParams, zoom, points.length, currentPoint, isSimulating]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -264,7 +282,7 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
 
     // Draw components
     drawGrid(ctx, canvas.width, canvas.height);
-    drawWorkpiece(ctx, centerX, centerY);
+    drawMaterial(ctx, centerX, centerY);
     drawToolpath(ctx, centerX, centerY);
     drawMachineInfo(ctx);
 
@@ -279,7 +297,7 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
     ctx.lineTo(centerX + 50 * zoom + panOffset.x, centerY + panOffset.y);
     ctx.stroke();
     
-    // Y-axis
+    // Y-axis  
     ctx.beginPath();
     ctx.moveTo(centerX + panOffset.x, centerY + panOffset.y);
     ctx.lineTo(centerX + panOffset.x, centerY - 50 * zoom + panOffset.y);
@@ -290,10 +308,10 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
     ctx.font = '12px sans-serif';
     ctx.fillText('X+', centerX + 55 * zoom + panOffset.x, centerY + 5 + panOffset.y);
     ctx.fillText('Y+', centerX + 5 + panOffset.x, centerY - 55 * zoom + panOffset.y);
-  }, [zoom, panOffset, points, isSimulating, currentPoint, drawGrid, drawWorkpiece, drawToolpath, drawMachineInfo]);
+  }, [zoom, panOffset, points, isSimulating, currentPoint, cncParams, drawGrid, drawMaterial, drawToolpath, drawMachineInfo]);
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isDrawing || isSimulating) return;
+    if (isSimulating) return;
 
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
@@ -307,15 +325,22 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
     const worldX = (canvasX - centerX - panOffset.x) / (SCALE_FACTOR * zoom);
     const worldY = -(canvasY - centerY - panOffset.y) / (SCALE_FACTOR * zoom);
     
-    onAddPoint({ x: Math.round(worldX * 10) / 10, y: Math.round(worldY * 10) / 10, z: 0 });
+    // Only allow positive coordinates within material bounds
+    if (worldX >= 0 && worldY >= 0 && worldX <= MATERIAL_WIDTH && worldY <= MATERIAL_HEIGHT) {
+      onAddPoint({ 
+        x: Math.round(worldX * 10) / 10, 
+        y: Math.round(worldY * 10) / 10, 
+        z: 0 
+      });
+    }
   };
 
   const handleWheel = (event: React.WheelEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     const zoomSpeed = 0.1;
     const newZoom = event.deltaY > 0 
-      ? Math.max(0.1, zoom - zoomSpeed)
-      : Math.min(5, zoom + zoomSpeed);
+      ? Math.max(MIN_ZOOM, zoom - zoomSpeed)
+      : Math.min(MAX_ZOOM, zoom + zoomSpeed);
     setZoom(newZoom);
   };
 
@@ -334,10 +359,10 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
           <RotateCcw className="w-4 h-4 mr-2" />
           Reset
         </Button>
-        <Button onClick={() => setZoom(Math.min(5, zoom + 0.2))} size="sm" variant="outline">
+        <Button onClick={() => setZoom(Math.min(MAX_ZOOM, zoom + 0.2))} size="sm" variant="outline">
           <ZoomIn className="w-4 h-4" />
         </Button>
-        <Button onClick={() => setZoom(Math.max(0.1, zoom - 0.2))} size="sm" variant="outline">
+        <Button onClick={() => setZoom(Math.max(MIN_ZOOM, zoom - 0.2))} size="sm" variant="outline">
           <ZoomOut className="w-4 h-4" />
         </Button>
         <Button onClick={onClearPoints} size="sm" variant="outline">
@@ -345,29 +370,33 @@ export const CNC2DVisualization: React.FC<CNC2DVisualizationProps> = ({
           Clear
         </Button>
         <Button 
-          onClick={() => setWorkpieceVisible(!workpieceVisible)} 
+          onClick={() => setMaterialVisible(!materialVisible)} 
           size="sm" 
           variant="outline"
         >
-          {workpieceVisible ? 'Hide' : 'Show'} Workpiece
+          {materialVisible ? 'Hide' : 'Show'} Material
+        </Button>
+        <Button 
+          onClick={() => setToolpathVisible(!toolpathVisible)} 
+          size="sm" 
+          variant="outline"
+        >
+          <Wrench className="w-4 h-4 mr-2" />
+          {toolpathVisible ? 'Hide' : 'Show'} Toolpath
         </Button>
       </div>
 
       <canvas
         ref={canvasRef}
-        width={800}
-        height={600}
-        className="border border-gray-300 cursor-crosshair bg-white"
+        width={900}
+        height={700}
+        className="border border-gray-300 cursor-crosshair bg-gray-50"
         onClick={handleCanvasClick}
         onWheel={handleWheel}
-        onMouseMove={(e) => {
-          const rect = canvasRef.current!.getBoundingClientRect();
-          setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-        }}
       />
       
       <div className="text-sm text-gray-600">
-        Click on the canvas to add CNC toolpath points. The simulation shows realistic tool movement and cutting operations.
+        Click within the material area to add CNC cutting points. The simulation shows realistic tool movement and material removal.
       </div>
     </div>
   );
