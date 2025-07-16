@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,18 +17,51 @@ interface LaserControlPanelProps {
   selectedEndpoint?: string;
 }
 
+interface LaserMachineParameters {
+  laserPower: number[];
+  pulseFrequency: number[];
+  markingSpeed: number[];
+  pulseDuration: number[];
+  zOffset: number[];
+  passes: number[];
+  laserMode: string;
+  beamDiameter: number[];
+  material: string;
+  materialWidth: number[];
+  materialHeight: number[];
+}
+
 export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selectedEndpoint }: LaserControlPanelProps) => {
-  const [laserPower, setLaserPower] = useState([79]);
-  const [pulseFrequency, setPulseFrequency] = useState([4300]);
-  const [markingSpeed, setMarkingSpeed] = useState([1050]);
-  const [pulseDuration, setPulseDuration] = useState([100]);
-  const [zOffset, setZOffset] = useState([0]);
-  const [passes, setPasses] = useState([1]);
-  const [laserMode, setLaserMode] = useState('pulsed');
-  const [beamDiameter, setBeamDiameter] = useState([0.1]);
-  const [material, setMaterial] = useState('steel');
-  const [materialWidth, setMaterialWidth] = useState([300]);
-  const [materialHeight, setMaterialHeight] = useState([200]);
+  // Store parameters for each machine
+  const machineParameters = useRef<Record<string, LaserMachineParameters>>({});
+  
+  // Default parameters
+  const defaultParams: LaserMachineParameters = {
+    laserPower: [79],
+    pulseFrequency: [4300],
+    markingSpeed: [1050],
+    pulseDuration: [100],
+    zOffset: [0],
+    passes: [1],
+    laserMode: 'pulsed',
+    beamDiameter: [0.1],
+    material: 'steel',
+    materialWidth: [300],
+    materialHeight: [200]
+  };
+
+  // Current parameters state
+  const [laserPower, setLaserPower] = useState(defaultParams.laserPower);
+  const [pulseFrequency, setPulseFrequency] = useState(defaultParams.pulseFrequency);
+  const [markingSpeed, setMarkingSpeed] = useState(defaultParams.markingSpeed);
+  const [pulseDuration, setPulseDuration] = useState(defaultParams.pulseDuration);
+  const [zOffset, setZOffset] = useState(defaultParams.zOffset);
+  const [passes, setPasses] = useState(defaultParams.passes);
+  const [laserMode, setLaserMode] = useState(defaultParams.laserMode);
+  const [beamDiameter, setBeamDiameter] = useState(defaultParams.beamDiameter);
+  const [material, setMaterial] = useState(defaultParams.material);
+  const [materialWidth, setMaterialWidth] = useState(defaultParams.materialWidth);
+  const [materialHeight, setMaterialHeight] = useState(defaultParams.materialHeight);
   const { toast } = useToast();
 
   // Fetch selected machine data to set machine-specific parameters
@@ -45,6 +79,59 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
     },
     enabled: !!selectedMachineId
   });
+
+  // Load parameters when machine changes
+  useEffect(() => {
+    if (selectedMachineId) {
+      const savedParams = machineParameters.current[selectedMachineId];
+      if (savedParams) {
+        // Load saved parameters for this machine
+        setLaserPower(savedParams.laserPower);
+        setPulseFrequency(savedParams.pulseFrequency);
+        setMarkingSpeed(savedParams.markingSpeed);
+        setPulseDuration(savedParams.pulseDuration);
+        setZOffset(savedParams.zOffset);
+        setPasses(savedParams.passes);
+        setLaserMode(savedParams.laserMode);
+        setBeamDiameter(savedParams.beamDiameter);
+        setMaterial(savedParams.material);
+        setMaterialWidth(savedParams.materialWidth);
+        setMaterialHeight(savedParams.materialHeight);
+      } else {
+        // Initialize with default parameters for new machine
+        setLaserPower(defaultParams.laserPower);
+        setPulseFrequency(defaultParams.pulseFrequency);
+        setMarkingSpeed(defaultParams.markingSpeed);
+        setPulseDuration(defaultParams.pulseDuration);
+        setZOffset(defaultParams.zOffset);
+        setPasses(defaultParams.passes);
+        setLaserMode(defaultParams.laserMode);
+        setBeamDiameter(defaultParams.beamDiameter);
+        setMaterial(defaultParams.material);
+        setMaterialWidth(defaultParams.materialWidth);
+        setMaterialHeight(defaultParams.materialHeight);
+      }
+    }
+  }, [selectedMachineId]);
+
+  // Save parameters when they change
+  useEffect(() => {
+    if (selectedMachineId) {
+      machineParameters.current[selectedMachineId] = {
+        laserPower,
+        pulseFrequency,
+        markingSpeed,
+        pulseDuration,
+        zOffset,
+        passes,
+        laserMode,
+        beamDiameter,
+        material,
+        materialWidth,
+        materialHeight
+      };
+    }
+  }, [selectedMachineId, laserPower, pulseFrequency, markingSpeed, pulseDuration, zOffset, passes, laserMode, beamDiameter, material, materialWidth, materialHeight]);
 
   // Auto-save parameters when they change and immediately notify parent
   useEffect(() => {

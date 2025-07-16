@@ -15,13 +15,36 @@ interface ControlPanelProps {
   selectedEndpoint?: string;
 }
 
+interface MachineParameters {
+  feedRate: number[];
+  spindleSpeed: number[];
+  plungeDepth: number[];
+  material: string;
+  materialWidth: number[];
+  materialHeight: number[];
+}
+
 export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEndpoint }: ControlPanelProps) => {
-  const [feedRate, setFeedRate] = useState([1000]);
-  const [spindleSpeed, setSpindleSpeed] = useState([8000]);
-  const [plungeDepth, setPlungeDepth] = useState([2]);
-  const [material, setMaterial] = useState('aluminum');
-  const [materialWidth, setMaterialWidth] = useState([300]);
-  const [materialHeight, setMaterialHeight] = useState([200]);
+  // Store parameters for each machine
+  const machineParameters = useRef<Record<string, MachineParameters>>({});
+  
+  // Default parameters
+  const defaultParams: MachineParameters = {
+    feedRate: [1000],
+    spindleSpeed: [8000],
+    plungeDepth: [2],
+    material: 'aluminum',
+    materialWidth: [300],
+    materialHeight: [200]
+  };
+
+  // Current parameters state
+  const [feedRate, setFeedRate] = useState(defaultParams.feedRate);
+  const [spindleSpeed, setSpindleSpeed] = useState(defaultParams.spindleSpeed);
+  const [plungeDepth, setPlungeDepth] = useState(defaultParams.plungeDepth);
+  const [material, setMaterial] = useState(defaultParams.material);
+  const [materialWidth, setMaterialWidth] = useState(defaultParams.materialWidth);
+  const [materialHeight, setMaterialHeight] = useState(defaultParams.materialHeight);
   const { toast } = useToast();
 
   // Fetch selected machine data to set machine-specific parameters
@@ -39,6 +62,44 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
     },
     enabled: !!selectedMachineId
   });
+
+  // Load parameters when machine changes
+  useEffect(() => {
+    if (selectedMachineId) {
+      const savedParams = machineParameters.current[selectedMachineId];
+      if (savedParams) {
+        // Load saved parameters for this machine
+        setFeedRate(savedParams.feedRate);
+        setSpindleSpeed(savedParams.spindleSpeed);
+        setPlungeDepth(savedParams.plungeDepth);
+        setMaterial(savedParams.material);
+        setMaterialWidth(savedParams.materialWidth);
+        setMaterialHeight(savedParams.materialHeight);
+      } else {
+        // Initialize with default parameters for new machine
+        setFeedRate(defaultParams.feedRate);
+        setSpindleSpeed(defaultParams.spindleSpeed);
+        setPlungeDepth(defaultParams.plungeDepth);
+        setMaterial(defaultParams.material);
+        setMaterialWidth(defaultParams.materialWidth);
+        setMaterialHeight(defaultParams.materialHeight);
+      }
+    }
+  }, [selectedMachineId]);
+
+  // Save parameters when they change
+  useEffect(() => {
+    if (selectedMachineId) {
+      machineParameters.current[selectedMachineId] = {
+        feedRate,
+        spindleSpeed,
+        plungeDepth,
+        material,
+        materialWidth,
+        materialHeight
+      };
+    }
+  }, [selectedMachineId, feedRate, spindleSpeed, plungeDepth, material, materialWidth, materialHeight]);
 
   // Auto-save parameters when they change and immediately notify parent
   useEffect(() => {
