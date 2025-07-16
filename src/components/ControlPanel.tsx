@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -23,6 +22,7 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
   const [materialWidth, setMaterialWidth] = useState([300]);
   const [materialHeight, setMaterialHeight] = useState([200]);
   const { toast } = useToast();
+  const hasInitialized = useRef(false);
 
   // Fetch selected machine data to set machine-specific parameters
   const { data: selectedMachine } = useQuery({
@@ -40,14 +40,20 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
     enabled: !!selectedMachineId
   });
 
-  // Update parameters when machine changes
+  // Update parameters when machine changes, but only if user hasn't customized them
   useEffect(() => {
-    if (selectedMachine) {
+    if (selectedMachine && !hasInitialized.current) {
       setFeedRate([selectedMachine.max_feed_rate || 1000]);
       setSpindleSpeed([selectedMachine.max_spindle_speed || 8000]);
       setPlungeDepth([selectedMachine.plunge_rate || 2]);
+      hasInitialized.current = true;
     }
   }, [selectedMachine]);
+
+  // Reset initialization flag when machine changes
+  useEffect(() => {
+    hasInitialized.current = false;
+  }, [selectedMachineId]);
 
   // Auto-save parameters when they change and immediately notify parent
   useEffect(() => {

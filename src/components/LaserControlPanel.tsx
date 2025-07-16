@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -29,6 +29,7 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
   const [materialWidth, setMaterialWidth] = useState([300]);
   const [materialHeight, setMaterialHeight] = useState([200]);
   const { toast } = useToast();
+  const hasInitialized = useRef(false);
 
   // Fetch selected machine data to set machine-specific parameters
   const { data: selectedMachine } = useQuery({
@@ -46,15 +47,21 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
     enabled: !!selectedMachineId
   });
 
-  // Update parameters when machine changes
+  // Update parameters when machine changes, but only if user hasn't customized them
   useEffect(() => {
-    if (selectedMachine) {
+    if (selectedMachine && !hasInitialized.current) {
       setLaserPower([selectedMachine.max_power || 100]);
       setPulseFrequency([selectedMachine.max_frequency || 10000]);
       setMarkingSpeed([selectedMachine.max_speed || 2000]);
       setBeamDiameter([selectedMachine.beam_diameter || 0.1]);
+      hasInitialized.current = true;
     }
   }, [selectedMachine]);
+
+  // Reset initialization flag when machine changes
+  useEffect(() => {
+    hasInitialized.current = false;
+  }, [selectedMachineId]);
 
   // Auto-save parameters when they change and immediately notify parent
   useEffect(() => {
