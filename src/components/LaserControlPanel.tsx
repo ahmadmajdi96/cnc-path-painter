@@ -56,22 +56,24 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
     }
   }, [selectedMachine]);
 
-  // Auto-save parameters when they change
-  React.useEffect(() => {
+  // Auto-save parameters when they change and immediately notify parent
+  useEffect(() => {
+    const params = {
+      laserPower: laserPower[0],
+      pulseFrequency: pulseFrequency[0],
+      markingSpeed: markingSpeed[0],
+      pulseDuration: pulseDuration[0],
+      zOffset: zOffset[0],
+      passes: passes[0],
+      laserMode,
+      beamDiameter: beamDiameter[0],
+      material,
+      materialWidth: materialWidth[0],
+      materialHeight: materialHeight[0]
+    };
+    
     if (onParametersChange) {
-      onParametersChange({
-        laserPower: laserPower[0],
-        pulseFrequency: pulseFrequency[0],
-        markingSpeed: markingSpeed[0],
-        pulseDuration: pulseDuration[0],
-        zOffset: zOffset[0],
-        passes: passes[0],
-        laserMode,
-        beamDiameter: beamDiameter[0],
-        material,
-        materialWidth: materialWidth[0],
-        materialHeight: materialHeight[0]
-      });
+      onParametersChange(params);
     }
   }, [laserPower, pulseFrequency, markingSpeed, pulseDuration, zOffset, passes, laserMode, beamDiameter, material, materialWidth, materialHeight, onParametersChange]);
 
@@ -129,8 +131,8 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
         },
         body: JSON.stringify({ 
           action: 'laser_test',
-          power: 10, // Low power for testing
-          duration: 1000 // 1 second test
+          power: 10,
+          duration: 1000
         }),
       });
       

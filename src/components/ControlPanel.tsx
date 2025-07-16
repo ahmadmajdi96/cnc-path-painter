@@ -20,6 +20,8 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
   const [spindleSpeed, setSpindleSpeed] = useState([8000]);
   const [plungeDepth, setPlungeDepth] = useState([2]);
   const [material, setMaterial] = useState('aluminum');
+  const [materialWidth, setMaterialWidth] = useState([300]);
+  const [materialHeight, setMaterialHeight] = useState([200]);
   const { toast } = useToast();
 
   // Fetch selected machine data to set machine-specific parameters
@@ -47,17 +49,22 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
     }
   }, [selectedMachine]);
 
-  // Auto-save parameters when they change
-  React.useEffect(() => {
+  // Auto-save parameters when they change and immediately notify parent
+  useEffect(() => {
+    const params = {
+      feedRate: feedRate[0],
+      spindleSpeed: spindleSpeed[0],
+      plungeDepth: plungeDepth[0],
+      material,
+      materialWidth: materialWidth[0],
+      materialHeight: materialHeight[0],
+      toolDiameter: 6 // Default tool diameter for CNC
+    };
+    
     if (onParametersChange) {
-      onParametersChange({
-        feedRate: feedRate[0],
-        spindleSpeed: spindleSpeed[0],
-        plungeDepth: plungeDepth[0],
-        material
-      });
+      onParametersChange(params);
     }
-  }, [feedRate, spindleSpeed, plungeDepth, material, onParametersChange]);
+  }, [feedRate, spindleSpeed, plungeDepth, material, materialWidth, materialHeight, onParametersChange]);
 
   const sendEmergencyStop = async () => {
     if (!selectedEndpoint) {
@@ -134,6 +141,57 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
         </div>
       </div>
 
+      {/* Material Settings */}
+      <div className="mb-6">
+        <h4 className="font-medium text-gray-900 mb-3">Material Settings</h4>
+        
+        <div className="space-y-4">
+          <div>
+            <Select value={material} onValueChange={setMaterial}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aluminum">Aluminum</SelectItem>
+                <SelectItem value="steel">Steel</SelectItem>
+                <SelectItem value="wood">Wood</SelectItem>
+                <SelectItem value="plastic">Plastic</SelectItem>
+                <SelectItem value="brass">Brass</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">
+                Width: {materialWidth[0]}mm
+              </label>
+              <Slider
+                value={materialWidth}
+                onValueChange={setMaterialWidth}
+                min={50}
+                max={600}
+                step={10}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">
+                Height: {materialHeight[0]}mm
+              </label>
+              <Slider
+                value={materialHeight}
+                onValueChange={setMaterialHeight}
+                min={50}
+                max={400}
+                step={10}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Cutting Parameters */}
       <div className="mb-6">
         <h4 className="font-medium text-gray-900 mb-3">Cutting Parameters</h4>
@@ -181,23 +239,6 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
             />
           </div>
         </div>
-      </div>
-
-      {/* Material Settings */}
-      <div className="mb-6">
-        <h4 className="font-medium text-gray-900 mb-2">Material</h4>
-        <Select value={material} onValueChange={setMaterial}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="aluminum">Aluminum</SelectItem>
-            <SelectItem value="steel">Steel</SelectItem>
-            <SelectItem value="wood">Wood</SelectItem>
-            <SelectItem value="plastic">Plastic</SelectItem>
-            <SelectItem value="brass">Brass</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Safety Controls */}

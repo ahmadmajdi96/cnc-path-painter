@@ -26,7 +26,7 @@ interface LaserVisualizationProps {
   onEndpointSelect?: (endpoint: string) => void;
 }
 
-export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: externalSelectedEndpoint, onEndpointSelect }: LaserVisualizationProps) => {
+export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: externalSelectedEndpoint, laserParams, onEndpointSelect }: LaserVisualizationProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -34,10 +34,9 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
   const [toolpathName, setToolpathName] = useState('');
   const [selectedEndpoint, setSelectedEndpoint] = useState('');
   const [loadedToolpathId, setLoadedToolpathId] = useState<string | null>(null);
-  const { toast } = useToast();
 
-  const queryClient = useQueryClient();
-  const [laserParams, setLaserParams] = useState({
+  // Use default laser params if none provided
+  const [defaultLaserParams] = useState({
     laserPower: 79,
     pulseFrequency: 4300,
     markingSpeed: 1050,
@@ -46,8 +45,16 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     passes: 1,
     laserMode: 'pulsed',
     beamDiameter: 0.1,
-    material: 'steel'
+    material: 'steel',
+    materialWidth: 300,
+    materialHeight: 200
   });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Use external parameters if provided, otherwise use defaults
+  const currentLaserParams = laserParams || defaultLaserParams;
 
   // Use external selectedEndpoint if provided
   useEffect(() => {
@@ -103,14 +110,14 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
-      console.log('Saving toolpath:', { selectedMachineId, points, laserParams });
+      console.log('Saving toolpath:', { selectedMachineId, points, currentLaserParams });
       const { error } = await supabase
         .from('laser_toolpaths')
         .insert({
           laser_machine_id: selectedMachineId,
           name: toolpathName || `Toolpath ${Date.now()}`,
           points: points as any,
-          laser_params: laserParams as any
+          laser_params: currentLaserParams as any
         });
       
       if (error) {
@@ -145,21 +152,6 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     setPoints(pathPoints);
     setCurrentPoint(0);
     setLoadedToolpathId(toolpath.id);
-    
-    if (toolpath.laser_params) {
-      const params = toolpath.laser_params as any;
-      setLaserParams({
-        laserPower: params.laserPower || laserParams.laserPower,
-        pulseFrequency: params.pulseFrequency || laserParams.pulseFrequency,
-        markingSpeed: params.markingSpeed || laserParams.markingSpeed,
-        pulseDuration: params.pulseDuration || laserParams.pulseDuration,
-        zOffset: params.zOffset || laserParams.zOffset,
-        passes: params.passes || laserParams.passes,
-        laserMode: params.laserMode || laserParams.laserMode,
-        beamDiameter: params.beamDiameter || laserParams.beamDiameter,
-        material: params.material || laserParams.material
-      });
-    }
   };
 
   const startSimulation = () => {
@@ -177,7 +169,7 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
         }
         return prev + 1;
       });
-    }, 500); // Faster for laser operations
+    }, 500);
   };
 
   const stopSimulation = () => {
@@ -213,27 +205,25 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     let gcode = '; Generated Laser G-Code\n';
     gcode += `; Machine: ${selectedMachine?.name || 'Unknown'}\n`;
     gcode += `; Date: ${new Date().toISOString()}\n`;
-    gcode += `; Laser Power: ${laserParams.laserPower}%\n`;
-    gcode += `; Pulse Frequency: ${laserParams.pulseFrequency} Hz\n`;
-    gcode += `; Marking Speed: ${laserParams.markingSpeed} mm/min\n`;
-    gcode += `; Pulse Duration: ${laserParams.pulseDuration} µs\n`;
-    gcode += `; Z-Offset: ${laserParams.zOffset} mm\n`;
-    gcode += `; Beam Diameter: ${laserParams.beamDiameter} mm\n`;
-    gcode += `; Passes: ${laserParams.passes}\n`;
-    gcode += `; Mode: ${laserParams.laserMode}\n`;
-    gcode += `; Material: ${laserParams.material}\n\n`;
+    gcode += `; Laser Power: ${currentLaserParams.laserPower}%\n`;
+    gcode += `; Pulse Frequency: ${currentLaserParams.pulseFrequency} Hz\n`;
+    gcode += `; Marking Speed: ${currentLaserParams.markingSpeed} mm/min\n`;
+    gcode += `; Pulse Duration: ${currentLaserParams.pulseDuration} µs\n`;
+    gcode += `; Z-Offset: ${currentLaserParams.zOffset} mm\n`;
+    gcode += `; Beam Diameter: ${currentLaserParams.beamDiameter} mm\n`;
+    gcode += `; Passes: ${currentLaserParams.passes}\n`;
+    gcode += `; Mode: ${currentLaserParams.laserMode}\n`;
+    gcode += `; Material: ${currentLaserParams.material}\n\n`;
     
     gcode += 'G21 ; Set units to millimeters\n';
     gcode += 'G90 ; Absolute positioning\n';
-    gcode += `G0 Z${laserParams.zOffset} ; Move to Z offset\n`;
+    gcode += `G0 Z${currentLaserParams.zOffset} ; Move to Z offset\n`;
     
-    // Configure laser settings
-    gcode += `M3 S${Math.round((laserParams.laserPower / 100) * 1000)} ; Set laser power\n`;
-    gcode += `M4 P${laserParams.pulseFrequency} ; Set pulse frequency\n`;
-    gcode += `M5 D${laserParams.pulseDuration} ; Set pulse duration\n\n`;
+    gcode += `M3 S${Math.round((currentLaserParams.laserPower / 100) * 1000)} ; Set laser power\n`;
+    gcode += `M4 P${currentLaserParams.pulseFrequency} ; Set pulse frequency\n`;
+    gcode += `M5 D${currentLaserParams.pulseDuration} ; Set pulse duration\n\n`;
 
-    // Repeat for number of passes
-    for (let pass = 1; pass <= laserParams.passes; pass++) {
+    for (let pass = 1; pass <= currentLaserParams.passes; pass++) {
       gcode += `; Pass ${pass}\n`;
       
       points.forEach((point, index) => {
@@ -242,19 +232,19 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
         
         if (index === 0) {
           gcode += `G0 X${mmX} Y${mmY} ; Rapid to start position\n`;
-          if (laserParams.laserMode === 'continuous') {
+          if (currentLaserParams.laserMode === 'continuous') {
             gcode += 'M3 ; Start laser (continuous mode)\n';
           }
         } else {
-          if (laserParams.laserMode === 'pulsed') {
-            gcode += `G1 X${mmX} Y${mmY} F${laserParams.markingSpeed} ; Pulsed laser move\n`;
+          if (currentLaserParams.laserMode === 'pulsed') {
+            gcode += `G1 X${mmX} Y${mmY} F${currentLaserParams.markingSpeed} ; Pulsed laser move\n`;
           } else {
-            gcode += `G1 X${mmX} Y${mmY} F${laserParams.markingSpeed} ; Continuous laser move\n`;
+            gcode += `G1 X${mmX} Y${mmY} F${currentLaserParams.markingSpeed} ; Continuous laser move\n`;
           }
         }
       });
       
-      if (laserParams.laserMode === 'continuous') {
+      if (currentLaserParams.laserMode === 'continuous') {
         gcode += 'M5 ; Stop laser\n';
       }
       gcode += '\n';
@@ -284,7 +274,7 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     const gcode = generateGCode();
     const payload = {
       gcode,
-      parameters: laserParams,
+      parameters: currentLaserParams,
       points: points.map(p => ({
         x: p.x.toFixed(3),
         y: p.y.toFixed(3)
@@ -340,7 +330,7 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
               onReset={resetSimulation}
               onAddPoint={addPoint}
               onClearPoints={clearPoints}
-              laserParams={laserParams}
+              laserParams={currentLaserParams}
               machineName={selectedMachine?.name}
             />
 
@@ -364,7 +354,6 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
               </Button>
             </div>
 
-            {/* Hidden file input */}
             <input
               ref={fileInputRef}
               type="file"
