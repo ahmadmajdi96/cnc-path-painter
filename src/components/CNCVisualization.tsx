@@ -10,7 +10,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { EndpointManager } from './EndpointManager';
 import { useToast } from '@/hooks/use-toast';
-import { CNC2DVisualization } from './CNC2DVisualization';
+import { Laser2DVisualization } from './Laser2DVisualization';
 
 type CNCMachine = Tables<'cnc_machines'>;
 type Toolpath = Tables<'toolpaths'>;
@@ -38,6 +38,18 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
   const { toast } = useToast();
 
   const queryClient = useQueryClient();
+
+  // Default CNC parameters to prevent crashes
+  const defaultCncParams = {
+    feedRate: 1000,
+    spindleSpeed: 8000,
+    plungeDepth: 2,
+    material: 'aluminum',
+    toolDiameter: 6,
+    materialWidth: 300,
+    materialHeight: 200,
+    ...cncParams
+  };
 
   // Fetch selected machine data
   const { data: selectedMachine } = useQuery({
@@ -86,14 +98,14 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
-      console.log('Saving CNC toolpath:', { selectedMachineId, points, cncParams });
+      console.log('Saving CNC toolpath:', { selectedMachineId, points, defaultCncParams });
       const { error } = await supabase
         .from('toolpaths')
         .insert({
           cnc_machine_id: selectedMachineId,
           name: toolpathName || `Toolpath ${Date.now()}`,
           points: points as any,
-          machine_params: cncParams as any
+          machine_params: defaultCncParams as any
         });
       
       if (error) {
@@ -165,8 +177,8 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     }
   };
 
-  const addPoint = (point: Point) => {
-    setPoints(prev => [...prev, point]);
+  const addPoint = (point: { x: number; y: number }) => {
+    setPoints(prev => [...prev, { ...point, z: 0 }]);
   };
 
   const clearPoints = () => {
@@ -227,7 +239,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     const gcode = generateGCode();
     const payload = {
       gcode,
-      parameters: cncParams,
+      parameters: defaultCncParams,
       points: points.map(p => ({
         x: (typeof p.x === 'number' ? p.x : 0).toFixed(3),
         y: (typeof p.y === 'number' ? p.y : 0).toFixed(3),
@@ -263,6 +275,21 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     }
   };
 
+  // Convert CNC parameters to laser-compatible format for visualization
+  const laserCompatibleParams = {
+    laserPower: 75,
+    pulseFrequency: 1000,
+    markingSpeed: defaultCncParams.feedRate,
+    pulseDuration: 100,
+    beamDiameter: defaultCncParams.toolDiameter || 6,
+    material: defaultCncParams.material || 'aluminum',
+    materialWidth: defaultCncParams.materialWidth || 300,
+    materialHeight: defaultCncParams.materialHeight || 200
+  };
+
+  // Convert 3D points to 2D for visualization
+  const points2D = points.map(p => ({ x: p.x, y: p.y }));
+
   return (
     <div className="space-y-6">
       {/* CNC Visualization */}
@@ -276,15 +303,16 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
 
         {selectedMachineId && (
           <>
-            <CNC2DVisualization
-              points={points}
+            <Laser2DVisualization
+              points={points2D}
               isSimulating={isSimulating}
               currentPoint={currentPoint}
               onSimulationToggle={handleSimulationToggle}
               onReset={resetSimulation}
               onAddPoint={addPoint}
               onClearPoints={clearPoints}
-              machineName={selectedMachine?.name}
+              laserParams={laserCompatibleParams}
+              machineName={selectedMachine?.name || 'CNC Machine'}
             />
 
             <div className="flex flex-wrap gap-2 mt-4">

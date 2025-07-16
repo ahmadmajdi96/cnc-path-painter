@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,6 +27,8 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
   const [laserMode, setLaserMode] = useState('pulsed');
   const [beamDiameter, setBeamDiameter] = useState([0.1]);
   const [material, setMaterial] = useState('steel');
+  const [materialWidth, setMaterialWidth] = useState([300]);
+  const [materialHeight, setMaterialHeight] = useState([200]);
   const { toast } = useToast();
 
   // Fetch selected machine data to set machine-specific parameters
@@ -55,7 +57,7 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
     }
   }, [selectedMachine]);
 
-  // Update parent component when parameters change
+  // Auto-save parameters when they change
   React.useEffect(() => {
     if (onParametersChange) {
       onParametersChange({
@@ -67,10 +69,12 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
         passes: passes[0],
         laserMode,
         beamDiameter: beamDiameter[0],
-        material
+        material,
+        materialWidth: materialWidth[0],
+        materialHeight: materialHeight[0]
       });
     }
-  }, [laserPower, pulseFrequency, markingSpeed, pulseDuration, zOffset, passes, laserMode, beamDiameter, material, onParametersChange]);
+  }, [laserPower, pulseFrequency, markingSpeed, pulseDuration, zOffset, passes, laserMode, beamDiameter, material, materialWidth, materialHeight, onParametersChange]);
 
   const sendEmergencyStop = async () => {
     if (!selectedEndpoint) {
@@ -183,6 +187,59 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">Temperature</span>
             <span className="text-sm font-medium">42°C</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Material Settings */}
+      <div className="mb-6">
+        <h4 className="font-medium text-gray-900 mb-3">Material Settings</h4>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="material">Material Type</Label>
+            <Select value={material} onValueChange={setMaterial}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="steel">Steel</SelectItem>
+                <SelectItem value="aluminum">Aluminum</SelectItem>
+                <SelectItem value="plastic">Plastic</SelectItem>
+                <SelectItem value="ceramic">Ceramic</SelectItem>
+                <SelectItem value="glass">Glass</SelectItem>
+                <SelectItem value="wood">Wood</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">
+                Width: {materialWidth[0]}mm
+              </label>
+              <Slider
+                value={materialWidth}
+                onValueChange={setMaterialWidth}
+                min={50}
+                max={600}
+                step={10}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600 mb-2 block">
+                Height: {materialHeight[0]}mm
+              </label>
+              <Slider
+                value={materialHeight}
+                onValueChange={setMaterialHeight}
+                min={50}
+                max={400}
+                step={10}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -302,24 +359,6 @@ export const LaserControlPanel = ({ selectedMachineId, onParametersChange, selec
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Material Settings */}
-      <div className="mb-6">
-        <h4 className="font-medium text-gray-900 mb-2">Material</h4>
-        <Select value={material} onValueChange={setMaterial}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="steel">Steel</SelectItem>
-            <SelectItem value="aluminum">Aluminum</SelectItem>
-            <SelectItem value="plastic">Plastic</SelectItem>
-            <SelectItem value="ceramic">Ceramic</SelectItem>
-            <SelectItem value="glass">Glass</SelectItem>
-            <SelectItem value="wood">Wood</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Safety Controls */}

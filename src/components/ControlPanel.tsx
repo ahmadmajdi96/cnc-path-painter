@@ -47,7 +47,7 @@ export const ControlPanel = ({ selectedMachineId, onParametersChange, selectedEn
     }
   }, [selectedMachine]);
 
-  // Update parent component when parameters change
+  // Auto-save parameters when they change
   React.useEffect(() => {
     if (onParametersChange) {
       onParametersChange({

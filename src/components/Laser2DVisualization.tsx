@@ -15,6 +15,8 @@ interface LaserParams {
   pulseDuration: number;
   beamDiameter: number;
   material: string;
+  materialWidth?: number;
+  materialHeight?: number;
 }
 
 interface Laser2DVisualizationProps {
@@ -45,30 +47,28 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
   const [materialVisible, setMaterialVisible] = useState(true);
   const [heatEffectVisible, setHeatEffectVisible] = useState(true);
 
-  // Constants for realistic laser visualization - FIXED POSITIONING
+  // Constants for realistic laser visualization
   const GRID_SIZE = 5; // 5mm grid for precision
-  const MATERIAL_WIDTH = 300; // 300mm material
-  const MATERIAL_HEIGHT = 200; // 200mm material
+  const MATERIAL_WIDTH = laserParams.materialWidth || 300; // Dynamic material width
+  const MATERIAL_HEIGHT = laserParams.materialHeight || 200; // Dynamic material height
   const SCALE_FACTOR = 2; // pixels per mm
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 3;
   
-  // Fixed material position - centered in canvas
-  const MATERIAL_OFFSET_X = 50; // Fixed offset from left
-  const MATERIAL_OFFSET_Y = 50; // Fixed offset from top
-
-  const drawGrid = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+  const drawGrid = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number, centerX: number, centerY: number) => {
     const gridSpacing = GRID_SIZE * SCALE_FACTOR * zoom;
     
     ctx.strokeStyle = '#f3f4f6';
     ctx.lineWidth = 1;
     ctx.setLineDash([]);
 
-    // Draw grid starting from material origin
-    const startX = MATERIAL_OFFSET_X;
-    const startY = MATERIAL_OFFSET_Y;
-    const endX = MATERIAL_OFFSET_X + (MATERIAL_WIDTH * SCALE_FACTOR * zoom);
-    const endY = MATERIAL_OFFSET_Y + (MATERIAL_HEIGHT * SCALE_FACTOR * zoom);
+    // Calculate material bounds for centered positioning
+    const materialW = MATERIAL_WIDTH * SCALE_FACTOR * zoom;
+    const materialH = MATERIAL_HEIGHT * SCALE_FACTOR * zoom;
+    const startX = centerX - materialW / 2;
+    const startY = centerY - materialH / 2;
+    const endX = startX + materialW;
+    const endY = startY + materialH;
 
     // Vertical grid lines
     for (let x = startX; x <= endX; x += gridSpacing) {
@@ -104,16 +104,16 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
       ctx.lineTo(endX, y);
       ctx.stroke();
     }
-  }, [zoom]);
+  }, [zoom, MATERIAL_WIDTH, MATERIAL_HEIGHT]);
 
-  const drawMaterial = useCallback((ctx: CanvasRenderingContext2D) => {
+  const drawMaterial = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
     if (!materialVisible) return;
 
     const materialW = MATERIAL_WIDTH * SCALE_FACTOR * zoom;
     const materialH = MATERIAL_HEIGHT * SCALE_FACTOR * zoom;
     
-    const x = MATERIAL_OFFSET_X;
-    const y = MATERIAL_OFFSET_Y;
+    const x = centerX - materialW / 2;
+    const y = centerY - materialH / 2;
     
     // Material surface based on type
     switch (laserParams.material.toLowerCase()) {
@@ -158,23 +158,27 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
     ctx.fillText(`${laserParams.material}: ${MATERIAL_WIDTH}×${MATERIAL_HEIGHT}mm`, x + 5, y + 20);
-  }, [zoom, materialVisible, laserParams.material]);
+  }, [zoom, materialVisible, laserParams.material, MATERIAL_WIDTH, MATERIAL_HEIGHT]);
 
-  const drawLaserPath = useCallback((ctx: CanvasRenderingContext2D) => {
+  const drawLaserPath = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
     if (points.length === 0) return;
 
     const beamRadius = (laserParams.beamDiameter / 2) * SCALE_FACTOR * zoom;
+    const materialW = MATERIAL_WIDTH * SCALE_FACTOR * zoom;
+    const materialH = MATERIAL_HEIGHT * SCALE_FACTOR * zoom;
+    const materialStartX = centerX - materialW / 2;
+    const materialStartY = centerY - materialH / 2;
 
     // Draw laser path
     for (let i = 0; i < points.length - 1; i++) {
       const point1 = points[i];
       const point2 = points[i + 1];
       
-      // Convert coordinates to canvas position - FIXED POSITIONING
-      const x1 = MATERIAL_OFFSET_X + point1.x * SCALE_FACTOR * zoom;
-      const y1 = MATERIAL_OFFSET_Y + point1.y * SCALE_FACTOR * zoom;
-      const x2 = MATERIAL_OFFSET_X + point2.x * SCALE_FACTOR * zoom;
-      const y2 = MATERIAL_OFFSET_Y + point2.y * SCALE_FACTOR * zoom;
+      // Convert coordinates to canvas position (centered material)
+      const x1 = materialStartX + point1.x * SCALE_FACTOR * zoom;
+      const y1 = materialStartY + point1.y * SCALE_FACTOR * zoom;
+      const x2 = materialStartX + point2.x * SCALE_FACTOR * zoom;
+      const y2 = materialStartY + point2.y * SCALE_FACTOR * zoom;
 
       // Path color based on simulation progress and laser power
       if (isSimulating && i < currentPoint) {
@@ -233,8 +237,8 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
 
     // Draw laser focus points
     points.forEach((point, index) => {
-      const x = MATERIAL_OFFSET_X + point.x * SCALE_FACTOR * zoom;
-      const y = MATERIAL_OFFSET_Y + point.y * SCALE_FACTOR * zoom;
+      const x = materialStartX + point.x * SCALE_FACTOR * zoom;
+      const y = materialStartY + point.y * SCALE_FACTOR * zoom;
 
       if (isSimulating && index === currentPoint) {
         // Active laser beam
@@ -291,7 +295,7 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
       ctx.fillText(`${index + 1}`, x + beamRadius + 5, y - beamRadius);
       ctx.fillText(`(${point.x.toFixed(1)}, ${point.y.toFixed(1)})`, x + beamRadius + 5, y + beamRadius + 10);
     });
-  }, [points, isSimulating, currentPoint, zoom, laserParams, heatEffectVisible]);
+  }, [points, isSimulating, currentPoint, zoom, laserParams, heatEffectVisible, MATERIAL_WIDTH, MATERIAL_HEIGHT]);
 
   const drawLaserInfo = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = '#374151';
@@ -300,7 +304,7 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
     ctx.font = '12px sans-serif';
     ctx.fillText(`Power: ${laserParams.laserPower}% | Speed: ${laserParams.markingSpeed}mm/min`, 10, 45);
     ctx.fillText(`Frequency: ${laserParams.pulseFrequency}Hz | Material: ${laserParams.material}`, 10, 65);
-    ctx.fillText(`Scale: ${zoom.toFixed(1)}x | Grid: ${GRID_SIZE}mm`, 10, 85);
+    ctx.fillText(`Scale: ${zoom.toFixed(1)}x | Grid: ${GRID_SIZE}mm | Size: ${MATERIAL_WIDTH}×${MATERIAL_HEIGHT}mm`, 10, 85);
     
     if (points.length > 0) {
       ctx.fillText(`Points: ${points.length} | Progress: ${currentPoint}/${points.length}`, 10, 105);
@@ -315,36 +319,37 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
       ctx.fillStyle = '#374151';
       ctx.fillText('LASER ACTIVE', 35, 130);
     }
+  }, [machineName, laserParams, zoom, points.length, currentPoint, isSimulating, MATERIAL_WIDTH, MATERIAL_HEIGHT]);
 
-    // Coordinate system origin
-    ctx.fillStyle = '#374151';
-    ctx.font = '10px sans-serif';
-    ctx.fillText('(0,0)', MATERIAL_OFFSET_X - 15, MATERIAL_OFFSET_Y + 15);
-  }, [machineName, laserParams, zoom, points.length, currentPoint, isSimulating]);
+  const drawCoordinateSystem = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
+    const materialW = MATERIAL_WIDTH * SCALE_FACTOR * zoom;
+    const materialH = MATERIAL_HEIGHT * SCALE_FACTOR * zoom;
+    const originX = centerX - materialW / 2;
+    const originY = centerY - materialH / 2;
 
-  const drawCoordinateSystem = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.strokeStyle = '#374151';
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
     
     // X-axis (from origin)
     ctx.beginPath();
-    ctx.moveTo(MATERIAL_OFFSET_X, MATERIAL_OFFSET_Y);
-    ctx.lineTo(MATERIAL_OFFSET_X + 50 * zoom, MATERIAL_OFFSET_Y);
+    ctx.moveTo(originX, originY);
+    ctx.lineTo(originX + 50 * zoom, originY);
     ctx.stroke();
     
     // Y-axis (from origin)
     ctx.beginPath();
-    ctx.moveTo(MATERIAL_OFFSET_X, MATERIAL_OFFSET_Y);
-    ctx.lineTo(MATERIAL_OFFSET_X, MATERIAL_OFFSET_Y + 50 * zoom);
+    ctx.moveTo(originX, originY);
+    ctx.lineTo(originX, originY + 50 * zoom);
     ctx.stroke();
 
     // Axis labels
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
-    ctx.fillText('X+', MATERIAL_OFFSET_X + 55 * zoom, MATERIAL_OFFSET_Y + 5);
-    ctx.fillText('Y+', MATERIAL_OFFSET_X + 5, MATERIAL_OFFSET_Y + 55 * zoom);
-  }, [zoom]);
+    ctx.fillText('X+', originX + 55 * zoom, originY + 5);
+    ctx.fillText('Y+', originX + 5, originY + 55 * zoom);
+    ctx.fillText('(0,0)', originX - 15, originY + 15);
+  }, [zoom, MATERIAL_WIDTH, MATERIAL_HEIGHT]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -356,11 +361,15 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Center the material in the canvas
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
     // Draw components in order
-    drawGrid(ctx, canvas.width, canvas.height);
-    drawMaterial(ctx);
-    drawLaserPath(ctx);
-    drawCoordinateSystem(ctx);
+    drawGrid(ctx, canvas.width, canvas.height, centerX, centerY);
+    drawMaterial(ctx, centerX, centerY);
+    drawLaserPath(ctx, centerX, centerY);
+    drawCoordinateSystem(ctx, centerX, centerY);
     drawLaserInfo(ctx);
   }, [zoom, points, isSimulating, currentPoint, laserParams, drawGrid, drawMaterial, drawLaserPath, drawCoordinateSystem, drawLaserInfo]);
 
@@ -369,13 +378,20 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
 
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
     
     const canvasX = event.clientX - rect.left;
     const canvasY = event.clientY - rect.top;
     
-    // Convert to material coordinates - ONLY POSITIVE VALUES WITHIN MATERIAL
-    const materialX = (canvasX - MATERIAL_OFFSET_X) / (SCALE_FACTOR * zoom);
-    const materialY = (canvasY - MATERIAL_OFFSET_Y) / (SCALE_FACTOR * zoom);
+    // Convert to material coordinates - centered positioning
+    const materialW = MATERIAL_WIDTH * SCALE_FACTOR * zoom;
+    const materialH = MATERIAL_HEIGHT * SCALE_FACTOR * zoom;
+    const materialStartX = centerX - materialW / 2;
+    const materialStartY = centerY - materialH / 2;
+    
+    const materialX = (canvasX - materialStartX) / (SCALE_FACTOR * zoom);
+    const materialY = (canvasY - materialStartY) / (SCALE_FACTOR * zoom);
     
     // Only allow clicks within material bounds (positive coordinates only)
     if (materialX >= 0 && materialY >= 0 && materialX <= MATERIAL_WIDTH && materialY <= MATERIAL_HEIGHT) {
