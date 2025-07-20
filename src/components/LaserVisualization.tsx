@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Download, Upload } from 'lucide-react';
+import { Save, Download, Upload, Settings } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -399,6 +399,64 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     }
   };
 
+  const sendConfigurationToEndpoint = async () => {
+    const endpoint = selectedEndpoint || externalSelectedEndpoint;
+    if (!endpoint || points.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please select an endpoint and create a toolpath first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const gcode = generateGCode();
+    const payload = {
+      type: 'configuration',
+      gcode,
+      parameters: currentLaserParams,
+      points: points.map(p => ({
+        x: p.x.toFixed(3),
+        y: p.y.toFixed(3)
+      })),
+      machine_id: selectedMachineId,
+      machine_type: 'laser',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      toast({
+        title: "Sending Configuration...",
+        description: "Please wait while we send your laser configuration",
+      });
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (response.ok) {
+        const responseData = await response.json().catch(() => ({}));
+        toast({
+          title: "✅ Configuration Sent Successfully",
+          description: `Laser configuration with ${points.length} points sent to ${new URL(endpoint).hostname}`,
+        });
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Configuration Send Failed",
+        description: `Failed to send configuration: ${error instanceof Error ? error.message : 'Network error occurred'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Laser Visualization */}
@@ -441,6 +499,15 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload G-Code
+              </Button>
+              <Button
+                onClick={sendConfigurationToEndpoint}
+                disabled={points.length === 0 || (!selectedEndpoint && !externalSelectedEndpoint)}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Send Configuration
               </Button>
             </div>
 

@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Download, Upload } from 'lucide-react';
+import { Save, Download, Upload, Settings } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -358,6 +358,65 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     }
   };
 
+  // Send configuration with G-code to endpoint
+  const sendConfigurationToEndpoint = async () => {
+    if (!selectedEndpoint || points.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please select an endpoint and create a toolpath first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const gcode = generateGCode();
+    const payload = {
+      type: 'configuration',
+      gcode,
+      parameters: defaultCncParams,
+      points: points.map(p => ({
+        x: (typeof p.x === 'number' ? p.x : 0).toFixed(3),
+        y: (typeof p.y === 'number' ? p.y : 0).toFixed(3),
+        z: (typeof p.z === 'number' ? p.z : 0).toFixed(3)
+      })),
+      machine_id: selectedMachineId,
+      machine_type: 'cnc',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      toast({
+        title: "Sending Configuration...",
+        description: "Please wait while we send your CNC configuration",
+      });
+
+      const response = await fetch(selectedEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (response.ok) {
+        const responseData = await response.json().catch(() => ({}));
+        toast({
+          title: "✅ Configuration Sent Successfully",
+          description: `CNC configuration with ${points.length} points sent to ${new URL(selectedEndpoint).hostname}`,
+        });
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Configuration Send Failed",
+        description: `Failed to send configuration: ${error instanceof Error ? error.message : 'Network error occurred'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   // Convert CNC parameters to laser-compatible format for visualization
   const laserCompatibleParams = {
     laserPower: 75,
@@ -415,6 +474,15 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload G-Code
+              </Button>
+              <Button
+                onClick={sendConfigurationToEndpoint}
+                disabled={points.length === 0 || !selectedEndpoint}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Send Configuration
               </Button>
             </div>
 
@@ -497,7 +565,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
         />
       )}
 
-      {/* Send G-Code Section */}
+      {/* Send G-Code Section - kept for backward compatibility */}
       {selectedEndpoint && points.length > 0 && (
         <Card className="p-4">
           <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
