@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +63,18 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
       setSelectedEndpoint(externalSelectedEndpoint);
     }
   }, [externalSelectedEndpoint]);
+
+  // Clear points when machine changes
+  useEffect(() => {
+    if (selectedMachineId) {
+      setPoints([]);
+      setCurrentPoint(0);
+      setIsSimulating(false);
+      setLoadedToolpathId(null);
+      setToolpathName('');
+      console.log('Cleared points for laser machine change:', selectedMachineId);
+    }
+  }, [selectedMachineId]);
 
   // Fetch selected machine data
   const { data: selectedMachine } = useQuery({
@@ -171,13 +182,13 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
       if (content) {
         const parsedPoints = parseGCodeFile(content);
         if (parsedPoints.length > 0) {
-          // Clear existing state and load new G-code
+          // Clear all existing state and load new G-code
           setPoints(parsedPoints);
           setCurrentPoint(0);
           setIsSimulating(false);
           setLoadedToolpathId(null);
           setToolpathName(file.name.replace(/\.[^/.]+$/, ""));
-          console.log('G-code uploaded successfully:', parsedPoints);
+          console.log('G-code uploaded successfully, cleared previous points:', parsedPoints);
           toast({
             title: "G-Code Loaded",
             description: `Successfully loaded ${parsedPoints.length} points from ${file.name}`,
@@ -199,23 +210,26 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
 
   // Auto-load latest toolpath only once per machine
   useEffect(() => {
-    if (toolpaths.length > 0 && selectedMachineId && !hasAutoLoaded[selectedMachineId] && !loadedToolpathId) {
+    if (toolpaths.length > 0 && selectedMachineId && !hasAutoLoaded[selectedMachineId] && !loadedToolpathId && points.length === 0) {
       const latestToolpath = toolpaths[0];
       console.log('Auto-loading latest toolpath:', latestToolpath);
       loadToolpath(latestToolpath);
       setHasAutoLoaded(prev => ({ ...prev, [selectedMachineId]: true }));
     }
-  }, [toolpaths, selectedMachineId, hasAutoLoaded, loadedToolpathId]);
+  }, [toolpaths, selectedMachineId, hasAutoLoaded, loadedToolpathId, points.length]);
 
   const loadToolpath = (toolpath: LaserToolpath) => {
-    console.log('Loading toolpath:', toolpath);
+    console.log('Loading laser toolpath, clearing previous points:', toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
       ? (toolpath.points as unknown as Point[])
       : [];
+    
+    // Clear all state before loading new toolpath
     setPoints(pathPoints);
     setCurrentPoint(0);
     setIsSimulating(false);
     setLoadedToolpathId(toolpath.id);
+    setToolpathName('');
   };
 
   const startSimulation = () => {
@@ -264,7 +278,7 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
     setIsSimulating(false);
     setLoadedToolpathId(null);
     setToolpathName('');
-    console.log('Points cleared');
+    console.log('Points cleared manually');
   };
 
   const generateGCode = () => {
