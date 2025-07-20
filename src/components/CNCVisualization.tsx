@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
   const [currentPoint, setCurrentPoint] = useState(0);
   const [toolpathName, setToolpathName] = useState('');
   const [loadedToolpathId, setLoadedToolpathId] = useState<string | null>(null);
+  const [hasAutoLoaded, setHasAutoLoaded] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   const queryClient = useQueryClient();
@@ -158,10 +160,13 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
       if (content) {
         const parsedPoints = parseGCodeFile(content);
         if (parsedPoints.length > 0) {
+          // Clear existing state and load new G-code
           setPoints(parsedPoints);
           setCurrentPoint(0);
+          setIsSimulating(false);
           setLoadedToolpathId(null);
           setToolpathName(file.name.replace(/\.[^/.]+$/, ""));
+          console.log('G-code uploaded successfully:', parsedPoints);
           toast({
             title: "G-Code Loaded",
             description: `Successfully loaded ${parsedPoints.length} points from ${file.name}`,
@@ -181,13 +186,15 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     event.target.value = '';
   };
 
+  // Auto-load latest toolpath only once per machine
   useEffect(() => {
-    if (toolpaths.length > 0 && selectedMachineId && !loadedToolpathId) {
+    if (toolpaths.length > 0 && selectedMachineId && !hasAutoLoaded[selectedMachineId] && !loadedToolpathId) {
       const latestToolpath = toolpaths[0];
       console.log('Auto-loading latest CNC toolpath:', latestToolpath);
       loadToolpath(latestToolpath);
+      setHasAutoLoaded(prev => ({ ...prev, [selectedMachineId]: true }));
     }
-  }, [toolpaths, selectedMachineId, loadedToolpathId]);
+  }, [toolpaths, selectedMachineId, hasAutoLoaded, loadedToolpathId]);
 
   const loadToolpath = (toolpath: Toolpath) => {
     console.log('Loading CNC toolpath:', toolpath);
@@ -196,6 +203,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
       : [];
     setPoints(pathPoints);
     setCurrentPoint(0);
+    setIsSimulating(false);
     setLoadedToolpathId(toolpath.id);
   };
 
@@ -236,12 +244,16 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
 
   const addPoint = (point: { x: number; y: number }) => {
     setPoints(prev => [...prev, { ...point, z: 0 }]);
+    setLoadedToolpathId(null); // Clear loaded toolpath when manually adding points
   };
 
   const clearPoints = () => {
     setPoints([]);
     setCurrentPoint(0);
+    setIsSimulating(false);
     setLoadedToolpathId(null);
+    setToolpathName('');
+    console.log('Points cleared');
   };
 
   const generateGCode = () => {
