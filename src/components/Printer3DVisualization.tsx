@@ -75,6 +75,9 @@ export const Printer3DVisualization = ({
             Build Volume: {machineData.max_build_volume_x}×{machineData.max_build_volume_y}×{machineData.max_build_volume_z}mm
           </p>
         )}
+        {selectedEndpoint && (
+          <p className="text-xs text-blue-500 mt-1">Connected to: {selectedEndpoint}</p>
+        )}
       </div>
     </div>
   );
