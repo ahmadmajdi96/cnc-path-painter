@@ -1,85 +1,77 @@
 
-import React, { useState, useEffect } from 'react';
-import { StatusCards } from './StatusCards';
-import { MachineList } from './MachineList';
-import { Printer3DVisualization } from './Printer3DVisualization';
-import { Printer3DControlPanel } from './Printer3DControlPanel';
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { MachineList } from './MachineList';
+import { EndpointManager } from './EndpointManager';
+import { Printer3DControlPanel } from './Printer3DControlPanel';
+import { Printer3DVisualization } from './Printer3DVisualization';
 import { AddMachineDialog } from './AddMachineDialog';
-import { MainNavigation } from './MainNavigation';
 
 export const Printer3DControlSystem = () => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedMachine, setSelectedMachine] = useState<string>('');
-  const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
-  const [printerParams, setPrinterParams] = useState({});
-
-  // Clear endpoint when machine changes
-  useEffect(() => {
-    setSelectedEndpoint('');
-  }, [selectedMachine]);
+  const [selectedMachine, setSelectedMachine] = useState('');
+  const [selectedEndpoint, setSelectedEndpoint] = useState('');
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MainNavigation />
-      
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">3D Printer Control System</h1>
-            <p className="text-gray-600">Monitor and control 3D printing operations</p>
+            <h1 className="text-3xl font-bold text-gray-900">3D Printer Control</h1>
+            <p className="text-gray-600 mt-1">Manage and control your 3D printing operations</p>
           </div>
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="bg-green-600 hover:bg-green-700"
-          >
+          <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add 3D Printer
           </Button>
         </div>
+
+        {/* Main Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Sidebar */}
+          <div className="lg:col-span-1 space-y-4">
+            <MachineList
+              selectedMachine={selectedMachine}
+              onMachineSelect={setSelectedMachine}
+              machineType="3d_printer"
+            />
+            <EndpointManager
+              selectedMachineId={selectedMachine}
+              onEndpointSelect={setSelectedEndpoint}
+              selectedEndpoint={selectedEndpoint}
+              machineType="3d_printer"
+            />
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <Card className="p-6 bg-white border border-gray-200 h-full">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">3D Printer Visualization</h2>
+              </div>
+              <Printer3DVisualization 
+                selectedMachine={selectedMachine}
+                selectedEndpoint={selectedEndpoint}
+              />
+            </Card>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="lg:col-span-1">
+            <Printer3DControlPanel 
+              selectedMachine={selectedMachine}
+              selectedEndpoint={selectedEndpoint}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Status Cards */}
-      <div className="px-6 py-4">
-        <StatusCards />
-      </div>
-
-      {/* Main Content */}
-      <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Machine List */}
-        <div className="w-80 flex-shrink-0">
-          <MachineList 
-            selectedMachine={selectedMachine}
-            onMachineSelect={setSelectedMachine}
-            machineType="3d_printer"
-          />
-        </div>
-
-        {/* Center - 3D Visualization */}
-        <div className="flex-1 min-w-0 space-y-6">
-          <Printer3DVisualization 
-            selectedMachineId={selectedMachine}
-            selectedEndpoint={selectedEndpoint}
-            printerParams={printerParams}
-            onEndpointSelect={setSelectedEndpoint}
-          />
-        </div>
-
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-96 flex-shrink-0">
-          <Printer3DControlPanel 
-            selectedMachineId={selectedMachine}
-            onParametersChange={setPrinterParams}
-            selectedEndpoint={selectedEndpoint}
-          />
-        </div>
-      </div>
-
-      <AddMachineDialog 
-        open={isAddDialogOpen} 
-        onOpenChange={setIsAddDialogOpen}
+      <AddMachineDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
         machineType="3d_printer"
       />
     </div>
