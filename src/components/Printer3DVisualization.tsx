@@ -50,7 +50,7 @@ export const Printer3DVisualization = ({
       
       console.log('Fetching 3D printer data for ID:', selectedMachineId);
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('3d_printers')
         .select('*')
         .eq('id', selectedMachineId)

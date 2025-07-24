@@ -112,7 +112,7 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
 
         console.log('Inserting 3D printer data:', printerData);
         
-        const { data: result, error } = await supabase
+        const { data: result, error } = await (supabase as any)
           .from('3d_printers')
           .insert([printerData])
           .select()
