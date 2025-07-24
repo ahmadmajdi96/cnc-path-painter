@@ -50,25 +50,19 @@ export const Printer3DVisualization = ({
       
       console.log('Fetching 3D printer data for ID:', selectedMachineId);
       
-      try {
-        // Use explicit table name to avoid TypeScript issues
-        const { data, error } = await (supabase as any)
-          .from('3d_printers')
-          .select('*')
-          .eq('id', selectedMachineId)
-          .single();
-          
-        if (error) {
-          console.error('Direct query error:', error);
-          throw error;
-        }
+      const { data, error } = await supabase
+        .from('3d_printers')
+        .select('*')
+        .eq('id', selectedMachineId)
+        .single();
         
-        console.log('Fetched 3D printer data:', data);
-        return data as PrinterData;
-      } catch (error) {
-        console.error('Error fetching 3D printer:', error);
+      if (error) {
+        console.error('Query error:', error);
         throw error;
       }
+      
+      console.log('Fetched 3D printer data:', data);
+      return data as PrinterData;
     },
     enabled: !!selectedMachineId
   });

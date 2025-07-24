@@ -49,8 +49,7 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         query = supabase.from('laser_machines').select('*');
       } else if (machineType === '3d_printer') {
         console.log('Fetching 3D printers...');
-        // Use explicit table name to avoid TypeScript issues
-        query = (supabase as any).from('3d_printers').select('*');
+        query = supabase.from('3d_printers').select('*');
       } else {
         throw new Error('Invalid machine type');
       }
@@ -88,8 +87,7 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         if (error) throw error;
       } else if (machineType === '3d_printer') {
         console.log('Deleting 3D printer with ID:', id);
-        // Use explicit table name to avoid TypeScript issues
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('3d_printers')
           .delete()
           .eq('id', id);
@@ -104,7 +102,6 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
     onSuccess: () => {
       console.log('Machine deleted successfully');
       queryClient.invalidateQueries({ queryKey: [machineType] });
-      queryClient.invalidateQueries({ queryKey: ['3d_printer'] });
       if (selectedMachine === editingMachine?.id) {
         onMachineSelect('');
       }
