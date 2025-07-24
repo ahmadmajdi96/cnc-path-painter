@@ -30,24 +30,24 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const tableNames = {
-    cnc: 'cnc_machines',
-    laser: 'laser_machines',
-    '3d_printer': '3d_printers'
-  };
-
-  const tableName = tableNames[machineType];
-
-  // Fetch machine data to get current endpoint_url
+  // Fetch machine data based on machine type
   const { data: machineData } = useQuery({
-    queryKey: [tableName, selectedMachineId],
+    queryKey: [machineType, selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return null;
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('id', selectedMachineId)
-        .single();
+      
+      let query;
+      if (machineType === 'cnc') {
+        query = supabase.from('cnc_machines').select('*').eq('id', selectedMachineId).single();
+      } else if (machineType === 'laser') {
+        query = supabase.from('laser_machines').select('*').eq('id', selectedMachineId).single();
+      } else if (machineType === '3d_printer') {
+        query = supabase.from('3d_printers').select('*').eq('id', selectedMachineId).single();
+      } else {
+        throw new Error('Invalid machine type');
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -65,16 +65,23 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
   const updateEndpointMutation = useMutation({
     mutationFn: async (endpoint: { name: string; url: string }) => {
       if (!selectedMachineId) return;
-      const { error } = await supabase
-        .from(tableName)
-        .update({
-          endpoint_url: endpoint.url
-        })
-        .eq('id', selectedMachineId);
+      
+      let query;
+      if (machineType === 'cnc') {
+        query = supabase.from('cnc_machines').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+      } else if (machineType === 'laser') {
+        query = supabase.from('laser_machines').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+      } else if (machineType === '3d_printer') {
+        query = supabase.from('3d_printers').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+      } else {
+        throw new Error('Invalid machine type');
+      }
+      
+      const { error } = await query;
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tableName, selectedMachineId] });
+      queryClient.invalidateQueries({ queryKey: [machineType, selectedMachineId] });
       setIsAdding(false);
       setEditingId(null);
       setNewEndpoint({ name: '', url: '' });
@@ -96,16 +103,23 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
   const deleteEndpointMutation = useMutation({
     mutationFn: async () => {
       if (!selectedMachineId) return;
-      const { error } = await supabase
-        .from(tableName)
-        .update({
-          endpoint_url: null
-        })
-        .eq('id', selectedMachineId);
+      
+      let query;
+      if (machineType === 'cnc') {
+        query = supabase.from('cnc_machines').update({ endpoint_url: null }).eq('id', selectedMachineId);
+      } else if (machineType === 'laser') {
+        query = supabase.from('laser_machines').update({ endpoint_url: null }).eq('id', selectedMachineId);
+      } else if (machineType === '3d_printer') {
+        query = supabase.from('3d_printers').update({ endpoint_url: null }).eq('id', selectedMachineId);
+      } else {
+        throw new Error('Invalid machine type');
+      }
+      
+      const { error } = await query;
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tableName, selectedMachineId] });
+      queryClient.invalidateQueries({ queryKey: [machineType, selectedMachineId] });
       onEndpointSelect(''); // Clear selected endpoint
       toast({
         title: "Success",
