@@ -1,12 +1,21 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Printer3DVisualizationProps {
   selectedMachineId?: string;
+  selectedEndpoint?: string;
+  printerParams?: any;
+  onEndpointSelect?: (endpoint: string) => void;
 }
 
-export const Printer3DVisualization = ({ selectedMachineId }: Printer3DVisualizationProps) => {
+export const Printer3DVisualization = ({ 
+  selectedMachineId,
+  selectedEndpoint,
+  printerParams,
+  onEndpointSelect 
+}: Printer3DVisualizationProps) => {
   // Fetch machine data query
   const { data: machineData, isLoading } = useQuery({
     queryKey: ['3d_printer', selectedMachineId],
