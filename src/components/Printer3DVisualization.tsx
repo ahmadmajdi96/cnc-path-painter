@@ -16,6 +16,20 @@ interface Printer3DVisualizationProps {
   onEndpointSelect: (endpoint: string) => void;
 }
 
+interface PrinterData {
+  id: string;
+  name: string;
+  model: string;
+  manufacturer?: string;
+  status: string;
+  max_build_volume_x?: number;
+  max_build_volume_y?: number;
+  max_build_volume_z?: number;
+  nozzle_diameter?: number;
+  max_hotend_temp?: number;
+  max_bed_temp?: number;
+}
+
 export const Printer3DVisualization = ({ 
   selectedMachineId, 
   selectedEndpoint, 
@@ -36,28 +50,21 @@ export const Printer3DVisualization = ({
       
       console.log('Fetching 3D printer data for ID:', selectedMachineId);
       
-      // Try RPC first, then direct access
       try {
-        const { data: rpcData, error: rpcError } = await supabase.rpc('get_3d_printer_by_id', { printer_id: selectedMachineId });
-        
-        if (rpcError && rpcError.message?.includes('function "get_3d_printer_by_id" does not exist')) {
-          console.log('RPC not found, using direct table access');
-          const { data, error } = await supabase
-            .from('3d_printers' as any)
-            .select('*')
-            .eq('id', selectedMachineId)
-            .single();
-          if (error) {
-            console.error('Direct query error:', error);
-            throw error;
-          }
-          return data;
-        } else if (rpcError) {
-          console.error('RPC error:', rpcError);
-          throw rpcError;
+        // Use explicit table name to avoid TypeScript issues
+        const { data, error } = await (supabase as any)
+          .from('3d_printers')
+          .select('*')
+          .eq('id', selectedMachineId)
+          .single();
+          
+        if (error) {
+          console.error('Direct query error:', error);
+          throw error;
         }
         
-        return rpcData;
+        console.log('Fetched 3D printer data:', data);
+        return data as PrinterData;
       } catch (error) {
         console.error('Error fetching 3D printer:', error);
         throw error;
@@ -187,6 +194,9 @@ export const Printer3DVisualization = ({
                 <p>Printer: {printerData.name}</p>
                 <p>Model: {printerData.model}</p>
                 <p>Status: {printerData.status}</p>
+                {printerData.max_build_volume_x && printerData.max_build_volume_y && printerData.max_build_volume_z && (
+                  <p>Build Volume: {printerData.max_build_volume_x}×{printerData.max_build_volume_y}×{printerData.max_build_volume_z}mm</p>
+                )}
                 {uploadedFile && (
                   <p className="mt-2 text-blue-600">Loaded: {uploadedFile.name}</p>
                 )}

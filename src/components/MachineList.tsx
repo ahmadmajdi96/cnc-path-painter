@@ -49,18 +49,8 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         query = supabase.from('laser_machines').select('*');
       } else if (machineType === '3d_printer') {
         console.log('Fetching 3D printers...');
-        // Try direct access first, with fallback to RPC
-        try {
-          query = supabase.from('3d_printers' as any).select('*');
-        } catch (error) {
-          console.log('Direct access failed, trying RPC...');
-          const { data, error: rpcError } = await supabase.rpc('get_3d_printers');
-          if (rpcError) {
-            console.error('RPC also failed:', rpcError);
-            throw rpcError;
-          }
-          return data as Machine[];
-        }
+        // Use explicit table name to avoid TypeScript issues
+        query = (supabase as any).from('3d_printers').select('*');
       } else {
         throw new Error('Invalid machine type');
       }
@@ -97,17 +87,14 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         const { error } = await supabase.from('laser_machines').delete().eq('id', id);
         if (error) throw error;
       } else if (machineType === '3d_printer') {
-        // Try RPC first, then direct access
-        const { error } = await supabase.rpc('delete_3d_printer', { printer_id: id });
-        
-        if (error && error.message?.includes('function "delete_3d_printer" does not exist')) {
-          console.log('RPC not found, using direct table access for delete');
-          const { error: directError } = await supabase
-            .from('3d_printers' as any)
-            .delete()
-            .eq('id', id);
-          if (directError) throw directError;
-        } else if (error) {
+        console.log('Deleting 3D printer with ID:', id);
+        // Use explicit table name to avoid TypeScript issues
+        const { error } = await (supabase as any)
+          .from('3d_printers')
+          .delete()
+          .eq('id', id);
+        if (error) {
+          console.error('Delete error:', error);
           throw error;
         }
       } else {
