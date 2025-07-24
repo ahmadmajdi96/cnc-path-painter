@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,9 +34,34 @@ export const Printer3DVisualization = ({
     queryFn: async () => {
       if (!selectedMachineId) return null;
       
-      const { data, error } = await (supabase as any).from('3d_printers').select('*').eq('id', selectedMachineId).single();
-      if (error) throw error;
-      return data;
+      console.log('Fetching 3D printer data for ID:', selectedMachineId);
+      
+      // Try RPC first, then direct access
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_3d_printer_by_id', { printer_id: selectedMachineId });
+        
+        if (rpcError && rpcError.message?.includes('function "get_3d_printer_by_id" does not exist')) {
+          console.log('RPC not found, using direct table access');
+          const { data, error } = await supabase
+            .from('3d_printers' as any)
+            .select('*')
+            .eq('id', selectedMachineId)
+            .single();
+          if (error) {
+            console.error('Direct query error:', error);
+            throw error;
+          }
+          return data;
+        } else if (rpcError) {
+          console.error('RPC error:', rpcError);
+          throw rpcError;
+        }
+        
+        return rpcData;
+      } catch (error) {
+        console.error('Error fetching 3D printer:', error);
+        throw error;
+      }
     },
     enabled: !!selectedMachineId
   });

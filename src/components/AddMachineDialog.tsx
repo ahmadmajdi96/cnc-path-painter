@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -51,6 +50,9 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
 
   const addMachineMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Adding machine with data:', data);
+      console.log('Machine type:', machineType);
+      
       const baseData = {
         name: data.name,
         model: data.model,
@@ -72,8 +74,12 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
           work_height: data.work_height ? parseFloat(data.work_height) : null,
           work_area: data.work_area
         };
+        console.log('Inserting CNC data:', insertData);
         const { error } = await supabase.from('cnc_machines').insert([insertData]);
-        if (error) throw error;
+        if (error) {
+          console.error('CNC insert error:', error);
+          throw error;
+        }
       } else if (machineType === 'laser') {
         const insertData = {
           ...baseData,
@@ -82,8 +88,12 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
           max_speed: data.max_speed ? parseInt(data.max_speed) : null,
           beam_diameter: data.beam_diameter ? parseFloat(data.beam_diameter) : null
         };
+        console.log('Inserting laser data:', insertData);
         const { error } = await supabase.from('laser_machines').insert([insertData]);
-        if (error) throw error;
+        if (error) {
+          console.error('Laser insert error:', error);
+          throw error;
+        }
       } else if (machineType === '3d_printer') {
         const insertData = {
           ...baseData,
@@ -94,12 +104,31 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
           max_hotend_temp: data.max_hotend_temp ? parseInt(data.max_hotend_temp) : null,
           max_bed_temp: data.max_bed_temp ? parseInt(data.max_bed_temp) : null
         };
-        const { error } = await (supabase as any).from('3d_printers').insert([insertData]);
-        if (error) throw error;
+        console.log('Inserting 3D printer data:', insertData);
+        
+        // Use direct SQL query to avoid TypeScript issues
+        const { error } = await supabase.rpc('insert_3d_printer', insertData);
+        
+        // If RPC doesn't exist, fall back to direct table access
+        if (error && error.message?.includes('function "insert_3d_printer" does not exist')) {
+          console.log('RPC not found, using direct table access');
+          const { error: directError } = await supabase
+            .from('3d_printers' as any)
+            .insert([insertData]);
+          if (directError) {
+            console.error('3D printer direct insert error:', directError);
+            throw directError;
+          }
+        } else if (error) {
+          console.error('3D printer RPC error:', error);
+          throw error;
+        }
       }
     },
     onSuccess: () => {
+      console.log('Machine added successfully');
       queryClient.invalidateQueries({ queryKey: [machineType] });
+      queryClient.invalidateQueries({ queryKey: ['3d_printer'] });
       onOpenChange(false);
       setFormData({
         name: '',
@@ -132,10 +161,11 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
         description: "Machine added successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Machine add error:', error);
       toast({
         title: "Error",
-        description: "Failed to add machine",
+        description: error.message || "Failed to add machine",
         variant: "destructive"
       });
     }
@@ -143,6 +173,7 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with:', formData);
     addMachineMutation.mutate(formData);
   };
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +40,7 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
   const { data: machines = [], isLoading } = useQuery({
     queryKey: [machineType, filters],
     queryFn: async () => {
+      console.log('Fetching machines for type:', machineType);
       let query: any;
       
       if (machineType === 'cnc') {
@@ -48,7 +48,19 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
       } else if (machineType === 'laser') {
         query = supabase.from('laser_machines').select('*');
       } else if (machineType === '3d_printer') {
-        query = (supabase as any).from('3d_printers').select('*');
+        console.log('Fetching 3D printers...');
+        // Try direct access first, with fallback to RPC
+        try {
+          query = supabase.from('3d_printers' as any).select('*');
+        } catch (error) {
+          console.log('Direct access failed, trying RPC...');
+          const { data, error: rpcError } = await supabase.rpc('get_3d_printers');
+          if (rpcError) {
+            console.error('RPC also failed:', rpcError);
+            throw rpcError;
+          }
+          return data as Machine[];
+        }
       } else {
         throw new Error('Invalid machine type');
       }
@@ -64,7 +76,11 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error('Query error:', error);
+        throw error;
+      }
+      console.log('Fetched machines:', data);
       return data as Machine[];
     }
   });
@@ -72,6 +88,8 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
   // Delete machine mutation
   const deleteMachineMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Deleting machine:', id, 'type:', machineType);
+      
       if (machineType === 'cnc') {
         const { error } = await supabase.from('cnc_machines').delete().eq('id', id);
         if (error) throw error;
@@ -79,14 +97,27 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         const { error } = await supabase.from('laser_machines').delete().eq('id', id);
         if (error) throw error;
       } else if (machineType === '3d_printer') {
-        const { error } = await (supabase as any).from('3d_printers').delete().eq('id', id);
-        if (error) throw error;
+        // Try RPC first, then direct access
+        const { error } = await supabase.rpc('delete_3d_printer', { printer_id: id });
+        
+        if (error && error.message?.includes('function "delete_3d_printer" does not exist')) {
+          console.log('RPC not found, using direct table access for delete');
+          const { error: directError } = await supabase
+            .from('3d_printers' as any)
+            .delete()
+            .eq('id', id);
+          if (directError) throw directError;
+        } else if (error) {
+          throw error;
+        }
       } else {
         throw new Error('Invalid machine type');
       }
     },
     onSuccess: () => {
+      console.log('Machine deleted successfully');
       queryClient.invalidateQueries({ queryKey: [machineType] });
+      queryClient.invalidateQueries({ queryKey: ['3d_printer'] });
       if (selectedMachine === editingMachine?.id) {
         onMachineSelect('');
       }
@@ -95,10 +126,11 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         description: "Machine deleted successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Delete error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete machine",
+        description: error.message || "Failed to delete machine",
         variant: "destructive"
       });
     }
