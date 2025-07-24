@@ -127,7 +127,7 @@ export const EditMachineDialog = ({ machine, open, onOpenChange, machineType }: 
           max_hotend_temp: data.max_hotend_temp ? parseInt(data.max_hotend_temp) : null,
           max_bed_temp: data.max_bed_temp ? parseInt(data.max_bed_temp) : null
         });
-        const { error } = await (supabase as any).from('3d_printers').update(updateData).eq('id', machine.id);
+        const { error } = await (supabase as any).from('printer_3d').update(updateData).eq('id', machine.id);
         if (error) throw error;
       }
     },

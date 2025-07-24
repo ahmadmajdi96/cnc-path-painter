@@ -869,6 +869,66 @@ export type Database = {
           },
         ]
       }
+      printer_3d: {
+        Row: {
+          created_at: string
+          endpoint_url: string | null
+          id: string
+          ip_address: string | null
+          manufacturer: string | null
+          max_bed_temp: number | null
+          max_build_volume_x: number | null
+          max_build_volume_y: number | null
+          max_build_volume_z: number | null
+          max_hotend_temp: number | null
+          model: string
+          name: string
+          nozzle_diameter: number | null
+          port: number | null
+          protocol: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint_url?: string | null
+          id?: string
+          ip_address?: string | null
+          manufacturer?: string | null
+          max_bed_temp?: number | null
+          max_build_volume_x?: number | null
+          max_build_volume_y?: number | null
+          max_build_volume_z?: number | null
+          max_hotend_temp?: number | null
+          model: string
+          name: string
+          nozzle_diameter?: number | null
+          port?: number | null
+          protocol?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint_url?: string | null
+          id?: string
+          ip_address?: string | null
+          manufacturer?: string | null
+          max_bed_temp?: number | null
+          max_build_volume_x?: number | null
+          max_build_volume_y?: number | null
+          max_build_volume_z?: number | null
+          max_hotend_temp?: number | null
+          model?: string
+          name?: string
+          nozzle_diameter?: number | null
+          port?: number | null
+          protocol?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       production_lines: {
         Row: {
           created_at: string

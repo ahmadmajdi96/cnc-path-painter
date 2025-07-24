@@ -45,7 +45,7 @@ export const Printer3DVisualization = ({
       
       // Use any type to bypass TypeScript checking for the table name
       const { data, error } = await (supabase as any)
-        .from('3d_printers')
+        .from('printer_3d')
         .select('*')
         .eq('id', selectedMachineId)
         .single();

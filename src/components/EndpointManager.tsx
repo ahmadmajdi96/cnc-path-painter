@@ -18,7 +18,7 @@ interface EndpointManagerProps {
   selectedMachineId?: string;
   onEndpointSelect: (endpoint: string) => void;
   selectedEndpoint: string;
-  machineType: 'cnc' | 'laser' | '3d_printer';
+  machineType: 'cnc' | 'laser' | '3d_printer' | 'printer_3d';
 }
 
 export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedEndpoint, machineType }: EndpointManagerProps) => {
@@ -45,6 +45,10 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
         return data;
       } else if (machineType === '3d_printer') {
         const { data, error } = await (supabase as any).from('3d_printers').select('*').eq('id', selectedMachineId).single();
+        if (error) throw error;
+        return data;
+      } else if (machineType === 'printer_3d') {
+        const { data, error } = await (supabase as any).from('printer_3d').select('*').eq('id', selectedMachineId).single();
         if (error) throw error;
         return data;
       }
@@ -74,6 +78,9 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
         if (error) throw error;
       } else if (machineType === '3d_printer') {
         const { error } = await (supabase as any).from('3d_printers').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        if (error) throw error;
+      } else if (machineType === 'printer_3d') {
+        const { error } = await (supabase as any).from('printer_3d').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
         if (error) throw error;
       } else {
         throw new Error('Invalid machine type');
@@ -111,6 +118,9 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
         if (error) throw error;
       } else if (machineType === '3d_printer') {
         const { error } = await (supabase as any).from('3d_printers').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        if (error) throw error;
+      } else if (machineType === 'printer_3d') {
+        const { error } = await (supabase as any).from('printer_3d').update({ endpoint_url: null }).eq('id', selectedMachineId);
         if (error) throw error;
       } else {
         throw new Error('Invalid machine type');
@@ -157,6 +167,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
       case 'laser':
         return 'http://machine-ip:port/laser';
       case '3d_printer':
+      case 'printer_3d':
         return 'http://machine-ip:port/print';
       default:
         return 'http://machine-ip:port/api';
@@ -170,6 +181,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
       case 'laser':
         return 'Laser';
       case '3d_printer':
+      case 'printer_3d':
         return '3D Printer';
       default:
         return 'Machine';
