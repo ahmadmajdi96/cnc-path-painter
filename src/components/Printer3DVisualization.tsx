@@ -1,18 +1,18 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Download, Save, Play, Search } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { EndpointManager } from './EndpointManager';
+import { Upload, Download, Search, Play, Pause, Square } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { EndpointManager } from './EndpointManager';
 
 interface Printer3DVisualizationProps {
   selectedMachineId?: string;
-  selectedEndpoint?: string;
+  selectedEndpoint: string;
   printerParams: any;
   onEndpointSelect: (endpoint: string) => void;
 }
@@ -23,22 +23,19 @@ export const Printer3DVisualization = ({
   printerParams,
   onEndpointSelect 
 }: Printer3DVisualizationProps) => {
-  const [modelFile, setModelFile] = useState<File | null>(null);
-  const [modelUrl, setModelUrl] = useState<string>('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const { data: machineData } = useQuery({
-    queryKey: ['3d_printers', selectedMachineId],
+  // Fetch 3D printer data
+  const { data: printerData } = useQuery({
+    queryKey: ['3d_printer', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return null;
-      const { data, error } = await supabase
-        .from('3d_printers')
-        .select('*')
-        .eq('id', selectedMachineId)
-        .single();
+      
+      const { data, error } = await (supabase as any).from('3d_printers').select('*').eq('id', selectedMachineId).single();
       if (error) throw error;
       return data;
     },
@@ -51,198 +48,208 @@ export const Printer3DVisualization = ({
       const allowedTypes = ['.stl', '.obj', '.gcode', '.3mf'];
       const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
       
-      if (!allowedTypes.includes(fileExtension)) {
+      if (allowedTypes.includes(fileExtension)) {
+        setUploadedFile(file);
+        toast({
+          title: "File uploaded",
+          description: `${file.name} has been uploaded successfully`,
+        });
+      } else {
         toast({
           title: "Invalid file type",
-          description: "Please upload STL, OBJ, G-code, or 3MF files",
+          description: "Please upload STL, OBJ, GCODE, or 3MF files only",
           variant: "destructive"
         });
-        return;
       }
-
-      setModelFile(file);
-      setModelUrl(URL.createObjectURL(file));
-      toast({
-        title: "File uploaded",
-        description: `${file.name} loaded successfully`
-      });
     }
   };
 
   const handleDownload = () => {
-    if (!modelFile) {
-      toast({
-        title: "No file to download",
-        description: "Please upload a 3D model first",
-        variant: "destructive"
-      });
-      return;
+    if (uploadedFile) {
+      const url = URL.createObjectURL(uploadedFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = uploadedFile.name;
+      a.click();
+      URL.revokeObjectURL(url);
     }
-
-    const link = document.createElement('a');
-    link.href = modelUrl;
-    link.download = modelFile.name;
-    link.click();
-    
-    toast({
-      title: "Download started",
-      description: `Downloading ${modelFile.name}`
-    });
   };
 
-  const handleSaveModel = async () => {
-    if (!modelFile || !selectedMachineId) {
-      toast({
-        title: "Cannot save",
-        description: "Please select a machine and upload a model first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // This would save to database in a real implementation
-    toast({
-      title: "Model saved",
-      description: "3D model saved successfully"
-    });
-  };
-
-  const handleSearchPrintSettings = async () => {
+  const handleInternetSearch = async () => {
     if (!searchQuery.trim()) {
       toast({
-        title: "Enter search query",
-        description: "Please enter a material or print setting to search for",
+        title: "Search query required",
+        description: "Please enter a search term",
         variant: "destructive"
       });
       return;
     }
 
-    setIsSearching(true);
-    
-    // Simulate API search - in real implementation, this would search for print settings
+    // Mock internet search functionality
+    toast({
+      title: "Searching...",
+      description: `Searching for "${searchQuery}" on Thingiverse and other 3D model repositories`,
+    });
+
+    // Simulate search results
     setTimeout(() => {
-      setIsSearching(false);
       toast({
         title: "Search completed",
-        description: `Found print settings for "${searchQuery}"`
+        description: "Found 42 results for your query. Results would be displayed here.",
       });
     }, 2000);
   };
 
-  const handleSendConfiguration = async () => {
-    if (!selectedEndpoint || !modelFile) {
-      toast({
-        title: "Cannot send configuration",
-        description: "Please select an endpoint and upload a model first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // This would send the configuration to the 3D printer
-      toast({
-        title: "Configuration sent",
-        description: "Print job sent to 3D printer successfully"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to send configuration to 3D printer",
-        variant: "destructive"
-      });
-    }
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+    toast({
+      title: isPlaying ? "Print paused" : "Print started",
+      description: isPlaying ? "3D printing has been paused" : "3D printing has been started",
+    });
   };
+
+  const handleStop = () => {
+    setIsPlaying(false);
+    toast({
+      title: "Print stopped",
+      description: "3D printing has been stopped",
+    });
+  };
+
+  if (!selectedMachineId) {
+    return (
+      <Card className="p-8 bg-white border border-gray-200">
+        <div className="text-center text-gray-500">
+          <h3 className="text-lg font-medium mb-2">3D Printer Visualization</h3>
+          <p>Select a 3D printer to view its status and control printing operations</p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* 3D Model Upload */}
-      <Card className="p-6">
+      {/* Main 3D Visualization */}
+      <Card className="p-6 bg-white border border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">3D Model Viewer</h3>
+          <h3 className="text-lg font-semibold">3D Printer View</h3>
           <div className="flex gap-2">
             <Button
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
+              onClick={handlePlayPause}
               size="sm"
+              variant={isPlaying ? "secondary" : "default"}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Model
+              {isPlaying ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+              {isPlaying ? 'Pause' : 'Start'}
             </Button>
             <Button
-              onClick={handleDownload}
-              variant="outline"
+              onClick={handleStop}
               size="sm"
-              disabled={!modelFile}
+              variant="destructive"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
-            <Button
-              onClick={handleSaveModel}
-              variant="outline"
-              size="sm"
-              disabled={!modelFile || !selectedMachineId}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save
+              <Square className="w-4 h-4 mr-2" />
+              Stop
             </Button>
           </div>
         </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".stl,.obj,.gcode,.3mf"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
-
-        {/* 3D Viewer Area */}
-        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg h-96 flex items-center justify-center">
-          {modelFile ? (
-            <div className="text-center">
-              <div className="text-lg font-medium text-gray-700 mb-2">
-                {modelFile.name}
+        {/* 3D Visualization Area */}
+        <div className="h-96 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🖨️</div>
+            <h4 className="text-lg font-medium text-gray-700 mb-2">3D Printer Visualization</h4>
+            {printerData ? (
+              <div className="text-sm text-gray-600">
+                <p>Printer: {printerData.name}</p>
+                <p>Model: {printerData.model}</p>
+                <p>Status: {printerData.status}</p>
+                {uploadedFile && (
+                  <p className="mt-2 text-blue-600">Loaded: {uploadedFile.name}</p>
+                )}
               </div>
-              <div className="text-sm text-gray-500">
-                3D model loaded - viewer would render here
-              </div>
-              <div className="mt-4 text-xs text-gray-400">
-                In a real implementation, this would show a 3D preview using Three.js or similar
-              </div>
-            </div>
-          ) : (
-            <div className="text-center">
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Upload a 3D model file</p>
-              <p className="text-sm text-gray-400">Supports STL, OBJ, G-code, and 3MF files</p>
-            </div>
-          )}
+            ) : (
+              <p className="text-gray-500">3D visualization will appear here</p>
+            )}
+          </div>
         </div>
+
+        {/* Print Progress */}
+        {isPlaying && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Print Progress</span>
+              <span className="text-sm text-gray-600">42%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '42%' }}></div>
+            </div>
+            <div className="flex justify-between text-xs text-gray-600 mt-1">
+              <span>Layer 34 of 81</span>
+              <span>Est. 2h 15m remaining</span>
+            </div>
+          </div>
+        )}
       </Card>
 
-      {/* Print Settings Search */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Search Print Settings</h3>
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <Label htmlFor="search-query">Material or Setting</Label>
-            <Input
-              id="search-query"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="e.g., PLA, ABS, PETG, support settings..."
-            />
+      {/* File Management */}
+      <Card className="p-6 bg-white border border-gray-200">
+        <h4 className="font-medium mb-4">File Management</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* File Upload */}
+          <div className="space-y-3">
+            <Label>Upload 3D File</Label>
+            <div className="flex gap-2">
+              <Input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".stl,.obj,.gcode,.3mf"
+                className="hidden"
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                className="flex-1"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload File
+              </Button>
+              {uploadedFile && (
+                <Button
+                  onClick={handleDownload}
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+              )}
+            </div>
+            {uploadedFile && (
+              <p className="text-sm text-gray-600">
+                Current file: {uploadedFile.name}
+              </p>
+            )}
           </div>
-          <Button
-            onClick={handleSearchPrintSettings}
-            disabled={isSearching}
-            className="mt-6"
-          >
-            <Search className="w-4 h-4 mr-2" />
-            {isSearching ? 'Searching...' : 'Search'}
-          </Button>
+
+          {/* Internet Search */}
+          <div className="space-y-3">
+            <Label>Search 3D Models</Label>
+            <div className="flex gap-2">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search Thingiverse, MyMiniFactory..."
+                onKeyPress={(e) => e.key === 'Enter' && handleInternetSearch()}
+              />
+              <Button
+                onClick={handleInternetSearch}
+                variant="outline"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -253,20 +260,6 @@ export const Printer3DVisualization = ({
         selectedEndpoint={selectedEndpoint}
         machineType="3d_printer"
       />
-
-      {/* Send Configuration */}
-      {selectedEndpoint && modelFile && (
-        <Card className="p-4">
-          <h4 className="font-medium text-gray-900 mb-2">Send to 3D Printer</h4>
-          <Button
-            onClick={handleSendConfiguration}
-            className="w-full bg-green-600 hover:bg-green-700"
-          >
-            <Play className="w-4 h-4 mr-2" />
-            Start Print Job
-          </Button>
-        </Card>
-      )}
     </div>
   );
 };

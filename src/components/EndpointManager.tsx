@@ -36,20 +36,21 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     queryFn: async () => {
       if (!selectedMachineId) return null;
       
-      let query;
       if (machineType === 'cnc') {
-        query = supabase.from('cnc_machines').select('*').eq('id', selectedMachineId).single();
+        const { data, error } = await supabase.from('cnc_machines').select('*').eq('id', selectedMachineId).single();
+        if (error) throw error;
+        return data;
       } else if (machineType === 'laser') {
-        query = supabase.from('laser_machines').select('*').eq('id', selectedMachineId).single();
+        const { data, error } = await supabase.from('laser_machines').select('*').eq('id', selectedMachineId).single();
+        if (error) throw error;
+        return data;
       } else if (machineType === '3d_printer') {
-        query = supabase.from('3d_printers').select('*').eq('id', selectedMachineId).single();
-      } else {
-        throw new Error('Invalid machine type');
+        const { data, error } = await (supabase as any).from('3d_printers').select('*').eq('id', selectedMachineId).single();
+        if (error) throw error;
+        return data;
       }
       
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      throw new Error('Invalid machine type');
     },
     enabled: !!selectedMachineId
   });
@@ -66,19 +67,18 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     mutationFn: async (endpoint: { name: string; url: string }) => {
       if (!selectedMachineId) return;
       
-      let query;
       if (machineType === 'cnc') {
-        query = supabase.from('cnc_machines').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        const { error } = await supabase.from('cnc_machines').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        if (error) throw error;
       } else if (machineType === 'laser') {
-        query = supabase.from('laser_machines').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        const { error } = await supabase.from('laser_machines').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        if (error) throw error;
       } else if (machineType === '3d_printer') {
-        query = supabase.from('3d_printers').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        const { error } = await (supabase as any).from('3d_printers').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        if (error) throw error;
       } else {
         throw new Error('Invalid machine type');
       }
-      
-      const { error } = await query;
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [machineType, selectedMachineId] });
@@ -104,19 +104,18 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     mutationFn: async () => {
       if (!selectedMachineId) return;
       
-      let query;
       if (machineType === 'cnc') {
-        query = supabase.from('cnc_machines').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        const { error } = await supabase.from('cnc_machines').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        if (error) throw error;
       } else if (machineType === 'laser') {
-        query = supabase.from('laser_machines').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        const { error } = await supabase.from('laser_machines').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        if (error) throw error;
       } else if (machineType === '3d_printer') {
-        query = supabase.from('3d_printers').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        const { error } = await (supabase as any).from('3d_printers').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        if (error) throw error;
       } else {
         throw new Error('Invalid machine type');
       }
-      
-      const { error } = await query;
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [machineType, selectedMachineId] });

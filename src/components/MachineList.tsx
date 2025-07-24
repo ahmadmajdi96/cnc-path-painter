@@ -7,7 +7,6 @@ import { Settings, Edit2, Trash2, Plus, Filter } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { MachineFilters } from './MachineFilters';
 import { EditMachineDialog } from './EditMachineDialog';
 
 interface MachineListProps {
@@ -23,6 +22,8 @@ interface Machine {
   manufacturer?: string;
   status: string;
   endpoint_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: MachineListProps) => {
@@ -36,27 +37,21 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get table name based on machine type
-  const getTableName = () => {
-    switch (machineType) {
-      case 'cnc':
-        return 'cnc_machines';
-      case 'laser':
-        return 'laser_machines';
-      case '3d_printer':
-        return '3d_printers';
-      default:
-        return 'cnc_machines';
-    }
-  };
-
-  const tableName = getTableName();
-
   // Fetch machines based on type
   const { data: machines = [], isLoading } = useQuery({
-    queryKey: [tableName, filters],
+    queryKey: [machineType, filters],
     queryFn: async () => {
-      let query = supabase.from(tableName).select('*');
+      let query: any;
+      
+      if (machineType === 'cnc') {
+        query = supabase.from('cnc_machines').select('*');
+      } else if (machineType === 'laser') {
+        query = supabase.from('laser_machines').select('*');
+      } else if (machineType === '3d_printer') {
+        query = (supabase as any).from('3d_printers').select('*');
+      } else {
+        throw new Error('Invalid machine type');
+      }
       
       if (filters.status) {
         query = query.eq('status', filters.status);
@@ -77,11 +72,21 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
   // Delete machine mutation
   const deleteMachineMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(tableName).delete().eq('id', id);
-      if (error) throw error;
+      if (machineType === 'cnc') {
+        const { error } = await supabase.from('cnc_machines').delete().eq('id', id);
+        if (error) throw error;
+      } else if (machineType === 'laser') {
+        const { error } = await supabase.from('laser_machines').delete().eq('id', id);
+        if (error) throw error;
+      } else if (machineType === '3d_printer') {
+        const { error } = await (supabase as any).from('3d_printers').delete().eq('id', id);
+        if (error) throw error;
+      } else {
+        throw new Error('Invalid machine type');
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tableName] });
+      queryClient.invalidateQueries({ queryKey: [machineType] });
       if (selectedMachine === editingMachine?.id) {
         onMachineSelect('');
       }
@@ -156,11 +161,44 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
       </div>
 
       {showFilters && (
-        <MachineFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-          machineType={machineType}
-        />
+        <div className="mb-4 p-3 bg-gray-50 rounded border">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">All</option>
+                <option value="idle">Idle</option>
+                <option value="running">Running</option>
+                <option value="error">Error</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Manufacturer</label>
+              <input
+                type="text"
+                value={filters.manufacturer}
+                onChange={(e) => setFilters(prev => ({ ...prev, manufacturer: e.target.value }))}
+                className="w-full p-2 border rounded"
+                placeholder="Filter by manufacturer"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Model</label>
+              <input
+                type="text"
+                value={filters.model}
+                onChange={(e) => setFilters(prev => ({ ...prev, model: e.target.value }))}
+                className="w-full p-2 border rounded"
+                placeholder="Filter by model"
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="space-y-3">
@@ -221,7 +259,7 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
 
       {editingMachine && (
         <EditMachineDialog
-          machine={editingMachine}
+          machine={editingMachine as any}
           open={!!editingMachine}
           onOpenChange={(open) => !open && setEditingMachine(null)}
           machineType={machineType}
