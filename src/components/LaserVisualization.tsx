@@ -588,19 +588,6 @@ export const LaserVisualization = ({ selectedMachineId, selectedEndpoint: extern
           machineType="laser"
         />
       )}
-
-      {/* Send G-Code Section */}
-      {(selectedEndpoint || externalSelectedEndpoint) && points.length > 0 && (
-        <Card className="p-4">
-          <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
-          <Button
-            onClick={sendGCodeToEndpoint}
-            className="w-full bg-purple-600 hover:bg-purple-700"
-          >
-            Send G-Code to Machine
-          </Button>
-        </Card>
-      )}
     </div>
   );
 };
