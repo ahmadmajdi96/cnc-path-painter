@@ -2,18 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
-import { CNCVisualization } from './CNCVisualization';
-import { ControlPanel } from './ControlPanel';
+import { Printer3DVisualization } from './Printer3DVisualization';
+import { Printer3DControlPanel } from './Printer3DControlPanel';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
 import { MainNavigation } from './MainNavigation';
 
-export const CNCControlSystem = () => {
+export const Printer3DControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
-  const [cncParams, setCncParams] = useState({});
+  const [printerParams, setPrinterParams] = useState({});
 
   // Clear endpoint when machine changes
   useEffect(() => {
@@ -28,15 +28,15 @@ export const CNCControlSystem = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">CNC Control System</h1>
-            <p className="text-gray-600">Monitor and control CNC machining operations</p>
+            <h1 className="text-2xl font-bold text-gray-900">3D Printer Control System</h1>
+            <p className="text-gray-600">Monitor and control 3D printing operations</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add CNC Machine
+            Add 3D Printer
           </Button>
         </div>
       </div>
@@ -53,25 +53,25 @@ export const CNCControlSystem = () => {
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
-            machineType="cnc"
+            machineType="3d_printer"
           />
         </div>
 
-        {/* Center - 2D Visualization and Endpoint Manager */}
+        {/* Center - 3D Visualization */}
         <div className="flex-1 min-w-0 space-y-6">
-          <CNCVisualization 
+          <Printer3DVisualization 
             selectedMachineId={selectedMachine}
             selectedEndpoint={selectedEndpoint}
-            cncParams={cncParams}
+            printerParams={printerParams}
             onEndpointSelect={setSelectedEndpoint}
           />
         </div>
 
         {/* Right Sidebar - Control Panel */}
         <div className="w-96 flex-shrink-0">
-          <ControlPanel 
+          <Printer3DControlPanel 
             selectedMachineId={selectedMachine}
-            onParametersChange={setCncParams}
+            onParametersChange={setPrinterParams}
             selectedEndpoint={selectedEndpoint}
           />
         </div>
@@ -80,7 +80,7 @@ export const CNCControlSystem = () => {
       <AddMachineDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
-        machineType="cnc"
+        machineType="3d_printer"
       />
     </div>
   );

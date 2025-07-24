@@ -19,7 +19,7 @@ interface EndpointManagerProps {
   selectedMachineId?: string;
   onEndpointSelect: (endpoint: string) => void;
   selectedEndpoint: string;
-  machineType: 'cnc' | 'laser';
+  machineType: 'cnc' | 'laser' | '3d_printer';
 }
 
 export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedEndpoint, machineType }: EndpointManagerProps) => {
@@ -30,7 +30,13 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const tableName = machineType === 'cnc' ? 'cnc_machines' : 'laser_machines';
+  const tableNames = {
+    cnc: 'cnc_machines',
+    laser: 'laser_machines',
+    '3d_printer': '3d_printers'
+  };
+
+  const tableName = tableNames[machineType];
 
   // Fetch machine data to get current endpoint_url
   const { data: machineData } = useQuery({
@@ -132,6 +138,32 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     setEditEndpoint({ name: endpoint.name, url: endpoint.url });
   };
 
+  const getPlaceholderUrl = () => {
+    switch (machineType) {
+      case 'cnc':
+        return 'http://machine-ip:port/gcode';
+      case 'laser':
+        return 'http://machine-ip:port/laser';
+      case '3d_printer':
+        return 'http://machine-ip:port/print';
+      default:
+        return 'http://machine-ip:port/api';
+    }
+  };
+
+  const getMachineTypeLabel = () => {
+    switch (machineType) {
+      case 'cnc':
+        return 'CNC';
+      case 'laser':
+        return 'Laser';
+      case '3d_printer':
+        return '3D Printer';
+      default:
+        return 'Machine';
+    }
+  };
+
   if (!selectedMachineId) {
     return (
       <Card className="p-4 bg-white border border-gray-200">
@@ -145,7 +177,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     <Card className="p-4 bg-white border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <h4 className="font-medium text-gray-900">
-          {machineType.toUpperCase()} Machine Endpoints
+          {getMachineTypeLabel()} Machine Endpoints
         </h4>
         {!endpoints.length && !isAdding && (
           <Button
@@ -178,7 +210,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
                 id="new-url"
                 value={newEndpoint.url}
                 onChange={(e) => setNewEndpoint(prev => ({ ...prev, url: e.target.value }))}
-                placeholder={`http://machine-ip:port/${machineType === 'cnc' ? 'gcode' : 'laser'}`}
+                placeholder={getPlaceholderUrl()}
               />
             </div>
             <div className="flex gap-2">
@@ -231,7 +263,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
                   <Input
                     value={editEndpoint.url}
                     onChange={(e) => setEditEndpoint(prev => ({ ...prev, url: e.target.value }))}
-                    placeholder={`http://machine-ip:port/${machineType === 'cnc' ? 'gcode' : 'laser'}`}
+                    placeholder={getPlaceholderUrl()}
                   />
                   <div className="flex gap-2">
                     <Button
