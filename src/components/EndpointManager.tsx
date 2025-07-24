@@ -44,7 +44,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
         if (error) throw error;
         return data;
       } else if (machineType === '3d_printer') {
-        const { data, error } = await (supabase as any).from('3d_printers').select('*').eq('id', selectedMachineId).single();
+        const { data, error } = await supabase.from('3d_printers').select('*').eq('id', selectedMachineId).single();
         if (error) throw error;
         return data;
       }
@@ -73,7 +73,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
         const { error } = await supabase.from('laser_machines').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
         if (error) throw error;
       } else if (machineType === '3d_printer') {
-        const { error } = await (supabase as any).from('3d_printers').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
+        const { error } = await supabase.from('3d_printers').update({ endpoint_url: endpoint.url }).eq('id', selectedMachineId);
         if (error) throw error;
       } else {
         throw new Error('Invalid machine type');
@@ -110,7 +110,7 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
         const { error } = await supabase.from('laser_machines').update({ endpoint_url: null }).eq('id', selectedMachineId);
         if (error) throw error;
       } else if (machineType === '3d_printer') {
-        const { error } = await (supabase as any).from('3d_printers').update({ endpoint_url: null }).eq('id', selectedMachineId);
+        const { error } = await supabase.from('3d_printers').update({ endpoint_url: null }).eq('id', selectedMachineId);
         if (error) throw error;
       } else {
         throw new Error('Invalid machine type');
@@ -133,24 +133,24 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
     }
   });
 
-  const handleAddEndpoint = () => {
+  function handleAddEndpoint() {
     updateEndpointMutation.mutate(newEndpoint);
-  };
+  }
 
-  const handleUpdateEndpoint = () => {
+  function handleUpdateEndpoint() {
     updateEndpointMutation.mutate(editEndpoint);
-  };
+  }
 
-  const handleDeleteEndpoint = () => {
+  function handleDeleteEndpoint() {
     deleteEndpointMutation.mutate();
-  };
+  }
 
-  const startEditing = (endpoint: Endpoint) => {
+  function startEditing(endpoint: Endpoint) {
     setEditingId(endpoint.id);
     setEditEndpoint({ name: endpoint.name, url: endpoint.url });
-  };
+  }
 
-  const getPlaceholderUrl = () => {
+  function getPlaceholderUrl() {
     switch (machineType) {
       case 'cnc':
         return 'http://machine-ip:port/gcode';
@@ -161,9 +161,9 @@ export const EndpointManager = ({ selectedMachineId, onEndpointSelect, selectedE
       default:
         return 'http://machine-ip:port/api';
     }
-  };
+  }
 
-  const getMachineTypeLabel = () => {
+  function getMachineTypeLabel() {
     switch (machineType) {
       case 'cnc':
         return 'CNC';

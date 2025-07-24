@@ -50,7 +50,7 @@ export const Printer3DVisualization = ({
       
       console.log('Fetching 3D printer data for ID:', selectedMachineId);
       
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('3d_printers')
         .select('*')
         .eq('id', selectedMachineId)
@@ -66,80 +66,6 @@ export const Printer3DVisualization = ({
     },
     enabled: !!selectedMachineId
   });
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const allowedTypes = ['.stl', '.obj', '.gcode', '.3mf'];
-      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-      
-      if (allowedTypes.includes(fileExtension)) {
-        setUploadedFile(file);
-        toast({
-          title: "File uploaded",
-          description: `${file.name} has been uploaded successfully`,
-        });
-      } else {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload STL, OBJ, GCODE, or 3MF files only",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
-  const handleDownload = () => {
-    if (uploadedFile) {
-      const url = URL.createObjectURL(uploadedFile);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = uploadedFile.name;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  const handleInternetSearch = async () => {
-    if (!searchQuery.trim()) {
-      toast({
-        title: "Search query required",
-        description: "Please enter a search term",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Mock internet search functionality
-    toast({
-      title: "Searching...",
-      description: `Searching for "${searchQuery}" on Thingiverse and other 3D model repositories`,
-    });
-
-    // Simulate search results
-    setTimeout(() => {
-      toast({
-        title: "Search completed",
-        description: "Found 42 results for your query. Results would be displayed here.",
-      });
-    }, 2000);
-  };
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    toast({
-      title: isPlaying ? "Print paused" : "Print started",
-      description: isPlaying ? "3D printing has been paused" : "3D printing has been started",
-    });
-  };
-
-  const handleStop = () => {
-    setIsPlaying(false);
-    toast({
-      title: "Print stopped",
-      description: "3D printing has been stopped",
-    });
-  };
 
   if (!selectedMachineId) {
     return (
@@ -290,4 +216,78 @@ export const Printer3DVisualization = ({
       />
     </div>
   );
+
+  function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) {
+      const allowedTypes = ['.stl', '.obj', '.gcode', '.3mf'];
+      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      
+      if (allowedTypes.includes(fileExtension)) {
+        setUploadedFile(file);
+        toast({
+          title: "File uploaded",
+          description: `${file.name} has been uploaded successfully`,
+        });
+      } else {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload STL, OBJ, GCODE, or 3MF files only",
+          variant: "destructive"
+        });
+      }
+    }
+  }
+
+  function handleDownload() {
+    if (uploadedFile) {
+      const url = URL.createObjectURL(uploadedFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = uploadedFile.name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function handleInternetSearch() {
+    if (!searchQuery.trim()) {
+      toast({
+        title: "Search query required",
+        description: "Please enter a search term",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Mock internet search functionality
+    toast({
+      title: "Searching...",
+      description: `Searching for "${searchQuery}" on Thingiverse and other 3D model repositories`,
+    });
+
+    // Simulate search results
+    setTimeout(() => {
+      toast({
+        title: "Search completed",
+        description: "Found 42 results for your query. Results would be displayed here.",
+      });
+    }, 2000);
+  }
+
+  function handlePlayPause() {
+    setIsPlaying(!isPlaying);
+    toast({
+      title: isPlaying ? "Print paused" : "Print started",
+      description: isPlaying ? "3D printing has been paused" : "3D printing has been started",
+    });
+  }
+
+  function handleStop() {
+    setIsPlaying(false);
+    toast({
+      title: "Print stopped",
+      description: "3D printing has been stopped",
+    });
+  }
 };
