@@ -13,6 +13,7 @@ export const Printer3DControlSystem = () => {
   const [selectedMachine, setSelectedMachine] = useState('');
   const [selectedEndpoint, setSelectedEndpoint] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [printerParams, setPrinterParams] = useState({});
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -53,8 +54,10 @@ export const Printer3DControlSystem = () => {
                 <h2 className="text-xl font-semibold">3D Printer Visualization</h2>
               </div>
               <Printer3DVisualization 
-                selectedMachine={selectedMachine}
+                selectedMachineId={selectedMachine}
                 selectedEndpoint={selectedEndpoint}
+                printerParams={printerParams}
+                onEndpointSelect={setSelectedEndpoint}
               />
             </Card>
           </div>
@@ -62,8 +65,9 @@ export const Printer3DControlSystem = () => {
           {/* Right Sidebar */}
           <div className="lg:col-span-1">
             <Printer3DControlPanel 
-              selectedMachine={selectedMachine}
+              selectedMachineId={selectedMachine}
               selectedEndpoint={selectedEndpoint}
+              onParametersChange={setPrinterParams}
             />
           </div>
         </div>
