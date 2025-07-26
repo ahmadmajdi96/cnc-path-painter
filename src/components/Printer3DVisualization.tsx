@@ -3,6 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EndpointManager } from './EndpointManager';
+import { Model3DViewer } from './Model3DViewer';
 
 interface Printer3DData {
   id: string;
@@ -126,6 +127,12 @@ export const Printer3DVisualization = ({
           )}
         </div>
       </div>
+
+      <Model3DViewer 
+        buildVolumeX={machineData.max_build_volume_x || 200}
+        buildVolumeY={machineData.max_build_volume_y || 200}
+        buildVolumeZ={machineData.max_build_volume_z || 200}
+      />
       
       <EndpointManager 
         selectedMachineId={selectedMachineId}
