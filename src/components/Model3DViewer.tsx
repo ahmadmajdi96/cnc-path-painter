@@ -1,6 +1,9 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage, useGLTF, useFBX } from '@react-three/drei';
+import { STLLoader } from 'three-stdlib';
+import { OBJLoader } from 'three-stdlib';
+import { useLoader } from '@react-three/fiber';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -15,21 +18,39 @@ interface Model3DViewerProps {
 
 function ModelRenderer({ url }: { url: string }) {
   try {
-    // Try to load as GLTF first
-    if (url.toLowerCase().includes('.gltf') || url.toLowerCase().includes('.glb')) {
+    const fileExtension = url.toLowerCase();
+    
+    // Handle GLTF/GLB files
+    if (fileExtension.includes('.gltf') || fileExtension.includes('.glb')) {
       const { scene } = useGLTF(url);
       return <primitive object={scene} />;
     }
     
-    // Try to load as FBX
-    if (url.toLowerCase().includes('.fbx')) {
+    // Handle FBX files
+    if (fileExtension.includes('.fbx')) {
       const fbx = useFBX(url);
       return <primitive object={fbx} />;
     }
     
-    // Default fallback
-    const { scene } = useGLTF(url);
-    return <primitive object={scene} />;
+    // Handle STL files
+    if (fileExtension.includes('.stl')) {
+      const geometry = useLoader(STLLoader, url);
+      return (
+        <mesh>
+          <primitive object={geometry} />
+          <meshStandardMaterial color="#606060" />
+        </mesh>
+      );
+    }
+    
+    // Handle OBJ files
+    if (fileExtension.includes('.obj')) {
+      const obj = useLoader(OBJLoader, url);
+      return <primitive object={obj} />;
+    }
+    
+    // Default fallback for unknown formats
+    return null;
   } catch (error) {
     console.error('Error loading 3D model:', error);
     return null;
@@ -169,17 +190,19 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
 
         <div className="h-96 bg-gray-50 rounded-lg border">
           <Canvas camera={{ position: [5, 5, 5], fov: 50 }}>
-            <Stage adjustCamera intensity={1} shadows="contact" environment="city">
-              {/* Build volume visualization */}
-              <BuildVolume sizeX={buildVolumeX} sizeY={buildVolumeY} sizeZ={buildVolumeZ} />
-              
-              {/* Render all uploaded models */}
-              {modelUrls.map((url, index) => (
-                <group key={index} position={[index * 50 - (modelUrls.length - 1) * 25, 0, 0]}>
-                  <ModelRenderer url={url} />
-                </group>
-              ))}
-            </Stage>
+            <Suspense fallback={null}>
+              <Stage adjustCamera intensity={1} shadows="contact" environment="city">
+                {/* Build volume visualization */}
+                <BuildVolume sizeX={buildVolumeX} sizeY={buildVolumeY} sizeZ={buildVolumeZ} />
+                
+                {/* Render all uploaded models */}
+                {modelUrls.map((url, index) => (
+                  <group key={index} position={[index * 50 - (modelUrls.length - 1) * 25, 0, 0]}>
+                    <ModelRenderer url={url} />
+                  </group>
+                ))}
+              </Stage>
+            </Suspense>
             <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
           </Canvas>
         </div>
