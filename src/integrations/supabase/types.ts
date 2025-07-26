@@ -929,6 +929,50 @@ export type Database = {
         }
         Relationships: []
       }
+      printer_3d_configurations: {
+        Row: {
+          build_volume_x: number | null
+          build_volume_y: number | null
+          build_volume_z: number | null
+          created_at: string
+          endpoint_url: string | null
+          id: string
+          models: Json | null
+          printer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          build_volume_x?: number | null
+          build_volume_y?: number | null
+          build_volume_z?: number | null
+          created_at?: string
+          endpoint_url?: string | null
+          id?: string
+          models?: Json | null
+          printer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          build_volume_x?: number | null
+          build_volume_y?: number | null
+          build_volume_z?: number | null
+          created_at?: string
+          endpoint_url?: string | null
+          id?: string
+          models?: Json | null
+          printer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_3d_configurations_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "printer_3d"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_lines: {
         Row: {
           created_at: string

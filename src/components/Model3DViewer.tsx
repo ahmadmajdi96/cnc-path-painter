@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, Suspense } from 'react';
+import React, { useRef, useState, useCallback, Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage, useGLTF, useFBX } from '@react-three/drei';
 import { STLLoader } from 'three-stdlib';
@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Upload, Trash2, Send, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 
 function STLModel({ url }: { url: string }) {
@@ -131,6 +132,83 @@ export const Model3DViewer = ({
   const [selectedModelIndex, setSelectedModelIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load configuration on mount
+  useEffect(() => {
+    const loadConfiguration = async () => {
+      if (!selectedMachineId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('printer_3d_configurations')
+          .select('*')
+          .eq('printer_id', selectedMachineId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error loading configuration:', error);
+          return;
+        }
+
+        if (data) {
+          // Load stored models (note: file URLs won't work after refresh, but we keep the metadata)
+          const storedModels = Array.isArray(data.models) ? data.models : [];
+          console.log('Loaded configuration:', data);
+          
+          toast({
+            title: "Configuration Loaded",
+            description: `Loaded previous configuration with ${storedModels.length} model(s)`,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading configuration:', error);
+      }
+    };
+
+    loadConfiguration();
+  }, [selectedMachineId, toast]);
+
+  // Save configuration whenever data changes
+  useEffect(() => {
+    const saveConfiguration = async () => {
+      if (!selectedMachineId || modelData.length === 0) return;
+
+      const configData = {
+        printer_id: selectedMachineId,
+        endpoint_url: selectedEndpoint,
+        build_volume_x: buildVolumeX,
+        build_volume_y: buildVolumeY,
+        build_volume_z: buildVolumeZ,
+        models: modelData.map(model => ({
+          filename: model.file.name,
+          fileType: model.fileType,
+          position: model.position,
+          rotation: model.rotation,
+          scale: model.scale
+        }))
+      };
+
+      try {
+        const { error } = await supabase
+          .from('printer_3d_configurations')
+          .upsert(configData, { 
+            onConflict: 'printer_id',
+            ignoreDuplicates: false 
+          });
+
+        if (error) {
+          console.error('Error saving configuration:', error);
+        }
+      } catch (error) {
+        console.error('Error saving configuration:', error);
+      }
+    };
+
+    const timeoutId = setTimeout(saveConfiguration, 1000); // Debounce saves
+    return () => clearTimeout(timeoutId);
+  }, [selectedMachineId, selectedEndpoint, buildVolumeX, buildVolumeY, buildVolumeZ, modelData]);
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
