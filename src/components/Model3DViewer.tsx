@@ -136,7 +136,14 @@ export const Model3DViewer = ({
   // Load configuration on mount
   useEffect(() => {
     const loadConfiguration = async () => {
-      if (!selectedMachineId) return;
+      if (!selectedMachineId) {
+        // Clear modelData when no machine is selected
+        setModelData([]);
+        return;
+      }
+      
+      // Clear existing models when switching printers
+      setModelData([]);
       
       try {
         const { data, error } = await supabase
@@ -153,14 +160,19 @@ export const Model3DViewer = ({
         }
 
         if (data) {
-          // Load stored models (note: file URLs won't work after refresh, but we keep the metadata)
           const storedModels = Array.isArray(data.models) ? data.models : [];
           console.log('Loaded configuration:', data);
           
-          toast({
-            title: "Configuration Loaded",
-            description: `Loaded previous configuration with ${storedModels.length} model(s)`,
-          });
+          // Note: We can't restore actual file objects after refresh due to browser security,
+          // but we can show placeholders with the saved parameters
+          if (storedModels.length > 0) {
+            toast({
+              title: "Configuration Loaded", 
+              description: `Found ${storedModels.length} model(s) from previous session. Re-upload files to see them.`,
+            });
+          }
+        } else {
+          console.log('No saved configuration found for printer:', selectedMachineId);
         }
       } catch (error) {
         console.error('Error loading configuration:', error);
