@@ -16,21 +16,39 @@ function STLModel({
 }: {
   url: string;
 }) {
-  const geometry = useLoader(STLLoader, url);
-  return <mesh>
-      <primitive object={geometry} />
-      <meshStandardMaterial color="#8B5CF6" />
-    </mesh>;
+  try {
+    const geometry = useLoader(STLLoader, url);
+    return <mesh>
+        <primitive object={geometry} />
+        <meshStandardMaterial color="#8B5CF6" />
+      </mesh>;
+  } catch (error) {
+    console.error('Error loading STL file:', error);
+    return <mesh>
+        <boxGeometry args={[5, 5, 5]} />
+        <meshStandardMaterial color="#ef4444" />
+      </mesh>;
+  }
 }
+
 function OBJModel({
   url
 }: {
   url: string;
 }) {
-  const obj = useLoader(OBJLoader, url);
-  return <primitive object={obj} />;
+  try {
+    const obj = useLoader(OBJLoader, url);
+    return <primitive object={obj} />;
+  } catch (error) {
+    console.error('Error loading OBJ file:', error);
+    return <mesh>
+        <boxGeometry args={[5, 5, 5]} />
+        <meshStandardMaterial color="#ef4444" />
+      </mesh>;
+  }
 }
-function ModelRenderer({
+// Error boundary component for individual models
+function SafeModelRenderer({
   url,
   fileType,
   position,
@@ -43,18 +61,26 @@ function ModelRenderer({
   rotation: [number, number, number];
   scale: [number, number, number];
 }) {
+  // Skip rendering if URL is empty (stored models without actual files)
+  if (!url) {
+    return <group position={position} rotation={rotation} scale={scale}>
+        <mesh>
+          <boxGeometry args={[5, 5, 5]} />
+          <meshStandardMaterial color="#94a3b8" />
+        </mesh>
+      </group>;
+  }
+
   try {
     // Handle GLTF/GLB files
     if (fileType === 'gltf' || fileType === 'glb') {
-      const {
-        scene
-      } = useGLTF(url);
+      const { scene } = useGLTF(url);
       return <group position={position} rotation={rotation} scale={scale}>
           <primitive object={scene} />
         </group>;
     }
 
-    // Handle FBX files
+    // Handle FBX files  
     if (fileType === 'fbx') {
       const fbx = useFBX(url);
       return <group position={position} rotation={rotation} scale={scale}>
@@ -93,6 +119,27 @@ function ModelRenderer({
         </mesh>
       </group>;
   }
+}
+
+function ModelRenderer(props: {
+  url: string;
+  fileType: string;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+}) {
+  return (
+    <Suspense fallback={
+      <group position={props.position} rotation={props.rotation} scale={props.scale}>
+        <mesh>
+          <boxGeometry args={[5, 5, 5]} />
+          <meshStandardMaterial color="#6b7280" />
+        </mesh>
+      </group>
+    }>
+      <SafeModelRenderer {...props} />
+    </Suspense>
+  );
 }
 function BuildVolume({
   sizeX = 200,
@@ -247,37 +294,70 @@ export const Model3DViewer = ({
     if (!files) return;
     
     const newFiles = Array.from(files);
+    
+    // File validation with size check
     const validFiles = newFiles.filter(file => {
       const extension = file.name.toLowerCase();
-      return extension.endsWith('.gltf') || extension.endsWith('.glb') || extension.endsWith('.fbx') || extension.endsWith('.obj') || extension.endsWith('.stl');
+      const isValidType = extension.endsWith('.gltf') || extension.endsWith('.glb') || extension.endsWith('.fbx') || extension.endsWith('.obj') || extension.endsWith('.stl');
+      
+      // Check file size (limit to 100MB)
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is too large. Maximum size is 100MB.`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      return isValidType;
     });
     
     if (validFiles.length !== newFiles.length) {
-      toast({
-        title: "Invalid file format",
-        description: "Please upload .gltf, .glb, .fbx, .obj, or .stl files only",
-        variant: "destructive"
+      const invalidFiles = newFiles.filter(file => {
+        const extension = file.name.toLowerCase();
+        return !(extension.endsWith('.gltf') || extension.endsWith('.glb') || extension.endsWith('.fbx') || extension.endsWith('.obj') || extension.endsWith('.stl'));
       });
+      
+      if (invalidFiles.length > 0) {
+        toast({
+          title: "Invalid file format",
+          description: "Please upload .gltf, .glb, .fbx, .obj, or .stl files only",
+          variant: "destructive"
+        });
+      }
     }
     
     if (validFiles.length > 0) {
       validFiles.forEach(file => {
-        const url = URL.createObjectURL(file);
-        const fileType = file.name.split('.').pop()?.toLowerCase() || '';
-        setModelData(prev => [...prev, {
-          url,
-          file,
-          fileType,
-          position: [0, 0, 0],
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1]
-        }]);
+        try {
+          const url = URL.createObjectURL(file);
+          const fileType = file.name.split('.').pop()?.toLowerCase() || '';
+          setModelData(prev => [...prev, {
+            url,
+            file,
+            fileType,
+            position: [0, 0, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1]
+          }]);
+        } catch (error) {
+          console.error('Error creating object URL for file:', file.name, error);
+          toast({
+            title: "File processing error",
+            description: `Could not process ${file.name}`,
+            variant: "destructive"
+          });
+        }
       });
       
-      toast({
-        title: "Files uploaded",
-        description: `${validFiles.length} file(s) added to the viewer`
-      });
+      if (validFiles.length > 0) {
+        toast({
+          title: "Files uploaded",
+          description: `${validFiles.length} file(s) added to the viewer`
+        });
+      }
     }
   }, [toast]);
   const handleRemoveModel = (index: number) => {
@@ -542,10 +622,20 @@ export const Model3DViewer = ({
           </div>}
 
         <div className="h-96 bg-gray-50 rounded-lg border">
-          <Canvas camera={{
-          position: [5, 5, 5],
-          fov: 50
-        }}>
+          <Canvas 
+            camera={{
+              position: [5, 5, 5],
+              fov: 50
+            }}
+            onError={(error) => {
+              console.error('Canvas error:', error);
+              toast({
+                title: "3D Viewer Error",
+                description: "Failed to render 3D models. Please try reloading or use smaller files.",
+                variant: "destructive"
+              });
+            }}
+          >
             <Suspense fallback={null}>
               <Stage adjustCamera intensity={1} shadows="contact" environment="city">
                 {/* Build volume visualization */}
