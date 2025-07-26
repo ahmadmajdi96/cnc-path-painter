@@ -938,6 +938,7 @@ export type Database = {
           endpoint_url: string | null
           id: string
           models: Json | null
+          print_params: Json | null
           printer_id: string | null
           updated_at: string
         }
@@ -949,6 +950,7 @@ export type Database = {
           endpoint_url?: string | null
           id?: string
           models?: Json | null
+          print_params?: Json | null
           printer_id?: string | null
           updated_at?: string
         }
@@ -960,6 +962,7 @@ export type Database = {
           endpoint_url?: string | null
           id?: string
           models?: Json | null
+          print_params?: Json | null
           printer_id?: string | null
           updated_at?: string
         }

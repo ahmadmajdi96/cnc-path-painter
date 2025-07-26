@@ -50,9 +50,9 @@ export const Printer3DControlPanel = ({
           return;
         }
 
-        if (data && data.print_params) {
-          setPrintParams(data.print_params);
-          onParametersChange(data.print_params);
+        if (data && (data as any).print_params) {
+          setPrintParams((data as any).print_params);
+          onParametersChange((data as any).print_params);
         }
       } catch (error) {
         console.error('Error loading printer parameters:', error);
