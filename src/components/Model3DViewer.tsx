@@ -241,6 +241,18 @@ export const Model3DViewer = ({
     }));
   };
 
+  const updateModelRotation = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
+    setModelData(prev => prev.map((model, i) => {
+      if (i === index) {
+        const newRotation = [...model.rotation] as [number, number, number];
+        const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+        newRotation[axisIndex] = (value * Math.PI) / 180; // Convert degrees to radians
+        return { ...model, rotation: newRotation };
+      }
+      return model;
+    }));
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-4">
@@ -303,40 +315,82 @@ export const Model3DViewer = ({
                 </div>
                 
                 {selectedModelIndex === index && (
-                  <div className="space-y-3 pt-3 border-t">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium">X Position</label>
-                        <Slider
-                          value={[model.position[0]]}
-                          onValueChange={([value]) => updateModelPosition(index, 'x', value)}
-                          min={-buildVolumeX/2}
-                          max={buildVolumeX/2}
-                          step={1}
-                        />
-                        <span className="text-xs text-gray-500">{model.position[0].toFixed(1)}mm</span>
+                  <div className="space-y-4 pt-3 border-t">
+                    <div>
+                      <h5 className="text-sm font-medium mb-3">Position</h5>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium">X Position</label>
+                          <Slider
+                            value={[model.position[0]]}
+                            onValueChange={([value]) => updateModelPosition(index, 'x', value)}
+                            min={-buildVolumeX/2}
+                            max={buildVolumeX/2}
+                            step={1}
+                          />
+                          <span className="text-xs text-gray-500">{model.position[0].toFixed(1)}mm</span>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium">Y Position</label>
+                          <Slider
+                            value={[model.position[1]]}
+                            onValueChange={([value]) => updateModelPosition(index, 'y', value)}
+                            min={0}
+                            max={buildVolumeZ}
+                            step={1}
+                          />
+                          <span className="text-xs text-gray-500">{model.position[1].toFixed(1)}mm</span>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium">Z Position</label>
+                          <Slider
+                            value={[model.position[2]]}
+                            onValueChange={([value]) => updateModelPosition(index, 'z', value)}
+                            min={-buildVolumeY/2}
+                            max={buildVolumeY/2}
+                            step={1}
+                          />
+                          <span className="text-xs text-gray-500">{model.position[2].toFixed(1)}mm</span>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium">Y Position</label>
-                        <Slider
-                          value={[model.position[1]]}
-                          onValueChange={([value]) => updateModelPosition(index, 'y', value)}
-                          min={0}
-                          max={buildVolumeZ}
-                          step={1}
-                        />
-                        <span className="text-xs text-gray-500">{model.position[1].toFixed(1)}mm</span>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium">Z Position</label>
-                        <Slider
-                          value={[model.position[2]]}
-                          onValueChange={([value]) => updateModelPosition(index, 'z', value)}
-                          min={-buildVolumeY/2}
-                          max={buildVolumeY/2}
-                          step={1}
-                        />
-                        <span className="text-xs text-gray-500">{model.position[2].toFixed(1)}mm</span>
+                    </div>
+                    
+                    <div>
+                      <h5 className="text-sm font-medium mb-3">Rotation</h5>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium">X Rotation</label>
+                          <Slider
+                            value={[(model.rotation[0] * 180) / Math.PI]}
+                            onValueChange={([value]) => updateModelRotation(index, 'x', value)}
+                            min={-180}
+                            max={180}
+                            step={1}
+                          />
+                          <span className="text-xs text-gray-500">{((model.rotation[0] * 180) / Math.PI).toFixed(0)}°</span>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium">Y Rotation</label>
+                          <Slider
+                            value={[(model.rotation[1] * 180) / Math.PI]}
+                            onValueChange={([value]) => updateModelRotation(index, 'y', value)}
+                            min={-180}
+                            max={180}
+                            step={1}
+                          />
+                          <span className="text-xs text-gray-500">{((model.rotation[1] * 180) / Math.PI).toFixed(0)}°</span>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium">Z Rotation</label>
+                          <Slider
+                            value={[(model.rotation[2] * 180) / Math.PI]}
+                            onValueChange={([value]) => updateModelRotation(index, 'z', value)}
+                            min={-180}
+                            max={180}
+                            step={1}
+                          />
+                          <span className="text-xs text-gray-500">{((model.rotation[2] * 180) / Math.PI).toFixed(0)}°</span>
+                        </div>
                       </div>
                     </div>
                   </div>
