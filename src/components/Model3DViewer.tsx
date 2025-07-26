@@ -11,27 +11,52 @@ import { Slider } from '@/components/ui/slider';
 import { Upload, Trash2, Send, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-function STLModel({
-  url
-}: {
-  url: string;
-}) {
-  const geometry = useLoader(STLLoader, url);
-  return <mesh>
-      <primitive object={geometry} />
-      <meshStandardMaterial color="#8B5CF6" />
-    </mesh>;
+function STLModel({ url }: { url: string }) {
+  try {
+    const geometry = useLoader(STLLoader, url);
+    return (
+      <mesh>
+        <primitive object={geometry} />
+        <meshStandardMaterial color="#8B5CF6" />
+      </mesh>
+    );
+  } catch (error) {
+    console.error('STL loading error:', error);
+    // Return null to let parent handle fallback
+    return null;
+  }
 }
 
-function OBJModel({
-  url
-}: {
-  url: string;
-}) {
-  const obj = useLoader(OBJLoader, url);
-  return <primitive object={obj} />;
+function OBJModel({ url }: { url: string }) {
+  try {
+    const obj = useLoader(OBJLoader, url);
+    return <primitive object={obj} />;
+  } catch (error) {
+    console.error('OBJ loading error:', error);
+    // Return null to let parent handle fallback
+    return null;
+  }
 }
-// Error boundary component for individual models
+// Error boundary wrapper for model loading
+function ModelErrorBoundary({ children, fallback }: { children: React.ReactNode, fallback: React.ReactNode }) {
+  const [hasError, setHasError] = React.useState(false);
+  
+  React.useEffect(() => {
+    setHasError(false);
+  }, [children]);
+  
+  if (hasError) {
+    return <>{fallback}</>;
+  }
+  
+  try {
+    return <>{children}</>;
+  } catch (error) {
+    console.error('Model loading error:', error);
+    setHasError(true);
+    return <>{fallback}</>;
+  }
+}
 function SafeModelRenderer({
   url,
   fileType,
@@ -45,6 +70,13 @@ function SafeModelRenderer({
   rotation: [number, number, number];
   scale: [number, number, number];
 }) {
+  const fallbackMesh = (
+    <mesh>
+      <boxGeometry args={[10, 10, 10]} />
+      <meshStandardMaterial color="#ef4444" />
+    </mesh>
+  );
+
   // Skip rendering if URL is empty (stored models without actual files)
   if (!url) {
     return <group position={position} rotation={rotation} scale={scale}>
@@ -59,58 +91,39 @@ function SafeModelRenderer({
       </group>;
   }
 
-  try {
-    // Handle GLTF/GLB files
-    if (fileType === 'gltf' || fileType === 'glb') {
-      const { scene } = useGLTF(url);
-      return <group position={position} rotation={rotation} scale={scale}>
-          <primitive object={scene} />
-        </group>;
-    }
-
-    // Handle FBX files  
-    if (fileType === 'fbx') {
-      const fbx = useFBX(url);
-      return <group position={position} rotation={rotation} scale={scale}>
-          <primitive object={fbx} />
-        </group>;
-    }
-
-    // Handle STL files
-    if (fileType === 'stl') {
-      return <group position={position} rotation={rotation} scale={scale}>
-          <Suspense fallback={<mesh><boxGeometry args={[5, 5, 5]} /><meshStandardMaterial color="#6b7280" /></mesh>}>
-            <STLModel url={url} />
-          </Suspense>
-        </group>;
-    }
-
-    // Handle OBJ files
-    if (fileType === 'obj') {
-      return <group position={position} rotation={rotation} scale={scale}>
-          <Suspense fallback={<mesh><boxGeometry args={[5, 5, 5]} /><meshStandardMaterial color="#6b7280" /></mesh>}>
-            <OBJModel url={url} />
-          </Suspense>
-        </group>;
-    }
-
-    // Default fallback
-    return <group position={position} rotation={rotation} scale={scale}>
-        <mesh>
-          <boxGeometry args={[10, 10, 10]} />
-          <meshStandardMaterial color="#ef4444" />
-        </mesh>
-      </group>;
-  } catch (error) {
-    console.error('Error loading 3D model:', error);
-    // Return error placeholder
-    return <group position={position} rotation={rotation} scale={scale}>
-        <mesh>
-          <boxGeometry args={[10, 10, 10]} />
-          <meshStandardMaterial color="#ef4444" />
-        </mesh>
-      </group>;
-  }
+  return (
+    <group position={position} rotation={rotation} scale={scale}>
+      <ModelErrorBoundary fallback={fallbackMesh}>
+        <Suspense fallback={
+          <mesh>
+            <boxGeometry args={[5, 5, 5]} />
+            <meshStandardMaterial color="#6b7280" />
+          </mesh>
+        }>
+          {/* Handle GLTF/GLB files */}
+          {(fileType === 'gltf' || fileType === 'glb') && (() => {
+            const { scene } = useGLTF(url);
+            return <primitive object={scene} />;
+          })()}
+          
+          {/* Handle FBX files */}
+          {fileType === 'fbx' && (() => {
+            const fbx = useFBX(url);
+            return <primitive object={fbx} />;
+          })()}
+          
+          {/* Handle STL files */}
+          {fileType === 'stl' && <STLModel url={url} />}
+          
+          {/* Handle OBJ files */}
+          {fileType === 'obj' && <OBJModel url={url} />}
+          
+          {/* Default fallback for unknown types */}
+          {!['gltf', 'glb', 'fbx', 'stl', 'obj'].includes(fileType) && fallbackMesh}
+        </Suspense>
+      </ModelErrorBoundary>
+    </group>
+  );
 }
 
 function ModelRenderer(props: {
