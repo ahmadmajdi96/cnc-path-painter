@@ -49,8 +49,12 @@ function SafeModelRenderer({
   if (!url) {
     return <group position={position} rotation={rotation} scale={scale}>
         <mesh>
-          <boxGeometry args={[5, 5, 5]} />
-          <meshStandardMaterial color="#94a3b8" />
+          <boxGeometry args={[10, 5, 10]} />
+          <meshStandardMaterial color="#94a3b8" opacity={0.7} transparent />
+        </mesh>
+        <mesh position={[0, 3, 0]}>
+          <boxGeometry args={[8, 1, 8]} />
+          <meshStandardMaterial color="#64748b" />
         </mesh>
       </group>;
   }
@@ -362,14 +366,14 @@ export const Model3DViewer = ({
 
   const handleLoadStoredModel = async (storedModel: StoredModel) => {
     try {
-      // Create a fake file object to work with existing model structure
-      const fakeFile = new File([], storedModel.filename, { type: 'application/octet-stream' });
-      const url = `blob:${window.location.origin}/${storedModel.filename}`;
+      // Create a placeholder for stored models since we don't have the actual file
+      // This shows users what was previously configured without trying to load non-existent files
+      const placeholderFile = new File([], storedModel.filename, { type: 'application/octet-stream' });
       
-      // Add the stored model to current view
+      // Add the stored model as a placeholder to current view
       setModelData(prev => [...prev, {
-        url: url,
-        file: fakeFile,
+        url: '', // Empty URL to trigger placeholder rendering
+        file: placeholderFile,
         fileType: storedModel.fileType,
         position: storedModel.position,
         rotation: storedModel.rotation,
@@ -377,8 +381,8 @@ export const Model3DViewer = ({
       }]);
       
       toast({
-        title: "Model loaded",
-        description: `${storedModel.filename} loaded from history with proper scaling`
+        title: "Model placeholder loaded",
+        description: `${storedModel.filename} loaded as placeholder. Upload the file again to see the actual model.`
       });
     } catch (error) {
       console.error('Error loading stored model:', error);
