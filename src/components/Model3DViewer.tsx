@@ -16,44 +16,61 @@ interface Model3DViewerProps {
   buildVolumeZ?: number;
 }
 
-function ModelRenderer({ url }: { url: string }) {
+function STLModel({ url }: { url: string }) {
+  const geometry = useLoader(STLLoader, url);
+  return (
+    <mesh>
+      <primitive object={geometry} />
+      <meshStandardMaterial color="#8B5CF6" />
+    </mesh>
+  );
+}
+
+function OBJModel({ url }: { url: string }) {
+  const obj = useLoader(OBJLoader, url);
+  return <primitive object={obj} />;
+}
+
+function ModelRenderer({ url, fileType }: { url: string; fileType: string }) {
   try {
-    const fileExtension = url.toLowerCase();
-    
     // Handle GLTF/GLB files
-    if (fileExtension.includes('.gltf') || fileExtension.includes('.glb')) {
+    if (fileType === 'gltf' || fileType === 'glb') {
       const { scene } = useGLTF(url);
       return <primitive object={scene} />;
     }
     
     // Handle FBX files
-    if (fileExtension.includes('.fbx')) {
+    if (fileType === 'fbx') {
       const fbx = useFBX(url);
       return <primitive object={fbx} />;
     }
     
     // Handle STL files
-    if (fileExtension.includes('.stl')) {
-      const geometry = useLoader(STLLoader, url);
-      return (
-        <mesh>
-          <primitive object={geometry} />
-          <meshStandardMaterial color="#606060" />
-        </mesh>
-      );
+    if (fileType === 'stl') {
+      return <STLModel url={url} />;
     }
     
     // Handle OBJ files
-    if (fileExtension.includes('.obj')) {
-      const obj = useLoader(OBJLoader, url);
-      return <primitive object={obj} />;
+    if (fileType === 'obj') {
+      return <OBJModel url={url} />;
     }
     
-    // Default fallback for unknown formats
-    return null;
+    // Default fallback
+    return (
+      <mesh>
+        <boxGeometry args={[10, 10, 10]} />
+        <meshStandardMaterial color="#ef4444" />
+      </mesh>
+    );
   } catch (error) {
     console.error('Error loading 3D model:', error);
-    return null;
+    // Return error placeholder
+    return (
+      <mesh>
+        <boxGeometry args={[10, 10, 10]} />
+        <meshStandardMaterial color="#ef4444" />
+      </mesh>
+    );
   }
 }
 
@@ -67,8 +84,7 @@ function BuildVolume({ sizeX = 200, sizeY = 200, sizeZ = 200 }: { sizeX?: number
 }
 
 export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVolumeZ = 200 }: Model3DViewerProps) => {
-  const [modelUrls, setModelUrls] = useState<string[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [modelData, setModelData] = useState<Array<{ url: string; file: File; fileType: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -97,8 +113,8 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
     if (validFiles.length > 0) {
       validFiles.forEach(file => {
         const url = URL.createObjectURL(file);
-        setModelUrls(prev => [...prev, url]);
-        setUploadedFiles(prev => [...prev, file]);
+        const fileType = file.name.split('.').pop()?.toLowerCase() || '';
+        setModelData(prev => [...prev, { url, file, fileType }]);
       });
 
       toast({
@@ -109,11 +125,12 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
   }, [toast]);
 
   const handleRemoveModel = (index: number) => {
-    const urlToRevoke = modelUrls[index];
-    URL.revokeObjectURL(urlToRevoke);
+    const modelToRemove = modelData[index];
+    if (modelToRemove) {
+      URL.revokeObjectURL(modelToRemove.url);
+    }
     
-    setModelUrls(prev => prev.filter((_, i) => i !== index));
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setModelData(prev => prev.filter((_, i) => i !== index));
     
     toast({
       title: "Model removed",
@@ -122,9 +139,8 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
   };
 
   const handleClearAll = () => {
-    modelUrls.forEach(url => URL.revokeObjectURL(url));
-    setModelUrls([]);
-    setUploadedFiles([]);
+    modelData.forEach(model => URL.revokeObjectURL(model.url));
+    setModelData([]);
     
     toast({
       title: "All models cleared",
@@ -146,7 +162,7 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
               <Upload className="w-4 h-4 mr-2" />
               Upload Model
             </Button>
-            {modelUrls.length > 0 && (
+            {modelData.length > 0 && (
               <Button
                 onClick={handleClearAll}
                 size="sm"
@@ -168,13 +184,13 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
           className="hidden"
         />
 
-        {uploadedFiles.length > 0 && (
+        {modelData.length > 0 && (
           <div className="mb-4">
             <h4 className="text-sm font-medium mb-2">Loaded Models:</h4>
             <div className="space-y-2">
-              {uploadedFiles.map((file, index) => (
+              {modelData.map((model, index) => (
                 <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                  <span className="text-sm">{file.name}</span>
+                  <span className="text-sm">{model.file.name}</span>
                   <Button
                     onClick={() => handleRemoveModel(index)}
                     size="sm"
@@ -196,9 +212,9 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
                 <BuildVolume sizeX={buildVolumeX} sizeY={buildVolumeY} sizeZ={buildVolumeZ} />
                 
                 {/* Render all uploaded models */}
-                {modelUrls.map((url, index) => (
-                  <group key={index} position={[index * 50 - (modelUrls.length - 1) * 25, 0, 0]}>
-                    <ModelRenderer url={url} />
+                {modelData.map((model, index) => (
+                  <group key={index} position={[index * 50 - (modelData.length - 1) * 25, 0, 0]}>
+                    <ModelRenderer url={model.url} fileType={model.fileType} />
                   </group>
                 ))}
               </Stage>
