@@ -108,6 +108,16 @@ function BuildVolume({
       <meshBasicMaterial wireframe color="#6366f1" opacity={0.3} transparent />
     </mesh>;
 }
+interface StoredModel {
+  id: string;
+  filename: string;
+  fileType: string;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+  uploadedAt: string;
+}
+
 interface Model3DViewerProps {
   buildVolumeX?: number;
   buildVolumeY?: number;
@@ -130,6 +140,7 @@ export const Model3DViewer = ({
     rotation: [number, number, number];
     scale: [number, number, number];
   }>>([]);
+  const [storedModels, setStoredModels] = useState<StoredModel[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -139,47 +150,51 @@ export const Model3DViewer = ({
   // Load configuration on mount
   useEffect(() => {
     const loadConfiguration = async () => {
-      console.log('loadConfiguration called with selectedMachineId:', selectedMachineId);
       if (!selectedMachineId) {
-        console.log('No machine selected, clearing modelData');
         setModelData([]);
+        setStoredModels([]);
         return;
       }
 
       // Clear existing models when switching printers
-      console.log('Clearing modelData for new printer');
       setModelData([]);
+      
       try {
-        console.log('Fetching configuration for printer:', selectedMachineId);
-        const {
-          data,
-          error
-        } = await supabase.from('printer_3d_configurations').select('*').eq('printer_id', selectedMachineId).order('updated_at', {
-          ascending: false
-        }).limit(1).maybeSingle();
-        console.log('Database query result:', {
-          data,
-          error
-        });
+        const { data, error } = await supabase
+          .from('printer_3d_configurations')
+          .select('*')
+          .eq('printer_id', selectedMachineId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         if (error) {
           console.error('Error loading configuration:', error);
           return;
         }
-        if (data) {
-          const storedModels = Array.isArray(data.models) ? data.models : [];
-          console.log('Found stored models:', storedModels);
-          console.log('Full configuration data:', data);
 
-          // Note: We can't restore actual file objects after refresh due to browser security,
-          // but we can show placeholders with the saved parameters
-          if (storedModels.length > 0) {
+        if (data) {
+          const savedModels = Array.isArray(data.models) ? data.models : [];
+          const modelsWithIds = savedModels.map((model: any, index: number) => ({
+            id: `${model.filename}-${index}`,
+            filename: model.filename,
+            fileType: model.fileType,
+            position: model.position,
+            rotation: model.rotation,
+            scale: model.scale,
+            uploadedAt: data.updated_at
+          }));
+          
+          setStoredModels(modelsWithIds);
+          
+          if (savedModels.length > 0) {
             toast({
               title: "Configuration Loaded",
-              description: `Found ${storedModels.length} model(s) from previous session. Re-upload files to see them.`
+              description: `Found ${savedModels.length} model(s) from previous session.`
             });
           }
         } else {
-          console.log('No saved configuration found for printer:', selectedMachineId);
+          setStoredModels([]);
         }
       } catch (error) {
         console.error('Error loading configuration:', error);
@@ -191,7 +206,8 @@ export const Model3DViewer = ({
   // Save configuration whenever data changes
   useEffect(() => {
     const saveConfiguration = async () => {
-      if (!selectedMachineId) return;
+      if (!selectedMachineId || modelData.length === 0) return;
+      
       const configData = {
         printer_id: selectedMachineId,
         endpoint_url: selectedEndpoint || null,
@@ -206,33 +222,36 @@ export const Model3DViewer = ({
           scale: model.scale
         }))
       };
+      
       try {
-        const {
-          error
-        } = await supabase.from('printer_3d_configurations').upsert(configData, {
-          onConflict: 'printer_id',
-          ignoreDuplicates: false
-        });
+        const { error } = await supabase
+          .from('printer_3d_configurations')
+          .upsert(configData, {
+            onConflict: 'printer_id',
+            ignoreDuplicates: false
+          });
+          
         if (error) {
           console.error('Error saving configuration:', error);
-        } else {
-          console.log('Configuration saved successfully for printer:', selectedMachineId);
         }
       } catch (error) {
         console.error('Error saving configuration:', error);
       }
     };
-    const timeoutId = setTimeout(saveConfiguration, 1000); // Debounce saves
+    
+    const timeoutId = setTimeout(saveConfiguration, 1000);
     return () => clearTimeout(timeoutId);
   }, [selectedMachineId, selectedEndpoint, buildVolumeX, buildVolumeY, buildVolumeZ, modelData]);
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
+    
     const newFiles = Array.from(files);
     const validFiles = newFiles.filter(file => {
       const extension = file.name.toLowerCase();
       return extension.endsWith('.gltf') || extension.endsWith('.glb') || extension.endsWith('.fbx') || extension.endsWith('.obj') || extension.endsWith('.stl');
     });
+    
     if (validFiles.length !== newFiles.length) {
       toast({
         title: "Invalid file format",
@@ -240,6 +259,7 @@ export const Model3DViewer = ({
         variant: "destructive"
       });
     }
+    
     if (validFiles.length > 0) {
       validFiles.forEach(file => {
         const url = URL.createObjectURL(file);
@@ -249,11 +269,11 @@ export const Model3DViewer = ({
           file,
           fileType,
           position: [0, 0, 0],
-          // Start at ground level
           rotation: [0, 0, 0],
           scale: [1, 1, 1]
         }]);
       });
+      
       toast({
         title: "Files uploaded",
         description: `${validFiles.length} file(s) added to the viewer`
@@ -270,6 +290,82 @@ export const Model3DViewer = ({
       title: "Model removed",
       description: "Model has been removed from the viewer"
     });
+  };
+
+  const handleLoadStoredModel = async (storedModel: StoredModel) => {
+    // Create a mock file for the stored model
+    const mockFile = new File([''], storedModel.filename, { type: 'application/octet-stream' });
+    const url = ''; // We'll need to handle this differently for stored models
+    
+    setModelData(prev => [...prev, {
+      url,
+      file: mockFile,
+      fileType: storedModel.fileType,
+      position: storedModel.position,
+      rotation: storedModel.rotation,
+      scale: storedModel.scale
+    }]);
+    
+    toast({
+      title: "Model loaded",
+      description: `${storedModel.filename} loaded from history`
+    });
+  };
+
+  const handleClearStoredModel = async (modelId: string) => {
+    if (!selectedMachineId) return;
+    
+    const updatedStoredModels = storedModels.filter(model => model.id !== modelId);
+    setStoredModels(updatedStoredModels);
+    
+    try {
+      const { error } = await supabase
+        .from('printer_3d_configurations')
+        .update({
+          models: updatedStoredModels.map(model => ({
+            filename: model.filename,
+            fileType: model.fileType,
+            position: model.position,
+            rotation: model.rotation,
+            scale: model.scale
+          }))
+        })
+        .eq('printer_id', selectedMachineId);
+        
+      if (error) {
+        console.error('Error clearing stored model:', error);
+      } else {
+        toast({
+          title: "Model cleared",
+          description: "Model removed from history"
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing stored model:', error);
+    }
+  };
+
+  const handleClearAllStoredModels = async () => {
+    if (!selectedMachineId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('printer_3d_configurations')
+        .update({ models: [] })
+        .eq('printer_id', selectedMachineId);
+        
+      if (error) {
+        console.error('Error clearing all stored models:', error);
+      } else {
+        setStoredModels([]);
+        toast({
+          title: "All models cleared",
+          description: "Model history cleared for this printer"
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing all stored models:', error);
+    }
   };
   const handleSendToConfiguration = async () => {
     if (!selectedEndpoint || !selectedMachineId) {
@@ -356,6 +452,33 @@ export const Model3DViewer = ({
         </div>
 
         <input ref={fileInputRef} type="file" multiple accept=".gltf,.glb,.fbx,.obj,.stl" onChange={handleFileUpload} className="hidden" />
+
+        {/* Model History Section */}
+        {storedModels.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium">Model History:</h4>
+              <Button onClick={handleClearAllStoredModels} size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                Clear All
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {storedModels.map((storedModel) => (
+                <div key={storedModel.id} className="flex items-center justify-between p-2 border rounded-md">
+                  <span className="text-sm">{storedModel.filename}</span>
+                  <div className="flex gap-2">
+                    <Button onClick={() => handleLoadStoredModel(storedModel)} size="sm" variant="outline">
+                      Load
+                    </Button>
+                    <Button onClick={() => handleClearStoredModel(storedModel.id)} size="sm" variant="ghost">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {modelData.length > 0 && <div className="mb-4 space-y-4">
             <h4 className="text-sm font-medium">Loaded Models:</h4>
