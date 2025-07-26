@@ -136,16 +136,20 @@ export const Model3DViewer = ({
   // Load configuration on mount
   useEffect(() => {
     const loadConfiguration = async () => {
+      console.log('loadConfiguration called with selectedMachineId:', selectedMachineId);
+      
       if (!selectedMachineId) {
-        // Clear modelData when no machine is selected
+        console.log('No machine selected, clearing modelData');
         setModelData([]);
         return;
       }
       
       // Clear existing models when switching printers
+      console.log('Clearing modelData for new printer');
       setModelData([]);
       
       try {
+        console.log('Fetching configuration for printer:', selectedMachineId);
         const { data, error } = await supabase
           .from('printer_3d_configurations')
           .select('*')
@@ -154,6 +158,8 @@ export const Model3DViewer = ({
           .limit(1)
           .maybeSingle();
 
+        console.log('Database query result:', { data, error });
+
         if (error) {
           console.error('Error loading configuration:', error);
           return;
@@ -161,7 +167,8 @@ export const Model3DViewer = ({
 
         if (data) {
           const storedModels = Array.isArray(data.models) ? data.models : [];
-          console.log('Loaded configuration:', data);
+          console.log('Found stored models:', storedModels);
+          console.log('Full configuration data:', data);
           
           // Note: We can't restore actual file objects after refresh due to browser security,
           // but we can show placeholders with the saved parameters
