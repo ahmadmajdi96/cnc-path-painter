@@ -7,14 +7,10 @@ import { useLoader } from '@react-three/fiber';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Upload, Trash2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Upload, Trash2, Send, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface Model3DViewerProps {
-  buildVolumeX?: number;
-  buildVolumeY?: number;
-  buildVolumeZ?: number;
-}
 
 function STLModel({ url }: { url: string }) {
   const geometry = useLoader(STLLoader, url);
@@ -31,45 +27,71 @@ function OBJModel({ url }: { url: string }) {
   return <primitive object={obj} />;
 }
 
-function ModelRenderer({ url, fileType }: { url: string; fileType: string }) {
+function ModelRenderer({ url, fileType, position, rotation, scale }: { 
+  url: string; 
+  fileType: string; 
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+}) {
   try {
     // Handle GLTF/GLB files
     if (fileType === 'gltf' || fileType === 'glb') {
       const { scene } = useGLTF(url);
-      return <primitive object={scene} />;
+      return (
+        <group position={position} rotation={rotation} scale={scale}>
+          <primitive object={scene} />
+        </group>
+      );
     }
     
     // Handle FBX files
     if (fileType === 'fbx') {
       const fbx = useFBX(url);
-      return <primitive object={fbx} />;
+      return (
+        <group position={position} rotation={rotation} scale={scale}>
+          <primitive object={fbx} />
+        </group>
+      );
     }
     
     // Handle STL files
     if (fileType === 'stl') {
-      return <STLModel url={url} />;
+      return (
+        <group position={position} rotation={rotation} scale={scale}>
+          <STLModel url={url} />
+        </group>
+      );
     }
     
     // Handle OBJ files
     if (fileType === 'obj') {
-      return <OBJModel url={url} />;
+      return (
+        <group position={position} rotation={rotation} scale={scale}>
+          <OBJModel url={url} />
+        </group>
+      );
     }
     
     // Default fallback
     return (
-      <mesh>
-        <boxGeometry args={[10, 10, 10]} />
-        <meshStandardMaterial color="#ef4444" />
-      </mesh>
+      <group position={position} rotation={rotation} scale={scale}>
+        <mesh>
+          <boxGeometry args={[10, 10, 10]} />
+          <meshStandardMaterial color="#ef4444" />
+        </mesh>
+      </group>
     );
   } catch (error) {
     console.error('Error loading 3D model:', error);
     // Return error placeholder
     return (
-      <mesh>
-        <boxGeometry args={[10, 10, 10]} />
-        <meshStandardMaterial color="#ef4444" />
-      </mesh>
+      <group position={position} rotation={rotation} scale={scale}>
+        <mesh>
+          <boxGeometry args={[10, 10, 10]} />
+          <meshStandardMaterial color="#ef4444" />
+        </mesh>
+      </group>
     );
   }
 }
@@ -83,8 +105,30 @@ function BuildVolume({ sizeX = 200, sizeY = 200, sizeZ = 200 }: { sizeX?: number
   );
 }
 
-export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVolumeZ = 200 }: Model3DViewerProps) => {
-  const [modelData, setModelData] = useState<Array<{ url: string; file: File; fileType: string }>>([]);
+interface Model3DViewerProps {
+  buildVolumeX?: number;
+  buildVolumeY?: number;
+  buildVolumeZ?: number;
+  selectedMachineId?: string;
+  selectedEndpoint?: string;
+}
+
+export const Model3DViewer = ({ 
+  buildVolumeX = 200, 
+  buildVolumeY = 200, 
+  buildVolumeZ = 200,
+  selectedMachineId,
+  selectedEndpoint
+}: Model3DViewerProps) => {
+  const [modelData, setModelData] = useState<Array<{ 
+    url: string; 
+    file: File; 
+    fileType: string; 
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: [number, number, number];
+  }>>([]);
+  const [selectedModelIndex, setSelectedModelIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -114,7 +158,14 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
       validFiles.forEach(file => {
         const url = URL.createObjectURL(file);
         const fileType = file.name.split('.').pop()?.toLowerCase() || '';
-        setModelData(prev => [...prev, { url, file, fileType }]);
+        setModelData(prev => [...prev, { 
+          url, 
+          file, 
+          fileType, 
+          position: [0, 0, 0], // Start at ground level
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1]
+        }]);
       });
 
       toast({
@@ -138,14 +189,56 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
     });
   };
 
-  const handleClearAll = () => {
-    modelData.forEach(model => URL.revokeObjectURL(model.url));
-    setModelData([]);
-    
-    toast({
-      title: "All models cleared",
-      description: "All models have been removed from the viewer",
-    });
+  const handleSendToConfiguration = async () => {
+    if (!selectedEndpoint || !selectedMachineId) {
+      toast({
+        title: "Configuration Error",
+        description: "Please select a machine and endpoint first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const configData = {
+      machineId: selectedMachineId,
+      endpoint: selectedEndpoint,
+      buildVolume: { x: buildVolumeX, y: buildVolumeY, z: buildVolumeZ },
+      models: modelData.map(model => ({
+        filename: model.file.name,
+        fileType: model.fileType,
+        position: model.position,
+        rotation: model.rotation,
+        scale: model.scale
+      }))
+    };
+
+    try {
+      // Here you would send to your actual endpoint
+      console.log('Sending configuration:', configData);
+      
+      toast({
+        title: "Configuration Sent",
+        description: `Sent ${modelData.length} model(s) to ${selectedEndpoint}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Send Failed",
+        description: "Failed to send configuration to endpoint",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updateModelPosition = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
+    setModelData(prev => prev.map((model, i) => {
+      if (i === index) {
+        const newPosition = [...model.position] as [number, number, number];
+        const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+        newPosition[axisIndex] = value;
+        return { ...model, position: newPosition };
+      }
+      return model;
+    }));
   };
 
   return (
@@ -162,14 +255,14 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
               <Upload className="w-4 h-4 mr-2" />
               Upload Model
             </Button>
-            {modelData.length > 0 && (
+            {modelData.length > 0 && selectedEndpoint && (
               <Button
-                onClick={handleClearAll}
+                onClick={handleSendToConfiguration}
                 size="sm"
-                variant="outline"
+                variant="default"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear All
+                <Send className="w-4 h-4 mr-2" />
+                Send to Configuration
               </Button>
             )}
           </div>
@@ -185,22 +278,71 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
         />
 
         {modelData.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-2">Loaded Models:</h4>
-            <div className="space-y-2">
-              {modelData.map((model, index) => (
-                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                  <span className="text-sm">{model.file.name}</span>
-                  <Button
-                    onClick={() => handleRemoveModel(index)}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+          <div className="mb-4 space-y-4">
+            <h4 className="text-sm font-medium">Loaded Models:</h4>
+            {modelData.map((model, index) => (
+              <div key={index} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{model.file.name}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setSelectedModelIndex(selectedModelIndex === index ? null : index)}
+                      size="sm"
+                      variant={selectedModelIndex === index ? "default" : "outline"}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={() => handleRemoveModel(index)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
+                
+                {selectedModelIndex === index && (
+                  <div className="space-y-3 pt-3 border-t">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">X Position</label>
+                        <Slider
+                          value={[model.position[0]]}
+                          onValueChange={([value]) => updateModelPosition(index, 'x', value)}
+                          min={-buildVolumeX/2}
+                          max={buildVolumeX/2}
+                          step={1}
+                        />
+                        <span className="text-xs text-gray-500">{model.position[0].toFixed(1)}mm</span>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Y Position</label>
+                        <Slider
+                          value={[model.position[1]]}
+                          onValueChange={([value]) => updateModelPosition(index, 'y', value)}
+                          min={0}
+                          max={buildVolumeZ}
+                          step={1}
+                        />
+                        <span className="text-xs text-gray-500">{model.position[1].toFixed(1)}mm</span>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Z Position</label>
+                        <Slider
+                          value={[model.position[2]]}
+                          onValueChange={([value]) => updateModelPosition(index, 'z', value)}
+                          min={-buildVolumeY/2}
+                          max={buildVolumeY/2}
+                          step={1}
+                        />
+                        <span className="text-xs text-gray-500">{model.position[2].toFixed(1)}mm</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -213,9 +355,14 @@ export const Model3DViewer = ({ buildVolumeX = 200, buildVolumeY = 200, buildVol
                 
                 {/* Render all uploaded models */}
                 {modelData.map((model, index) => (
-                  <group key={index} position={[index * 50 - (modelData.length - 1) * 25, 0, 0]}>
-                    <ModelRenderer url={model.url} fileType={model.fileType} />
-                  </group>
+                  <ModelRenderer 
+                    key={index}
+                    url={model.url} 
+                    fileType={model.fileType}
+                    position={model.position}
+                    rotation={model.rotation}
+                    scale={model.scale}
+                  />
                 ))}
               </Stage>
             </Suspense>

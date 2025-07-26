@@ -107,31 +107,12 @@ export const Printer3DVisualization = ({
 
   return (
     <div className="space-y-6">
-      <div className="h-64 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-gray-200 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 rounded-lg flex items-center justify-center">
-            <div className="w-8 h-8 bg-white rounded"></div>
-          </div>
-          <h3 className="font-semibold text-gray-900">{machineData.name}</h3>
-          <p className="text-sm text-gray-500">{machineData.model}</p>
-          <div className="mt-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs inline-block">
-            {machineData.status}
-          </div>
-          {machineData.max_build_volume_x && (
-            <p className="text-xs text-gray-400 mt-1">
-              Build Volume: {machineData.max_build_volume_x}×{machineData.max_build_volume_y}×{machineData.max_build_volume_z}mm
-            </p>
-          )}
-          {selectedEndpoint && (
-            <p className="text-xs text-blue-500 mt-1">Connected to: {selectedEndpoint}</p>
-          )}
-        </div>
-      </div>
-
       <Model3DViewer 
         buildVolumeX={machineData.max_build_volume_x || 200}
         buildVolumeY={machineData.max_build_volume_y || 200}
         buildVolumeZ={machineData.max_build_volume_z || 200}
+        selectedMachineId={selectedMachineId}
+        selectedEndpoint={selectedEndpoint}
       />
       
       <EndpointManager 
