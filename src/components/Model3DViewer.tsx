@@ -16,19 +16,11 @@ function STLModel({
 }: {
   url: string;
 }) {
-  try {
-    const geometry = useLoader(STLLoader, url);
-    return <mesh>
-        <primitive object={geometry} />
-        <meshStandardMaterial color="#8B5CF6" />
-      </mesh>;
-  } catch (error) {
-    console.error('Error loading STL file:', error);
-    return <mesh>
-        <boxGeometry args={[5, 5, 5]} />
-        <meshStandardMaterial color="#ef4444" />
-      </mesh>;
-  }
+  const geometry = useLoader(STLLoader, url);
+  return <mesh>
+      <primitive object={geometry} />
+      <meshStandardMaterial color="#8B5CF6" />
+    </mesh>;
 }
 
 function OBJModel({
@@ -36,16 +28,8 @@ function OBJModel({
 }: {
   url: string;
 }) {
-  try {
-    const obj = useLoader(OBJLoader, url);
-    return <primitive object={obj} />;
-  } catch (error) {
-    console.error('Error loading OBJ file:', error);
-    return <mesh>
-        <boxGeometry args={[5, 5, 5]} />
-        <meshStandardMaterial color="#ef4444" />
-      </mesh>;
-  }
+  const obj = useLoader(OBJLoader, url);
+  return <primitive object={obj} />;
 }
 // Error boundary component for individual models
 function SafeModelRenderer({
@@ -91,14 +75,18 @@ function SafeModelRenderer({
     // Handle STL files
     if (fileType === 'stl') {
       return <group position={position} rotation={rotation} scale={scale}>
-          <STLModel url={url} />
+          <Suspense fallback={<mesh><boxGeometry args={[5, 5, 5]} /><meshStandardMaterial color="#6b7280" /></mesh>}>
+            <STLModel url={url} />
+          </Suspense>
         </group>;
     }
 
     // Handle OBJ files
     if (fileType === 'obj') {
       return <group position={position} rotation={rotation} scale={scale}>
-          <OBJModel url={url} />
+          <Suspense fallback={<mesh><boxGeometry args={[5, 5, 5]} /><meshStandardMaterial color="#6b7280" /></mesh>}>
+            <OBJModel url={url} />
+          </Suspense>
         </group>;
     }
 
@@ -373,10 +361,33 @@ export const Model3DViewer = ({
   };
 
   const handleLoadStoredModel = async (storedModel: StoredModel) => {
-    toast({
-      title: "Model loaded",
-      description: `${storedModel.filename} loaded from history with proper scaling`
-    });
+    try {
+      // Create a fake file object to work with existing model structure
+      const fakeFile = new File([], storedModel.filename, { type: 'application/octet-stream' });
+      const url = `blob:${window.location.origin}/${storedModel.filename}`;
+      
+      // Add the stored model to current view
+      setModelData(prev => [...prev, {
+        url: url,
+        file: fakeFile,
+        fileType: storedModel.fileType,
+        position: storedModel.position,
+        rotation: storedModel.rotation,
+        scale: storedModel.scale
+      }]);
+      
+      toast({
+        title: "Model loaded",
+        description: `${storedModel.filename} loaded from history with proper scaling`
+      });
+    } catch (error) {
+      console.error('Error loading stored model:', error);
+      toast({
+        title: "Load failed",
+        description: "Failed to load model from history",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleClearStoredModel = async (modelId: string) => {
