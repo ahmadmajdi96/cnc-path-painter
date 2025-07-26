@@ -967,7 +967,7 @@ export type Database = {
           {
             foreignKeyName: "printer_3d_configurations_printer_id_fkey"
             columns: ["printer_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "printer_3d"
             referencedColumns: ["id"]
           },

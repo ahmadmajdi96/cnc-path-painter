@@ -173,11 +173,11 @@ export const Model3DViewer = ({
   // Save configuration whenever data changes
   useEffect(() => {
     const saveConfiguration = async () => {
-      if (!selectedMachineId || modelData.length === 0) return;
+      if (!selectedMachineId) return;
 
       const configData = {
         printer_id: selectedMachineId,
-        endpoint_url: selectedEndpoint,
+        endpoint_url: selectedEndpoint || null,
         build_volume_x: buildVolumeX,
         build_volume_y: buildVolumeY,
         build_volume_z: buildVolumeZ,
@@ -200,6 +200,8 @@ export const Model3DViewer = ({
 
         if (error) {
           console.error('Error saving configuration:', error);
+        } else {
+          console.log('Configuration saved successfully for printer:', selectedMachineId);
         }
       } catch (error) {
         console.error('Error saving configuration:', error);
