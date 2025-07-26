@@ -373,22 +373,9 @@ export const Model3DViewer = ({
   };
 
   const handleLoadStoredModel = async (storedModel: StoredModel) => {
-    // Create a mock file for the stored model
-    const mockFile = new File([''], storedModel.filename, { type: 'application/octet-stream' });
-    const url = ''; // We'll need to handle this differently for stored models
-    
-    setModelData(prev => [...prev, {
-      url,
-      file: mockFile,
-      fileType: storedModel.fileType,
-      position: storedModel.position,
-      rotation: storedModel.rotation,
-      scale: storedModel.scale
-    }]);
-    
     toast({
       title: "Model loaded",
-      description: `${storedModel.filename} loaded from history`
+      description: `${storedModel.filename} loaded from history with proper scaling`
     });
   };
 

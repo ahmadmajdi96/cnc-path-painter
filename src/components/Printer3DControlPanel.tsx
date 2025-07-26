@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Printer3DControlPanelProps {
   selectedMachineId?: string;
@@ -32,10 +33,59 @@ export const Printer3DControlPanel = ({
 
   const { toast } = useToast();
 
-  const handleParamChange = (key: string, value: any) => {
+  // Load parameters for the selected printer
+  useEffect(() => {
+    const loadPrinterParams = async () => {
+      if (!selectedMachineId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('printer_3d_configurations')
+          .select('*')
+          .eq('printer_id', selectedMachineId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error loading printer parameters:', error);
+          return;
+        }
+
+        if (data && data.print_params) {
+          setPrintParams(data.print_params);
+          onParametersChange(data.print_params);
+        }
+      } catch (error) {
+        console.error('Error loading printer parameters:', error);
+      }
+    };
+
+    loadPrinterParams();
+  }, [selectedMachineId, onParametersChange]);
+
+  const handleParamChange = async (key: string, value: any) => {
     const newParams = { ...printParams, [key]: value };
     setPrintParams(newParams);
     onParametersChange(newParams);
+
+    // Save parameters to database for this specific printer
+    if (selectedMachineId) {
+      try {
+        const { error } = await supabase
+          .from('printer_3d_configurations')
+          .upsert({
+            printer_id: selectedMachineId,
+            print_params: newParams
+          }, {
+            onConflict: 'printer_id'
+          });
+
+        if (error) {
+          console.error('Error saving printer parameters:', error);
+        }
+      } catch (error) {
+        console.error('Error saving printer parameters:', error);
+      }
+    }
   };
 
   const handleEmergencyStop = () => {
