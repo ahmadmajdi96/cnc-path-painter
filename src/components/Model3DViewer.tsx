@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Upload, Trash2, Send, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
 function STLModel({ url }: { url: string }) {
   try {
     const geometry = useLoader(STLLoader, url);
@@ -37,6 +38,7 @@ function OBJModel({ url }: { url: string }) {
     return null;
   }
 }
+
 // Error boundary wrapper for model loading
 function ModelErrorBoundary({ children, fallback }: { children: React.ReactNode, fallback: React.ReactNode }) {
   const [hasError, setHasError] = React.useState(false);
@@ -57,6 +59,7 @@ function ModelErrorBoundary({ children, fallback }: { children: React.ReactNode,
     return <>{fallback}</>;
   }
 }
+
 function SafeModelRenderer({
   url,
   fileType,
@@ -146,6 +149,7 @@ function ModelRenderer(props: {
     </Suspense>
   );
 }
+
 function BuildVolume({
   sizeX = 200,
   sizeY = 200,
@@ -160,6 +164,7 @@ function BuildVolume({
       <meshBasicMaterial wireframe color="#6366f1" opacity={0.3} transparent />
     </mesh>;
 }
+
 interface StoredModel {
   id: string;
   filename: string;
@@ -177,6 +182,7 @@ interface Model3DViewerProps {
   selectedMachineId?: string;
   selectedEndpoint?: string;
 }
+
 export const Model3DViewer = ({
   buildVolumeX = 200,
   buildVolumeY = 200,
@@ -294,6 +300,7 @@ export const Model3DViewer = ({
     const timeoutId = setTimeout(saveConfiguration, 1000);
     return () => clearTimeout(timeoutId);
   }, [selectedMachineId, selectedEndpoint, buildVolumeX, buildVolumeY, buildVolumeZ, modelData]);
+
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
@@ -365,6 +372,7 @@ export const Model3DViewer = ({
       }
     }
   }, [toast]);
+
   const handleRemoveModel = (index: number) => {
     const modelToRemove = modelData[index];
     if (modelToRemove) {
@@ -462,15 +470,26 @@ export const Model3DViewer = ({
       console.error('Error clearing all stored models:', error);
     }
   };
+
   const handleSendToConfiguration = async () => {
-    if (!selectedEndpoint || !selectedMachineId) {
+    if (!selectedMachineId) {
       toast({
         title: "Configuration Error",
-        description: "Please select a machine and endpoint first",
+        description: "Please select a machine first",
         variant: "destructive"
       });
       return;
     }
+
+    if (!selectedEndpoint) {
+      toast({
+        title: "Configuration Error",
+        description: "Please select an endpoint first",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const configData = {
       machineId: selectedMachineId,
       endpoint: selectedEndpoint,
@@ -487,6 +506,7 @@ export const Model3DViewer = ({
         scale: model.scale
       }))
     };
+
     try {
       // Here you would send to your actual endpoint
       console.log('Sending configuration:', configData);
@@ -502,6 +522,7 @@ export const Model3DViewer = ({
       });
     }
   };
+
   const updateModelPosition = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
     setModelData(prev => prev.map((model, i) => {
       if (i === index) {
@@ -516,6 +537,7 @@ export const Model3DViewer = ({
       return model;
     }));
   };
+
   const updateModelRotation = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
     setModelData(prev => prev.map((model, i) => {
       if (i === index) {
@@ -530,6 +552,7 @@ export const Model3DViewer = ({
       return model;
     }));
   };
+
   return <div className="space-y-4">
       <Card className="p-4 py-[59px]">
         <div className="flex items-center justify-between mb-4">
@@ -539,14 +562,39 @@ export const Model3DViewer = ({
               <Upload className="w-4 h-4 mr-2" />
               Upload Model
             </Button>
-            {modelData.length > 0 && selectedEndpoint && <Button onClick={handleSendToConfiguration} size="sm" variant="default">
+            {modelData.length > 0 && (
+              <Button 
+                onClick={handleSendToConfiguration} 
+                size="sm" 
+                variant="default"
+                disabled={!selectedMachineId}
+              >
                 <Send className="w-4 h-4 mr-2" />
                 Send to Configuration
-              </Button>}
+              </Button>
+            )}
           </div>
         </div>
 
         <input ref={fileInputRef} type="file" multiple accept=".gltf,.glb,.fbx,.obj,.stl" onChange={handleFileUpload} className="hidden" />
+
+        {/* Show configuration status */}
+        {modelData.length > 0 && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <span>Configuration Status:</span>
+              <div className="flex items-center gap-2">
+                <span className={selectedMachineId ? "text-green-600" : "text-orange-600"}>
+                  Machine: {selectedMachineId ? "Selected" : "Not Selected"}
+                </span>
+                <span>•</span>
+                <span className={selectedEndpoint ? "text-green-600" : "text-orange-600"}>
+                  Endpoint: {selectedEndpoint ? "Selected" : "Not Selected"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Model History Section */}
         {storedModels.length > 0 && (
