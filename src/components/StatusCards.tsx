@@ -5,7 +5,11 @@ import { Activity, Zap, Clock, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export const StatusCards = () => {
+interface StatusCardsProps {
+  machineType?: 'laser' | 'cnc' | '3d_printer';
+}
+
+export const StatusCards = ({ machineType }: StatusCardsProps) => {
   // Fetch laser machines data
   const { data: laserMachines = [] } = useQuery({
     queryKey: ['laser-machines-stats'],
@@ -15,7 +19,8 @@ export const StatusCards = () => {
         .select('*');
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !machineType || machineType === 'laser'
   });
 
   // Fetch CNC machines data
@@ -27,14 +32,41 @@ export const StatusCards = () => {
         .select('*');
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !machineType || machineType === 'cnc'
   });
 
+  // Fetch 3D printer data
+  const { data: printer3DMachines = [] } = useQuery({
+    queryKey: ['3d-printer-machines-stats'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('printer_3d')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !machineType || machineType === '3d_printer'
+  });
+
+  // Filter machines based on type
+  let machines = [];
+  if (machineType === 'laser') {
+    machines = laserMachines;
+  } else if (machineType === 'cnc') {
+    machines = cncMachines;
+  } else if (machineType === '3d_printer') {
+    machines = printer3DMachines;
+  } else {
+    // Show all machines if no specific type
+    machines = [...laserMachines, ...cncMachines, ...printer3DMachines];
+  }
+
   // Calculate statistics
-  const totalMachines = laserMachines.length + cncMachines.length;
-  const activeMachines = [...laserMachines, ...cncMachines].filter(m => m.status === 'running').length;
-  const idleMachines = [...laserMachines, ...cncMachines].filter(m => m.status === 'idle').length;
-  const errorMachines = [...laserMachines, ...cncMachines].filter(m => m.status === 'error').length;
+  const totalMachines = machines.length;
+  const activeMachines = machines.filter(m => m.status === 'running').length;
+  const idleMachines = machines.filter(m => m.status === 'idle').length;
+  const errorMachines = machines.filter(m => m.status === 'error').length;
 
   const stats = [
     {

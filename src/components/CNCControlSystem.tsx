@@ -43,7 +43,7 @@ export const CNCControlSystem = () => {
 
       {/* Status Cards */}
       <div className="px-6 py-4">
-        <StatusCards />
+        <StatusCards machineType="cnc" />
       </div>
 
       {/* Main Content */}

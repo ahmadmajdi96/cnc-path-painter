@@ -43,7 +43,7 @@ export const LaserControlSystem = () => {
 
       {/* Status Cards */}
       <div className="px-6 py-4">
-        <StatusCards />
+        <StatusCards machineType="laser" />
       </div>
 
       {/* Main Content */}

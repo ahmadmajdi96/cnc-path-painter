@@ -43,7 +43,7 @@ export const Printer3DControlSystem = () => {
 
       {/* Status Cards */}
       <div className="px-6 py-4">
-        <StatusCards />
+        <StatusCards machineType="3d_printer" />
       </div>
 
       {/* Main Content */}
