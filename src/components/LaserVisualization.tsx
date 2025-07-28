@@ -109,6 +109,7 @@ export const LaserVisualization = ({
           selectedMachineId={selectedMachineId}
           selectedEndpoint={selectedEndpoint}
           onEndpointSelect={onEndpointSelect}
+          machineType="laser"
         />
       </Card>
 
