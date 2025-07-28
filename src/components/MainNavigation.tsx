@@ -2,15 +2,16 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wrench, Zap, Box } from 'lucide-react';
+import { Wrench, Zap, Box, Bot } from 'lucide-react';
 
 export const MainNavigation = () => {
   const location = useLocation();
   
   const navItems = [
     { path: '/', label: 'CNC Control', icon: Wrench },
-    { path: '/laser', label: 'Laser Control', icon: Zap },
-    { path: '/3d-printer', label: '3D Printer', icon: Box }
+    { path: '/laser-control', label: 'Laser Control', icon: Zap },
+    { path: '/3d-printer', label: '3D Printer', icon: Box },
+    { path: '/robotic-arms', label: 'Robotic Arms', icon: Bot }
   ];
 
   return (
