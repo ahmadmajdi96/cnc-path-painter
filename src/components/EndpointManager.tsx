@@ -1,342 +1,240 @@
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Trash2, Edit2, Plus, Save, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, Plus, Wifi, WifiOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-interface Endpoint {
-  id: string;
-  name: string;
-  url: string;
-}
+
 interface EndpointManagerProps {
   selectedMachineId?: string;
   onEndpointSelect: (endpoint: string) => void;
   selectedEndpoint: string;
-  machineType: 'cnc' | 'laser' | '3d_printer' | 'printer_3d';
+  machineType: 'cnc' | 'laser' | '3d_printer' | 'robotic_arms';
 }
-export const EndpointManager = ({
-  selectedMachineId,
-  onEndpointSelect,
+
+interface Endpoint {
+  id: string;
+  name: string;
+  url: string;
+  status: 'connected' | 'disconnected' | 'error';
+  description?: string;
+  created_at: string;
+}
+
+export const EndpointManager = ({ 
+  selectedMachineId, 
+  onEndpointSelect, 
   selectedEndpoint,
-  machineType
+  machineType 
 }: EndpointManagerProps) => {
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [newEndpoint, setNewEndpoint] = useState({
-    name: '',
-    url: ''
-  });
-  const [editEndpoint, setEditEndpoint] = useState({
-    name: '',
-    url: ''
-  });
-  const {
-    toast
-  } = useToast();
+  const [newEndpoint, setNewEndpoint] = useState({ name: '', url: '', description: '' });
+  const [isAddingEndpoint, setIsAddingEndpoint] = useState(false);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch machine data based on machine type
-  const {
-    data: machineData
-  } = useQuery({
-    queryKey: [machineType, selectedMachineId],
+  const { data: endpoints, isLoading, error } = useQuery({
+    queryKey: ['endpoints', selectedMachineId],
     queryFn: async () => {
-      if (!selectedMachineId) return null;
-      if (machineType === 'cnc') {
-        const {
-          data,
-          error
-        } = await supabase.from('cnc_machines').select('*').eq('id', selectedMachineId).single();
-        if (error) throw error;
-        return data;
-      } else if (machineType === 'laser') {
-        const {
-          data,
-          error
-        } = await supabase.from('laser_machines').select('*').eq('id', selectedMachineId).single();
-        if (error) throw error;
-        return data;
-      } else if (machineType === '3d_printer') {
-        const {
-          data,
-          error
-        } = await (supabase as any).from('printer_3d').select('*').eq('id', selectedMachineId).single();
-        if (error) throw error;
-        return data;
-      } else if (machineType === 'printer_3d') {
-        const {
-          data,
-          error
-        } = await (supabase as any).from('printer_3d').select('*').eq('id', selectedMachineId).single();
-        if (error) throw error;
-        return data;
+      if (!selectedMachineId) return [];
+      const { data, error } = await supabase
+        .from('endpoints')
+        .select('*')
+        .eq('machine_id', selectedMachineId);
+
+      if (error) {
+        console.error('Error fetching endpoints:', error);
+        throw error;
       }
-      throw new Error('Invalid machine type');
+      return data as Endpoint[];
     },
-    enabled: !!selectedMachineId
+    enabled: !!selectedMachineId,
   });
 
-  // Create a mock endpoints array from the machine's endpoint_url
-  const endpoints: Endpoint[] = machineData?.endpoint_url ? [{
-    id: selectedMachineId || '',
-    name: `${machineData.name} Endpoint`,
-    url: machineData.endpoint_url
-  }] : [];
+  const addEndpointMutation = useMutation({
+    mutationFn: async (endpoint: Omit<Endpoint, 'id' | 'created_at'>) => {
+      if (!selectedMachineId) throw new Error('No machine selected');
+      const { data, error } = await supabase
+        .from('endpoints')
+        .insert([{ ...endpoint, machine_id: selectedMachineId }]);
 
-  // Update machine endpoint mutation
-  const updateEndpointMutation = useMutation({
-    mutationFn: async (endpoint: {
-      name: string;
-      url: string;
-    }) => {
-      if (!selectedMachineId) return;
-      if (machineType === 'cnc') {
-        const {
-          error
-        } = await supabase.from('cnc_machines').update({
-          endpoint_url: endpoint.url
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else if (machineType === 'laser') {
-        const {
-          error
-        } = await supabase.from('laser_machines').update({
-          endpoint_url: endpoint.url
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else if (machineType === '3d_printer') {
-        const {
-          error
-        } = await (supabase as any).from('printer_3d').update({
-          endpoint_url: endpoint.url
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else if (machineType === 'printer_3d') {
-        const {
-          error
-        } = await (supabase as any).from('printer_3d').update({
-          endpoint_url: endpoint.url
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else {
-        throw new Error('Invalid machine type');
+      if (error) {
+        console.error('Error adding endpoint:', error);
+        throw error;
       }
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [machineType, selectedMachineId]
-      });
-      setIsAdding(false);
-      setEditingId(null);
-      setNewEndpoint({
-        name: '',
-        url: ''
-      });
+      queryClient.invalidateQueries({ queryKey: ['endpoints', selectedMachineId] });
+      setNewEndpoint({ name: '', url: '', description: '' });
+      setIsAddingEndpoint(false);
       toast({
         title: "Success",
-        description: "Endpoint updated successfully"
+        description: "Endpoint added successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Error adding endpoint:', error);
       toast({
         title: "Error",
-        description: "Failed to update endpoint",
+        description: error.message || "Failed to add endpoint",
         variant: "destructive"
       });
-    }
+    },
   });
 
-  // Delete endpoint mutation (sets endpoint_url to null)
   const deleteEndpointMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedMachineId) return;
-      if (machineType === 'cnc') {
-        const {
-          error
-        } = await supabase.from('cnc_machines').update({
-          endpoint_url: null
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else if (machineType === 'laser') {
-        const {
-          error
-        } = await supabase.from('laser_machines').update({
-          endpoint_url: null
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else if (machineType === '3d_printer') {
-        const {
-          error
-        } = await (supabase as any).from('printer_3d').update({
-          endpoint_url: null
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else if (machineType === 'printer_3d') {
-        const {
-          error
-        } = await (supabase as any).from('printer_3d').update({
-          endpoint_url: null
-        }).eq('id', selectedMachineId);
-        if (error) throw error;
-      } else {
-        throw new Error('Invalid machine type');
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('endpoints')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting endpoint:', error);
+        throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [machineType, selectedMachineId]
-      });
-      onEndpointSelect(''); // Clear selected endpoint
+      queryClient.invalidateQueries({ queryKey: ['endpoints', selectedMachineId] });
       toast({
         title: "Success",
-        description: "Endpoint removed successfully"
+        description: "Endpoint deleted successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Error deleting endpoint:', error);
       toast({
         title: "Error",
-        description: "Failed to remove endpoint",
+        description: error.message || "Failed to delete endpoint",
         variant: "destructive"
       });
-    }
+    },
   });
-  function handleAddEndpoint() {
-    updateEndpointMutation.mutate(newEndpoint);
-  }
-  function handleUpdateEndpoint() {
-    updateEndpointMutation.mutate(editEndpoint);
-  }
-  function handleDeleteEndpoint() {
-    deleteEndpointMutation.mutate();
-  }
-  function startEditing(endpoint: Endpoint) {
-    setEditingId(endpoint.id);
-    setEditEndpoint({
-      name: endpoint.name,
-      url: endpoint.url
-    });
-  }
-  function getPlaceholderUrl() {
-    switch (machineType) {
-      case 'cnc':
-        return 'http://machine-ip:port/gcode';
-      case 'laser':
-        return 'http://machine-ip:port/laser';
-      case '3d_printer':
-      case 'printer_3d':
-        return 'http://machine-ip:port/print';
-      default:
-        return 'http://machine-ip:port/api';
-    }
-  }
-  function getMachineTypeLabel() {
-    switch (machineType) {
-      case 'cnc':
-        return 'CNC';
-      case 'laser':
-        return 'Laser';
-      case '3d_printer':
-      case 'printer_3d':
-        return '3D Printer';
-      default:
-        return 'Machine';
-    }
-  }
-  ;
-  if (!selectedMachineId) {
-    return <Card className="p-4 bg-white border border-gray-200">
-        <h4 className="font-medium text-gray-900 mb-2">Machine Endpoints</h4>
-        <p className="text-gray-500 text-sm">Select a machine to manage its endpoints</p>
-      </Card>;
-  }
-  return <Card className="p-4 bg-white border border-gray-200 px-[17px]">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="font-medium text-gray-900">
-          {getMachineTypeLabel()} Machine Endpoints
-        </h4>
-        {!endpoints.length && !isAdding && <Button onClick={() => setIsAdding(true)} size="sm" variant="outline">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Endpoint
-          </Button>}
-      </div>
 
-      {/* Add new endpoint form */}
-      {isAdding && <div className="border border-gray-200 rounded p-4 mb-4">
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="new-name">Name</Label>
-              <Input id="new-name" value={newEndpoint.name} onChange={e => setNewEndpoint(prev => ({
-            ...prev,
-            name: e.target.value
-          }))} placeholder="Endpoint name" />
-            </div>
-            <div>
-              <Label htmlFor="new-url">URL</Label>
-              <Input id="new-url" value={newEndpoint.url} onChange={e => setNewEndpoint(prev => ({
-            ...prev,
-            url: e.target.value
-          }))} placeholder={getPlaceholderUrl()} />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleAddEndpoint} disabled={!newEndpoint.name || !newEndpoint.url || updateEndpointMutation.isPending} size="sm">
-                <Save className="w-4 h-4 mr-2" />
-                Save
-              </Button>
-              <Button onClick={() => {
-            setIsAdding(false);
-            setNewEndpoint({
-              name: '',
-              url: ''
-            });
-          }} size="sm" variant="outline">
-                <X className="w-4 h-4 mr-2" />
+  const handleAddEndpoint = async () => {
+    try {
+      await addEndpointMutation.mutateAsync(newEndpoint);
+    } catch (error) {
+      console.error('Failed to add endpoint', error);
+    }
+  };
+
+  const handleDeleteEndpoint = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this endpoint?')) {
+      try {
+        await deleteEndpointMutation.mutateAsync(id);
+      } catch (error) {
+        console.error('Failed to delete endpoint', error);
+      }
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'connected':
+        return 'bg-green-100 text-green-800';
+      case 'disconnected':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'error':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <Card className="bg-white border border-gray-200">
+      <CardHeader>
+        <CardTitle className="text-lg">Endpoint Manager</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="text-center">Loading endpoints...</div>
+        ) : error ? (
+          <div className="text-center text-red-500">Error: {error.message}</div>
+        ) : (
+          <div className="space-y-2">
+            {endpoints?.map((endpoint) => (
+              <div
+                key={endpoint.id}
+                className={`flex items-center justify-between p-2 border rounded-md cursor-pointer hover:bg-gray-50 ${
+                  selectedEndpoint === endpoint.url ? 'bg-purple-50 border-purple-500' : 'border-gray-200'
+                }`}
+                onClick={() => onEndpointSelect(endpoint.url)}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-sm">{endpoint.name}</h4>
+                    <Badge className={getStatusColor(endpoint.status)}>{endpoint.status}</Badge>
+                  </div>
+                  <p className="text-xs text-gray-500">{endpoint.url}</p>
+                  {endpoint.description && <p className="text-xs text-gray-400">{endpoint.description}</p>}
+                </div>
+                <div className="flex gap-2">
+                  {endpoint.status === 'connected' ? (
+                    <Wifi className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <WifiOff className="w-4 h-4 text-gray-500" />
+                  )}
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteEndpoint(endpoint.id);
+                    }}
+                    size="sm"
+                    variant="ghost"
+                    disabled={deleteEndpointMutation.isLoading}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {endpoints && endpoints.length === 0 && (
+              <div className="text-center py-4 text-gray-500">No endpoints configured.</div>
+            )}
+          </div>
+        )}
+
+        {isAddingEndpoint ? (
+          <div className="space-y-2">
+            <Input
+              type="text"
+              placeholder="Endpoint Name"
+              value={newEndpoint.name}
+              onChange={(e) => setNewEndpoint({ ...newEndpoint, name: e.target.value })}
+            />
+            <Input
+              type="url"
+              placeholder="Endpoint URL"
+              value={newEndpoint.url}
+              onChange={(e) => setNewEndpoint({ ...newEndpoint, url: e.target.value })}
+            />
+            <Input
+              type="text"
+              placeholder="Description (optional)"
+              value={newEndpoint.description}
+              onChange={(e) => setNewEndpoint({ ...newEndpoint, description: e.target.value })}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsAddingEndpoint(false)}>
                 Cancel
+              </Button>
+              <Button onClick={handleAddEndpoint} disabled={addEndpointMutation.isLoading}>
+                Add Endpoint
               </Button>
             </div>
           </div>
-        </div>}
-
-      {/* Endpoints list */}
-      <div className="space-y-2">
-        {endpoints.length === 0 && !isAdding ? <p className="text-gray-500 text-sm">No endpoint configured for this machine</p> : endpoints.map(endpoint => <div key={endpoint.id} className={`p-3 border rounded cursor-pointer transition-colors ${selectedEndpoint === endpoint.url ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:bg-gray-50'}`} onClick={() => onEndpointSelect(endpoint.url)}>
-              {editingId === endpoint.id ? <div className="space-y-2">
-                  <Input value={editEndpoint.name} onChange={e => setEditEndpoint(prev => ({
-            ...prev,
-            name: e.target.value
-          }))} placeholder="Endpoint name" />
-                  <Input value={editEndpoint.url} onChange={e => setEditEndpoint(prev => ({
-            ...prev,
-            url: e.target.value
-          }))} placeholder={getPlaceholderUrl()} />
-                  <div className="flex gap-2">
-                    <Button onClick={handleUpdateEndpoint} disabled={updateEndpointMutation.isPending} size="sm">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button onClick={() => setEditingId(null)} size="sm" variant="outline">
-                      <X className="w-4 h-4 mr-2" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div> : <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-sm">{endpoint.name}</div>
-                    <div className="text-xs text-gray-500">{endpoint.url}</div>
-                  </div>
-                  <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                    <Button onClick={() => startEditing(endpoint)} size="sm" variant="ghost">
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button onClick={handleDeleteEndpoint} size="sm" variant="ghost" disabled={deleteEndpointMutation.isPending}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>}
-            </div>)}
-      </div>
-    </Card>;
+        ) : (
+          <Button variant="outline" className="w-full" onClick={() => setIsAddingEndpoint(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Endpoint
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
 };
