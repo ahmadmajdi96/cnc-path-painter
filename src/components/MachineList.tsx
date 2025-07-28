@@ -36,7 +36,6 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch machines based on type
   const { data: machines = [], isLoading } = useQuery({
     queryKey: [machineType, filters],
     queryFn: async () => {
@@ -77,7 +76,6 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
     }
   });
 
-  // Delete machine mutation
   const deleteMachineMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log('Deleting machine:', id, 'type:', machineType);

@@ -64,7 +64,7 @@ export const RoboticArmVisualization = ({
           selectedMachineId={selectedMachineId}
           onEndpointSelect={onEndpointSelect || (() => {})}
           selectedEndpoint={selectedEndpoint || ''}
-          machineType="robotic_arms"
+          machineType="cnc"
         />
       </div>
     );
@@ -80,7 +80,7 @@ export const RoboticArmVisualization = ({
           selectedMachineId={selectedMachineId}
           onEndpointSelect={onEndpointSelect || (() => {})}
           selectedEndpoint={selectedEndpoint || ''}
-          machineType="robotic_arms"
+          machineType="cnc"
         />
       </div>
     );
@@ -96,7 +96,7 @@ export const RoboticArmVisualization = ({
           selectedMachineId={selectedMachineId}
           onEndpointSelect={onEndpointSelect || (() => {})}
           selectedEndpoint={selectedEndpoint || ''}
-          machineType="robotic_arms"
+          machineType="cnc"
         />
       </div>
     );
@@ -117,7 +117,7 @@ export const RoboticArmVisualization = ({
         selectedMachineId={selectedMachineId}
         onEndpointSelect={onEndpointSelect || (() => {})}
         selectedEndpoint={selectedEndpoint || ''}
-        machineType="robotic_arms"
+        machineType="cnc"
       />
     </div>
   );
