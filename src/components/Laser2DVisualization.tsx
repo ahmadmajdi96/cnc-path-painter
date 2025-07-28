@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, ZoomIn, ZoomOut, Square, Zap } from 'lucide-react';
@@ -115,8 +114,9 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
     const x = centerX - materialW / 2;
     const y = centerY - materialH / 2;
     
-    // Material surface based on type
-    switch (laserParams.material.toLowerCase()) {
+    // Material surface based on type - add safety check for undefined material
+    const materialType = laserParams.material?.toLowerCase() || 'steel';
+    switch (materialType) {
       case 'steel':
       case 'stainless steel':
         ctx.fillStyle = '#9ca3af';
@@ -154,10 +154,10 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
     }
     ctx.restore();
 
-    // Material label
+    // Material label - add safety check
     ctx.fillStyle = '#374151';
     ctx.font = '12px sans-serif';
-    ctx.fillText(`${laserParams.material}: ${MATERIAL_WIDTH}×${MATERIAL_HEIGHT}mm`, x + 5, y + 20);
+    ctx.fillText(`${laserParams.material || 'Unknown'}: ${MATERIAL_WIDTH}×${MATERIAL_HEIGHT}mm`, x + 5, y + 20);
   }, [zoom, materialVisible, laserParams.material, MATERIAL_WIDTH, MATERIAL_HEIGHT]);
 
   const drawLaserPath = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
@@ -303,7 +303,7 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
     ctx.fillText(`${machineName} - Beam: Ø${laserParams.beamDiameter}mm`, 10, 25);
     ctx.font = '12px sans-serif';
     ctx.fillText(`Power: ${laserParams.laserPower}% | Speed: ${laserParams.markingSpeed}mm/min`, 10, 45);
-    ctx.fillText(`Frequency: ${laserParams.pulseFrequency}Hz | Material: ${laserParams.material}`, 10, 65);
+    ctx.fillText(`Frequency: ${laserParams.pulseFrequency}Hz | Material: ${laserParams.material || 'Unknown'}`, 10, 65);
     ctx.fillText(`Scale: ${zoom.toFixed(1)}x | Grid: ${GRID_SIZE}mm | Size: ${MATERIAL_WIDTH}×${MATERIAL_HEIGHT}mm`, 10, 85);
     
     if (points.length > 0) {
