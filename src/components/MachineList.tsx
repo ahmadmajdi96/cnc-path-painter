@@ -11,7 +11,7 @@ import { EditMachineDialog } from './EditMachineDialog';
 interface MachineListProps {
   selectedMachine: string;
   onMachineSelect: (id: string) => void;
-  machineType: 'cnc' | 'laser' | '3d_printer';
+  machineType: 'cnc' | 'laser' | '3d_printer' | 'robotic_arms';
 }
 
 interface Machine {
@@ -50,6 +50,9 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
       } else if (machineType === '3d_printer') {
         console.log('Fetching 3D printers...');
         query = (supabase as any).from('printer_3d').select('*');
+      } else if (machineType === 'robotic_arms') {
+        console.log('Fetching robotic arms...');
+        query = supabase.from('robotic_arms').select('*');
       } else {
         throw new Error('Invalid machine type');
       }
@@ -89,6 +92,16 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         console.log('Deleting 3D printer with ID:', id);
         const { error } = await (supabase as any)
           .from('printer_3d')
+          .delete()
+          .eq('id', id);
+        if (error) {
+          console.error('Delete error:', error);
+          throw error;
+        }
+      } else if (machineType === 'robotic_arms') {
+        console.log('Deleting robotic arm with ID:', id);
+        const { error } = await supabase
+          .from('robotic_arms')
           .delete()
           .eq('id', id);
         if (error) {
@@ -149,6 +162,8 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         return 'Laser Machines';
       case '3d_printer':
         return '3D Printers';
+      case 'robotic_arms':
+        return 'Robotic Arms';
       default:
         return 'Machines';
     }
