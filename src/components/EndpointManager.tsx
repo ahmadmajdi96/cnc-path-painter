@@ -42,7 +42,7 @@ export const EndpointManager = ({
     queryKey: ['endpoints', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('endpoints')
         .select('*')
         .eq('machine_id', selectedMachineId);
@@ -57,15 +57,15 @@ export const EndpointManager = ({
   });
 
   const addEndpointMutation = useMutation({
-    mutationFn: async (endpoint: Omit<Endpoint, 'id' | 'created_at' | 'updated_at' | 'machine_id'>) => {
+    mutationFn: async (endpoint: Omit<Endpoint, 'id' | 'machine_id' | 'created_at' | 'updated_at'>) => {
       if (!selectedMachineId) throw new Error('No machine selected');
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('endpoints')
         .insert([{ 
           ...endpoint, 
-          machine_id: selectedMachineId, 
-          status: 'disconnected' 
-        }]);
+          machine_id: selectedMachineId
+        }])
+        .select();
 
       if (error) {
         console.error('Error adding endpoint:', error);
@@ -94,7 +94,7 @@ export const EndpointManager = ({
 
   const deleteEndpointMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('endpoints')
         .delete()
         .eq('id', id);
@@ -123,7 +123,10 @@ export const EndpointManager = ({
 
   const handleAddEndpoint = async () => {
     try {
-      await addEndpointMutation.mutateAsync(newEndpoint);
+      await addEndpointMutation.mutateAsync({
+        ...newEndpoint,
+        status: 'disconnected' as const
+      });
     } catch (error) {
       console.error('Failed to add endpoint', error);
     }

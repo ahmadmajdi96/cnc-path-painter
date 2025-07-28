@@ -292,7 +292,7 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
           machine={editingMachine as any}
           open={!!editingMachine}
           onOpenChange={(open) => !open && setEditingMachine(null)}
-          machineType={machineType}
+          machineType={machineType as 'cnc' | 'laser' | '3d_printer'}
         />
       )}
     </Card>
