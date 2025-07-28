@@ -368,6 +368,39 @@ export type Database = {
         }
         Relationships: []
       }
+      endpoints: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          machine_id: string
+          name: string
+          status: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          machine_id: string
+          name: string
+          status?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          machine_id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       hardware: {
         Row: {
           communication_protocol: string | null

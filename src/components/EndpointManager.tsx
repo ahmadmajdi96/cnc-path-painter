@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,11 +18,13 @@ interface EndpointManagerProps {
 
 interface Endpoint {
   id: string;
+  machine_id: string;
   name: string;
   url: string;
   status: 'connected' | 'disconnected' | 'error';
   description?: string;
   created_at: string;
+  updated_at: string;
 }
 
 export const EndpointManager = ({ 
@@ -39,7 +42,7 @@ export const EndpointManager = ({
     queryKey: ['endpoints', selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('endpoints')
         .select('*')
         .eq('machine_id', selectedMachineId);
@@ -54,11 +57,15 @@ export const EndpointManager = ({
   });
 
   const addEndpointMutation = useMutation({
-    mutationFn: async (endpoint: Omit<Endpoint, 'id' | 'created_at'>) => {
+    mutationFn: async (endpoint: Omit<Endpoint, 'id' | 'created_at' | 'updated_at' | 'machine_id'>) => {
       if (!selectedMachineId) throw new Error('No machine selected');
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('endpoints')
-        .insert([{ ...endpoint, machine_id: selectedMachineId }]);
+        .insert([{ 
+          ...endpoint, 
+          machine_id: selectedMachineId, 
+          status: 'disconnected' 
+        }]);
 
       if (error) {
         console.error('Error adding endpoint:', error);
@@ -87,7 +94,7 @@ export const EndpointManager = ({
 
   const deleteEndpointMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('endpoints')
         .delete()
         .eq('id', id);
@@ -186,7 +193,7 @@ export const EndpointManager = ({
                     }}
                     size="sm"
                     variant="ghost"
-                    disabled={deleteEndpointMutation.isLoading}
+                    disabled={deleteEndpointMutation.isPending}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -223,7 +230,7 @@ export const EndpointManager = ({
               <Button variant="ghost" onClick={() => setIsAddingEndpoint(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddEndpoint} disabled={addEndpointMutation.isLoading}>
+              <Button onClick={handleAddEndpoint} disabled={addEndpointMutation.isPending}>
                 Add Endpoint
               </Button>
             </div>
