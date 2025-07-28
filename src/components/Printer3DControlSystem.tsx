@@ -1,87 +1,115 @@
 
-import React, { useState, useEffect } from 'react';
-import { StatusCards } from './StatusCards';
-import { MachineList } from './MachineList';
-import { Printer3DVisualization } from './Printer3DVisualization';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Printer3DControlPanel } from './Printer3DControlPanel';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { AddMachineDialog } from './AddMachineDialog';
-import { MainNavigation } from './MainNavigation';
+import { Printer3DVisualization } from './Printer3DVisualization';
+import { Printer3DFileManager } from './Printer3DFileManager';
 
 export const Printer3DControlSystem = () => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedMachine, setSelectedMachine] = useState<string>('');
+  const [selectedMachineId, setSelectedMachineId] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
-  const [printerParams, setPrinterParams] = useState({});
+  const [printerParams, setPrinterParams] = useState<any>(null);
 
-  // Clear endpoint when machine changes
-  useEffect(() => {
-    setSelectedEndpoint('');
-  }, [selectedMachine]);
+  // Fetch 3D printers
+  const { data: printers, isLoading } = useQuery({
+    queryKey: ['printer_3d'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('printer_3d')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const selectedMachine = printers?.find(printer => printer.id === selectedMachineId);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MainNavigation />
-      
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">3D Printer Control System</h1>
-            <p className="text-gray-600">Monitor and control 3D printing operations</p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">3D Printer Control System</h1>
+        
+        {/* Machine Selection */}
+        <Card className="p-6 mb-6 bg-white border border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select 3D Printer
+              </label>
+              <Select value={selectedMachineId} onValueChange={setSelectedMachineId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a 3D printer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {printers?.map((printer) => (
+                    <SelectItem key={printer.id} value={printer.id}>
+                      {printer.name} - {printer.model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedMachine && (
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Machine Details
+                </label>
+                <div className="text-sm text-gray-600">
+                  <p>Model: {selectedMachine.model}</p>
+                  <p>Build Volume: {selectedMachine.max_build_volume_x}×{selectedMachine.max_build_volume_y}×{selectedMachine.max_build_volume_z}mm</p>
+                  <p>Nozzle: {selectedMachine.nozzle_diameter}mm</p>
+                  <p>Max Hotend: {selectedMachine.max_hotend_temp}°C</p>
+                  <p>Max Bed: {selectedMachine.max_bed_temp}°C</p>
+                </div>
+              </div>
+            )}
           </div>
-          <Button 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add 3D Printer
-          </Button>
-        </div>
+        </Card>
+
+        {selectedMachineId && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Control Panel */}
+            <div className="lg:col-span-1">
+              <Printer3DControlPanel 
+                selectedMachineId={selectedMachineId}
+                selectedEndpoint={selectedEndpoint}
+                onParametersChange={setPrinterParams}
+              />
+            </div>
+
+            {/* Visualization */}
+            <div className="lg:col-span-2 space-y-6">
+              <Printer3DVisualization 
+                selectedMachineId={selectedMachineId}
+                selectedEndpoint={selectedEndpoint}
+                printerParams={printerParams}
+                onEndpointSelect={setSelectedEndpoint}
+              />
+              
+              {/* File Manager */}
+              <Printer3DFileManager 
+                selectedMachineId={selectedMachineId}
+                selectedEndpoint={selectedEndpoint}
+              />
+            </div>
+          </div>
+        )}
+
+        {!selectedMachineId && (
+          <Card className="p-12 bg-white border border-gray-200">
+            <div className="text-center">
+              <p className="text-gray-500 text-lg">
+                {isLoading ? 'Loading 3D printers...' : 'Select a 3D printer to begin'}
+              </p>
+            </div>
+          </Card>
+        )}
       </div>
-
-      {/* Status Cards */}
-      <div className="px-6 py-4">
-        <StatusCards machineType="3d_printer" />
-      </div>
-
-      {/* Main Content */}
-      <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Machine List */}
-        <div className="w-80 flex-shrink-0">
-          <MachineList 
-            selectedMachine={selectedMachine}
-            onMachineSelect={setSelectedMachine}
-            machineType="3d_printer"
-          />
-        </div>
-
-        {/* Center - 3D Visualization and Endpoint Manager */}
-        <div className="flex-1 min-w-0 space-y-6">
-          <Printer3DVisualization 
-            selectedMachineId={selectedMachine}
-            selectedEndpoint={selectedEndpoint}
-            printerParams={printerParams}
-            onEndpointSelect={setSelectedEndpoint}
-          />
-        </div>
-
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-96 flex-shrink-0">
-          <Printer3DControlPanel 
-            selectedMachineId={selectedMachine}
-            onParametersChange={setPrinterParams}
-            selectedEndpoint={selectedEndpoint}
-          />
-        </div>
-      </div>
-
-      <AddMachineDialog 
-        open={isAddDialogOpen} 
-        onOpenChange={setIsAddDialogOpen}
-        machineType="3d_printer"
-      />
     </div>
   );
 };
