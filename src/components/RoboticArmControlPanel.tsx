@@ -73,7 +73,7 @@ export const RoboticArmControlPanel = ({
     }
   }, [selectedMachine]);
 
-  // Update parent with parameters
+  // Update parent with parameters whenever joint angles change
   useEffect(() => {
     if (selectedMachine && onParametersChange) {
       const params = {
@@ -144,6 +144,9 @@ export const RoboticArmControlPanel = ({
         title: "Configuration Saved",
         description: "Joint configuration saved successfully"
       });
+
+      // Refresh configurations
+      window.location.reload();
     } catch (error) {
       toast({
         title: "Save Failed",
@@ -189,6 +192,21 @@ export const RoboticArmControlPanel = ({
     }
   };
 
+  const moveToHomePosition = () => {
+    if (!selectedMachine) return;
+    
+    const homeAngles: JointControlParams = {};
+    for (let i = 1; i <= selectedMachine.joints; i++) {
+      homeAngles[`joint_${i}`] = [0];
+    }
+    setJointAngles(homeAngles);
+    
+    toast({
+      title: "Moving to Home",
+      description: "All joints set to home position (0°)"
+    });
+  };
+
   if (!selectedMachineId) {
     return (
       <Card className="p-4 bg-white border border-gray-200 h-full">
@@ -225,6 +243,16 @@ export const RoboticArmControlPanel = ({
             <span className="text-sm text-gray-600">Joints</span>
             <span className="text-sm font-medium">{selectedMachine?.joints || 6}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mb-6">
+        <h4 className="font-medium text-gray-900 mb-3">Quick Actions</h4>
+        <div className="space-y-2">
+          <Button onClick={moveToHomePosition} size="sm" className="w-full">
+            Move to Home Position
+          </Button>
         </div>
       </div>
 

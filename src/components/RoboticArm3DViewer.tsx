@@ -16,6 +16,13 @@ interface JointPosition {
   z: number;
 }
 
+interface MotionStep {
+  id: string;
+  jointAngles: number[];
+  duration: number;
+  description?: string;
+}
+
 interface RoboticArmProps {
   joints: number;
   jointAngles: number[];
@@ -26,6 +33,38 @@ function RoboticArmModel({ joints, jointAngles, maxReach }: RoboticArmProps) {
   const groupRef = useRef<THREE.Group>(null);
   const segmentLength = (maxReach / 1000) / joints; // Convert to meters and divide by joints
 
+  // Calculate joint positions based on angles
+  const calculateJointPositions = () => {
+    const positions = [];
+    let x = 0, y = 0, z = 0;
+    
+    for (let i = 0; i < joints; i++) {
+      const angle = (jointAngles[i] || 0) * Math.PI / 180; // Convert to radians
+      
+      if (i === 0) {
+        // Base rotation
+        x = 0;
+        y = segmentLength * (i + 1);
+        z = 0;
+      } else {
+        // Calculate position based on previous joint
+        const prevX = positions[i - 1]?.x || 0;
+        const prevY = positions[i - 1]?.y || segmentLength * i;
+        const prevZ = positions[i - 1]?.z || 0;
+        
+        x = prevX + segmentLength * Math.cos(angle);
+        y = prevY + segmentLength * Math.sin(angle);
+        z = prevZ;
+      }
+      
+      positions.push({ x, y, z, angle });
+    }
+    
+    return positions;
+  };
+
+  const jointPositions = calculateJointPositions();
+
   return (
     <group ref={groupRef}>
       {/* Base */}
@@ -35,49 +74,34 @@ function RoboticArmModel({ joints, jointAngles, maxReach }: RoboticArmProps) {
       </mesh>
 
       {/* Joints and Links */}
-      {Array.from({ length: joints }).map((_, index) => {
-        const angle = jointAngles[index] || 0;
-        const prevAngles = jointAngles.slice(0, index);
-        
-        // Calculate position based on previous joints
-        let x = 0, y = 0, z = 0;
-        let currentAngle = 0;
-        
-        for (let i = 0; i <= index; i++) {
-          const jointAngle = jointAngles[i] || 0;
-          if (i === 0) {
-            y = segmentLength * i;
-          } else {
-            currentAngle += jointAngle;
-            if (i % 2 === 0) {
-              z += segmentLength * Math.cos(currentAngle);
-              x += segmentLength * Math.sin(currentAngle);
-            } else {
-              y += segmentLength * Math.cos(currentAngle);
-              z += segmentLength * Math.sin(currentAngle);
-            }
-          }
-        }
-
-        return (
-          <group key={index}>
-            {/* Joint */}
-            <mesh position={[x, y + (segmentLength * index), z]}>
-              <sphereGeometry args={[0.05]} />
-              <meshStandardMaterial color="#e53e3e" />
-            </mesh>
-            
-            {/* Link */}
-            <mesh position={[x, y + (segmentLength * index) + segmentLength/2, z]}>
+      {jointPositions.map((pos, index) => (
+        <group key={index}>
+          {/* Joint */}
+          <mesh position={[pos.x, pos.y, pos.z]}>
+            <sphereGeometry args={[0.05]} />
+            <meshStandardMaterial color="#e53e3e" />
+          </mesh>
+          
+          {/* Link to next joint */}
+          {index < jointPositions.length - 1 && (
+            <mesh position={[
+              (pos.x + jointPositions[index + 1].x) / 2,
+              (pos.y + jointPositions[index + 1].y) / 2,
+              (pos.z + jointPositions[index + 1].z) / 2
+            ]}>
               <cylinderGeometry args={[0.03, 0.03, segmentLength]} />
               <meshStandardMaterial color="#4a90e2" />
             </mesh>
-          </group>
-        );
-      })}
+          )}
+        </group>
+      ))}
 
       {/* End Effector */}
-      <mesh position={[0, segmentLength * joints, 0]}>
+      <mesh position={[
+        jointPositions[jointPositions.length - 1]?.x || 0,
+        jointPositions[jointPositions.length - 1]?.y || segmentLength * joints,
+        jointPositions[jointPositions.length - 1]?.z || 0
+      ]}>
         <boxGeometry args={[0.1, 0.05, 0.1]} />
         <meshStandardMaterial color="#38a169" />
       </mesh>
@@ -104,9 +128,24 @@ export const RoboticArm3DViewer = ({
 }: RoboticArm3DViewerProps) => {
   const [jointAngles, setJointAngles] = useState<number[]>(new Array(joints).fill(0));
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSequence, setCurrentSequence] = useState<JointPosition[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [motionSequence, setMotionSequence] = useState<MotionStep[]>([]);
   const [savedSequences, setSavedSequences] = useState<any[]>([]);
   const { toast } = useToast();
+
+  // Update joint angles when roboticArmParams changes
+  useEffect(() => {
+    if (roboticArmParams?.jointAngles) {
+      const newAngles = new Array(joints).fill(0);
+      Object.keys(roboticArmParams.jointAngles).forEach(key => {
+        const jointIndex = parseInt(key.replace('joint_', '')) - 1;
+        if (jointIndex >= 0 && jointIndex < joints) {
+          newAngles[jointIndex] = roboticArmParams.jointAngles[key][0] || 0;
+        }
+      });
+      setJointAngles(newAngles);
+    }
+  }, [roboticArmParams, joints]);
 
   // Load saved sequences on mount
   useEffect(() => {
@@ -132,22 +171,33 @@ export const RoboticArm3DViewer = ({
     }
   };
 
-  const handlePlaySequence = () => {
-    if (!isPlaying && currentSequence.length > 0) {
-      setIsPlaying(true);
-      playSequence(currentSequence);
+  const handlePlaySequence = async () => {
+    if (!motionSequence.length) {
+      // Create a sequence from current position
+      const currentSequence: MotionStep[] = [
+        {
+          id: '1',
+          jointAngles: [...jointAngles],
+          duration: 2000,
+          description: 'Current position'
+        }
+      ];
+      setMotionSequence(currentSequence);
     }
-  };
 
-  const playSequence = async (sequence: JointPosition[]) => {
-    for (const position of sequence) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setJointAngles(prev => {
-        const newAngles = [...prev];
-        // Update angles based on position data
-        return newAngles;
-      });
+    setIsPlaying(true);
+    setCurrentStep(0);
+    
+    // Play through the sequence
+    for (let i = 0; i < motionSequence.length; i++) {
+      if (!isPlaying) break;
+      
+      setCurrentStep(i);
+      setJointAngles(motionSequence[i].jointAngles);
+      
+      await new Promise(resolve => setTimeout(resolve, motionSequence[i].duration));
     }
+    
     setIsPlaying(false);
   };
 
@@ -156,7 +206,9 @@ export const RoboticArm3DViewer = ({
   };
 
   const handleHomePosition = () => {
-    setJointAngles(new Array(joints).fill(0));
+    const homeAngles = new Array(joints).fill(0);
+    setJointAngles(homeAngles);
+    setIsPlaying(false);
     toast({
       title: "Home Position",
       description: "Robotic arm returned to home position"
@@ -177,12 +229,13 @@ export const RoboticArm3DViewer = ({
       const sequenceData = {
         robotic_arm_id: selectedMachineId,
         name: `Sequence_${Date.now()}`,
-        path_data: jointAngles.map((angle, index) => ({
-          joint: index + 1,
-          angle: angle,
-          timestamp: Date.now()
+        path_data: motionSequence.map((step, index) => ({
+          step: index + 1,
+          jointAngles: step.jointAngles,
+          duration: step.duration,
+          description: step.description
         })),
-        duration_seconds: jointAngles.length * 2
+        duration_seconds: motionSequence.reduce((total, step) => total + step.duration, 0) / 1000
       };
 
       const { error } = await supabase
@@ -262,7 +315,7 @@ export const RoboticArm3DViewer = ({
       jointAngles: jointAngles,
       maxReach: maxReach,
       maxPayload: maxPayload,
-      sequence: currentSequence
+      sequence: motionSequence
     };
 
     try {
@@ -278,6 +331,30 @@ export const RoboticArm3DViewer = ({
         variant: "destructive"
       });
     }
+  };
+
+  const addCurrentPositionToSequence = () => {
+    const newStep: MotionStep = {
+      id: Date.now().toString(),
+      jointAngles: [...jointAngles],
+      duration: 2000,
+      description: `Step ${motionSequence.length + 1}`
+    };
+    setMotionSequence([...motionSequence, newStep]);
+    toast({
+      title: "Step Added",
+      description: `Added step ${motionSequence.length + 1} to sequence`
+    });
+  };
+
+  const clearSequence = () => {
+    setMotionSequence([]);
+    setCurrentStep(0);
+    setIsPlaying(false);
+    toast({
+      title: "Sequence Cleared",
+      description: "Motion sequence cleared"
+    });
   };
 
   return (
@@ -298,9 +375,12 @@ export const RoboticArm3DViewer = ({
               <Home className="w-4 h-4 mr-2" />
               Home
             </Button>
-            <Button onClick={handleSaveSequence} size="sm" variant="outline">
+            <Button onClick={addCurrentPositionToSequence} size="sm" variant="outline">
               <Save className="w-4 h-4 mr-2" />
-              Save
+              Add Step
+            </Button>
+            <Button onClick={clearSequence} size="sm" variant="outline">
+              Clear Sequence
             </Button>
             <Button onClick={handleDownloadGCode} size="sm" variant="outline">
               <Download className="w-4 h-4 mr-2" />
@@ -334,6 +414,19 @@ export const RoboticArm3DViewer = ({
           </div>
         </div>
 
+        {/* Sequence Status */}
+        {motionSequence.length > 0 && (
+          <div className="mb-4 p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <span>Sequence: {motionSequence.length} steps</span>
+              <span>Current Step: {currentStep + 1}</span>
+              <span className={isPlaying ? "text-green-600" : "text-gray-600"}>
+                Status: {isPlaying ? "Playing" : "Stopped"}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="h-96 bg-gray-50 rounded-lg border">
           <Canvas 
             camera={{
@@ -357,6 +450,7 @@ export const RoboticArm3DViewer = ({
         <div className="mt-4 text-sm text-gray-600">
           <p>Joints: {joints} | Max Reach: {maxReach}mm | Max Payload: {maxPayload}kg</p>
           <p>Use mouse to rotate, scroll to zoom, right-click to pan</p>
+          <p>Current Joint Angles: {jointAngles.map(a => a.toFixed(1)).join(', ')}°</p>
         </div>
       </Card>
     </div>

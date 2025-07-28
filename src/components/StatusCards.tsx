@@ -1,21 +1,17 @@
+
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Metric } from './Metric';
+import { Card } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Metric } from './Metric';
 
 interface StatusCardsProps {
   machineType: 'cnc' | 'laser' | '3d_printer' | 'robotic_arms';
 }
 
-interface Machine {
-  id: string;
-  name: string;
-  status: string;
-}
-
 export const StatusCards = ({ machineType }: StatusCardsProps) => {
-  const getMachineQuery = () => {
+  // Get the correct table name based on machine type
+  const getTableName = () => {
     switch (machineType) {
       case 'cnc':
         return 'cnc_machines';
@@ -30,36 +26,26 @@ export const StatusCards = ({ machineType }: StatusCardsProps) => {
     }
   };
 
-  const { data: machines = [], isLoading } = useQuery({
-    queryKey: [getMachineQuery()],
+  const { data: machines = [] } = useQuery({
+    queryKey: [`${machineType}_machines`],
     queryFn: async () => {
-      const tableName = getMachineQuery();
-      console.log(`Fetching machines from table: ${tableName}`);
-      
-      let query: any;
-      if (tableName === 'printer_3d') {
-        query = (supabase as any).from(tableName).select('*');
-      } else {
-        query = supabase.from(tableName).select('*');
-      }
-      
-      const { data, error } = await query;
-      if (error) {
-        console.error('Query error:', error);
-        throw error;
-      }
-      console.log(`Fetched ${data?.length || 0} machines from ${tableName}`);
-      return data as Machine[];
-    }
+      const { data, error } = await supabase
+        .from(getTableName())
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
   });
 
-  const totalMachines = machines?.length || 0;
-  const runningMachines = machines?.filter(machine => machine.status === 'running').length || 0;
-  const idleMachines = machines?.filter(machine => machine.status === 'idle').length || 0;
-  const errorMachines = machines?.filter(machine => machine.status === 'error').length || 0;
-  const maintenanceMachines = machines?.filter(machine => machine.status === 'maintenance').length || 0;
+  // Calculate metrics based on machine data
+  const totalMachines = machines.length;
+  const runningMachines = machines.filter(m => m.status === 'running').length;
+  const idleMachines = machines.filter(m => m.status === 'idle').length;
+  const errorMachines = machines.filter(m => m.status === 'error').length;
+  const maintenanceMachines = machines.filter(m => m.status === 'maintenance').length;
 
-  const getMachineTypeLabel = () => {
+  // Get machine type display name
+  const getMachineTypeDisplay = () => {
     switch (machineType) {
       case 'cnc':
         return 'CNC';
@@ -74,56 +60,38 @@ export const StatusCards = ({ machineType }: StatusCardsProps) => {
     }
   };
 
+  const machineTypeDisplay = getMachineTypeDisplay();
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Total {getMachineTypeLabel()} Machines</CardTitle>
-          <CardDescription>Total number of {machineType} machines</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Metric value={totalMachines.toString()} delta="+5% vs last month" />
-        </CardContent>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <Card className="p-4">
+        <h3 className="text-sm font-medium text-gray-600 mb-2">Total {machineTypeDisplay} Machines</h3>
+        <p className="text-xs text-gray-500 mb-2">Total number of {machineType.replace('_', ' ')} machines</p>
+        <Metric value={totalMachines.toString()} delta="+5% vs last month" />
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Running {getMachineTypeLabel()} Machines</CardTitle>
-          <CardDescription>Number of machines currently running</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Metric value={runningMachines.toString()} delta="+10% vs last month" />
-        </CardContent>
+      <Card className="p-4">
+        <h3 className="text-sm font-medium text-gray-600 mb-2">Running {machineTypeDisplay} Machines</h3>
+        <p className="text-xs text-gray-500 mb-2">Number of machines currently running</p>
+        <Metric value={runningMachines.toString()} delta="+10% vs last month" />
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Idle {getMachineTypeLabel()} Machines</CardTitle>
-          <CardDescription>Number of machines currently idle</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Metric value={idleMachines.toString()} delta="-3% vs last month" />
-        </CardContent>
+      <Card className="p-4">
+        <h3 className="text-sm font-medium text-gray-600 mb-2">Idle {machineTypeDisplay} Machines</h3>
+        <p className="text-xs text-gray-500 mb-2">Number of machines currently idle</p>
+        <Metric value={idleMachines.toString()} delta="-3% vs last month" />
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Error {getMachineTypeLabel()} Machines</CardTitle>
-          <CardDescription>Number of machines with errors</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Metric value={errorMachines.toString()} delta="+15% vs last month" />
-        </CardContent>
+      <Card className="p-4">
+        <h3 className="text-sm font-medium text-gray-600 mb-2">Error {machineTypeDisplay} Machines</h3>
+        <p className="text-xs text-gray-500 mb-2">Number of machines with errors</p>
+        <Metric value={errorMachines.toString()} delta="+15% vs last month" />
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Maintenance {getMachineTypeLabel()} Machines</CardTitle>
-          <CardDescription>Number of machines under maintenance</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Metric value={maintenanceMachines.toString()} delta="+2% vs last month" />
-        </CardContent>
+      <Card className="p-4">
+        <h3 className="text-sm font-medium text-gray-600 mb-2">Maintenance {machineTypeDisplay} Machines</h3>
+        <p className="text-xs text-gray-500 mb-2">Number of machines under maintenance</p>
+        <Metric value={maintenanceMachines.toString()} delta="+2% vs last month" />
       </Card>
     </div>
   );
