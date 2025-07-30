@@ -64,6 +64,7 @@ export const LaserMarkingControlSystem = () => {
             selectedEndpoint={selectedEndpoint}
             cncParams={laserParams}
             onEndpointSelect={setSelectedEndpoint}
+            machineType="laser"
           />
         </div>
 

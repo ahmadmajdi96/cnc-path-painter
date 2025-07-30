@@ -25,9 +25,16 @@ interface CNCVisualizationProps {
   selectedEndpoint?: string;
   cncParams?: any;
   onEndpointSelect?: (endpoint: string) => void;
+  machineType?: 'cnc' | 'laser';
 }
 
-export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParams, onEndpointSelect }: CNCVisualizationProps) => {
+export const CNCVisualization = ({ 
+  selectedMachineId, 
+  selectedEndpoint, 
+  cncParams, 
+  onEndpointSelect,
+  machineType = 'cnc'
+}: CNCVisualizationProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -51,7 +58,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     ...cncParams
   };
 
-  // Clear points when machine changes
+  // Clear points when machine changes but preserve endpoint selection
   useEffect(() => {
     if (selectedMachineId) {
       setPoints([]);
@@ -63,22 +70,26 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     }
   }, [selectedMachineId]);
 
+  // Determine which table to query based on machine type
+  const machineTable = machineType === 'laser' ? 'laser_machines' : 'cnc_machines';
+  const toolpathForeignKey = machineType === 'laser' ? 'laser_machine_id' : 'cnc_machine_id';
+
   // Fetch selected machine data
   const { data: selectedMachine } = useQuery({
-    queryKey: ['cnc-machine', selectedMachineId],
+    queryKey: [machineTable, selectedMachineId],
     queryFn: async () => {
       if (!selectedMachineId) return null;
-      console.log('Fetching CNC machine:', selectedMachineId);
+      console.log(`Fetching ${machineType} machine:`, selectedMachineId);
       const { data, error } = await supabase
-        .from('cnc_machines')
+        .from(machineTable)
         .select('*')
         .eq('id', selectedMachineId)
         .single();
       if (error) {
-        console.error('Error fetching CNC machine:', error);
+        console.error(`Error fetching ${machineType} machine:`, error);
         throw error;
       }
-      console.log('Fetched CNC machine:', data);
+      console.log(`Fetched ${machineType} machine:`, data);
       return data;
     },
     enabled: !!selectedMachineId
@@ -86,20 +97,20 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
 
   // Fetch toolpaths for selected machine
   const { data: toolpaths = [] } = useQuery({
-    queryKey: ['cnc-toolpaths', selectedMachineId],
+    queryKey: ['toolpaths', selectedMachineId, machineType],
     queryFn: async () => {
       if (!selectedMachineId) return [];
-      console.log('Fetching toolpaths for CNC machine:', selectedMachineId);
+      console.log(`Fetching toolpaths for ${machineType} machine:`, selectedMachineId);
       const { data, error } = await supabase
         .from('toolpaths')
         .select('*')
-        .eq('cnc_machine_id', selectedMachineId)
+        .eq(toolpathForeignKey, selectedMachineId)
         .order('created_at', { ascending: false });
       if (error) {
-        console.error('Error fetching CNC toolpaths:', error);
+        console.error(`Error fetching ${machineType} toolpaths:`, error);
         throw error;
       }
-      console.log('Fetched CNC toolpaths:', data);
+      console.log(`Fetched ${machineType} toolpaths:`, data);
       return data;
     },
     enabled: !!selectedMachineId
@@ -110,24 +121,26 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
-      console.log('Saving CNC toolpath:', { selectedMachineId, points, defaultCncParams });
+      const insertData = {
+        name: toolpathName || `Toolpath ${Date.now()}`,
+        points: points as any,
+        machine_params: defaultCncParams as any,
+        [toolpathForeignKey]: selectedMachineId
+      };
+      
+      console.log(`Saving ${machineType} toolpath:`, insertData);
       const { error } = await supabase
         .from('toolpaths')
-        .insert({
-          cnc_machine_id: selectedMachineId,
-          name: toolpathName || `Toolpath ${Date.now()}`,
-          points: points as any,
-          machine_params: defaultCncParams as any
-        });
+        .insert(insertData);
       
       if (error) {
-        console.error('Error saving CNC toolpath:', error);
+        console.error(`Error saving ${machineType} toolpath:`, error);
         throw error;
       }
-      console.log('CNC toolpath saved successfully');
+      console.log(`${machineType} toolpath saved successfully`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cnc-toolpaths', selectedMachineId] });
+      queryClient.invalidateQueries({ queryKey: ['toolpaths', selectedMachineId, machineType] });
       setToolpathName('');
       toast({
         title: "Success",
@@ -201,14 +214,14 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
   useEffect(() => {
     if (toolpaths.length > 0 && selectedMachineId && !hasAutoLoaded[selectedMachineId] && !loadedToolpathId && points.length === 0) {
       const latestToolpath = toolpaths[0];
-      console.log('Auto-loading latest CNC toolpath:', latestToolpath);
+      console.log(`Auto-loading latest ${machineType} toolpath:`, latestToolpath);
       loadToolpath(latestToolpath);
       setHasAutoLoaded(prev => ({ ...prev, [selectedMachineId]: true }));
     }
-  }, [toolpaths, selectedMachineId, hasAutoLoaded, loadedToolpathId, points.length]);
+  }, [toolpaths, selectedMachineId, hasAutoLoaded, loadedToolpathId, points.length, machineType]);
 
   const loadToolpath = (toolpath: Toolpath) => {
-    console.log('Loading CNC toolpath, clearing previous points:', toolpath);
+    console.log(`Loading ${machineType} toolpath, clearing previous points:`, toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
       ? (toolpath.points as unknown as Point[])
       : [];
@@ -273,7 +286,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
   const generateGCode = () => {
     if (points.length === 0) return '';
 
-    let gcode = '; Generated CNC G-Code\n';
+    let gcode = `; Generated ${machineType.toUpperCase()} G-Code\n`;
     gcode += `; Machine: ${selectedMachine?.name || 'Unknown'}\n`;
     gcode += `; Date: ${new Date().toISOString()}\n`;
     gcode += 'G21 ; Set units to millimeters\n';
@@ -380,14 +393,14 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
         z: (typeof p.z === 'number' ? p.z : 0).toFixed(3)
       })),
       machine_id: selectedMachineId,
-      machine_type: 'cnc',
+      machine_type: machineType,
       timestamp: new Date().toISOString()
     };
 
     try {
       toast({
         title: "Sending Configuration...",
-        description: "Please wait while we send your CNC configuration",
+        description: `Please wait while we send your ${machineType.toUpperCase()} configuration`,
       });
 
       const response = await fetch(selectedEndpoint, {
@@ -402,7 +415,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
         const responseData = await response.json().catch(() => ({}));
         toast({
           title: "✅ Configuration Sent Successfully",
-          description: `CNC configuration with ${points.length} points sent to ${new URL(selectedEndpoint).hostname}`,
+          description: `${machineType.toUpperCase()} configuration with ${points.length} points sent to ${new URL(selectedEndpoint).hostname}`,
         });
       } else {
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -432,14 +445,16 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
   // Convert 3D points to 2D for visualization
   const points2D = points.map(p => ({ x: p.x, y: p.y }));
 
+  const visualizationTitle = machineType === 'laser' ? 'Laser Marking Visualization' : 'Realistic CNC 2D Visualization';
+
   return (
     <div className="space-y-6">
       {/* CNC Visualization */}
       <Card className="p-4 bg-white border border-gray-200">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Realistic CNC 2D Visualization</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{visualizationTitle}</h3>
           {!selectedMachineId && (
-            <p className="text-gray-600 text-sm">Select a CNC machine to start creating toolpaths</p>
+            <p className="text-gray-600 text-sm">Select a {machineType} machine to start creating toolpaths</p>
           )}
         </div>
 
@@ -454,7 +469,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
               onAddPoint={addPoint}
               onClearPoints={clearPoints}
               laserParams={laserCompatibleParams}
-              machineName={selectedMachine?.name || 'CNC Machine'}
+              machineName={selectedMachine?.name || `${machineType.toUpperCase()} Machine`}
             />
 
             <div className="flex flex-wrap gap-2 mt-4">
@@ -479,7 +494,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
                 onClick={sendConfigurationToEndpoint}
                 disabled={points.length === 0 || !selectedEndpoint}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className={machineType === 'laser' ? "bg-purple-600 hover:bg-purple-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Send Configuration
@@ -561,7 +576,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
           selectedMachineId={selectedMachineId}
           onEndpointSelect={onEndpointSelect || (() => {})}
           selectedEndpoint={selectedEndpoint || ''}
-          machineType="cnc"
+          machineType={machineType}
         />
       )}
 
@@ -571,7 +586,7 @@ export const CNCVisualization = ({ selectedMachineId, selectedEndpoint, cncParam
           <h4 className="font-medium text-gray-900 mb-2">Send G-Code</h4>
           <Button
             onClick={sendGCodeToEndpoint}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className={machineType === 'laser' ? "w-full bg-purple-600 hover:bg-purple-700" : "w-full bg-blue-600 hover:bg-blue-700"}
           >
             Send G-Code to Machine
           </Button>
