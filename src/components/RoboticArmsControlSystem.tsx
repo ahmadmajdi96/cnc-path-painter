@@ -1,114 +1,86 @@
 
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RoboticArmControlPanel } from './RoboticArmControlPanel';
+import React, { useState, useEffect } from 'react';
+import { StatusCards } from './StatusCards';
+import { MachineList } from './MachineList';
 import { RoboticArmVisualization } from './RoboticArmVisualization';
-import { RoboticArmFileManager } from './RoboticArmFileManager';
+import { RoboticArmControlPanel } from './RoboticArmControlPanel';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { AddRoboticArmDialog } from './AddRoboticArmDialog';
+import { MainNavigation } from './MainNavigation';
 
 export const RoboticArmsControlSystem = () => {
-  const [selectedMachineId, setSelectedMachineId] = useState<string>('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
-  const [roboticArmParams, setRoboticArmParams] = useState<any>(null);
+  const [roboticArmParams, setRoboticArmParams] = useState({});
 
-  // Fetch robotic arms
-  const { data: roboticArms, isLoading } = useQuery({
-    queryKey: ['robotic_arms'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('robotic_arms')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const selectedMachine = roboticArms?.find(arm => arm.id === selectedMachineId);
+  // Clear endpoint when machine changes
+  useEffect(() => {
+    setSelectedEndpoint('');
+  }, [selectedMachine]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Robotic Arms Control System</h1>
-        
-        {/* Machine Selection */}
-        <Card className="p-6 mb-6 bg-white border border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Robotic Arm
-              </label>
-              <Select value={selectedMachineId} onValueChange={setSelectedMachineId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a robotic arm..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {roboticArms?.map((arm) => (
-                    <SelectItem key={arm.id} value={arm.id}>
-                      {arm.name} - {arm.model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedMachine && (
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Machine Details
-                </label>
-                <div className="text-sm text-gray-600">
-                  <p>Model: {selectedMachine.model}</p>
-                  <p>Joints: {selectedMachine.joints}</p>
-                  <p>Max Reach: {selectedMachine.max_reach}mm</p>
-                  <p>Max Payload: {selectedMachine.max_payload}kg</p>
-                </div>
-              </div>
-            )}
+    <div className="min-h-screen bg-gray-50">
+      <MainNavigation />
+      
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Robotic Arms Control System</h1>
+            <p className="text-gray-600">Monitor and control industrial robotic arms</p>
           </div>
-        </Card>
-
-        {selectedMachineId && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Control Panel */}
-            <div className="lg:col-span-1">
-              <RoboticArmControlPanel 
-                selectedMachineId={selectedMachineId}
-                selectedEndpoint={selectedEndpoint}
-                onParametersChange={setRoboticArmParams}
-              />
-            </div>
-
-            {/* Visualization */}
-            <div className="lg:col-span-2 space-y-6">
-              <RoboticArmVisualization 
-                selectedMachineId={selectedMachineId}
-                selectedEndpoint={selectedEndpoint}
-                roboticArmParams={roboticArmParams}
-                onEndpointSelect={setSelectedEndpoint}
-              />
-              
-              {/* File Manager */}
-              <RoboticArmFileManager 
-                selectedMachineId={selectedMachineId}
-                selectedEndpoint={selectedEndpoint}
-              />
-            </div>
-          </div>
-        )}
-
-        {!selectedMachineId && (
-          <Card className="p-12 bg-white border border-gray-200">
-            <div className="text-center">
-              <p className="text-gray-500 text-lg">
-                {isLoading ? 'Loading robotic arms...' : 'Select a robotic arm to begin'}
-              </p>
-            </div>
-          </Card>
-        )}
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Robot
+          </Button>
+        </div>
       </div>
+
+      {/* Status Cards */}
+      <div className="px-6 py-4">
+        <StatusCards machineType="robotic_arms" />
+      </div>
+
+      {/* Main Content */}
+      <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
+        {/* Left Sidebar - Machine List */}
+        <div className="w-80 flex-shrink-0">
+          <MachineList 
+            selectedMachine={selectedMachine}
+            onMachineSelect={setSelectedMachine}
+            machineType="robotic_arms"
+          />
+        </div>
+
+        {/* Center - 3D Visualization and Endpoint Manager */}
+        <div className="flex-1 min-w-0 space-y-6">
+          <RoboticArmVisualization 
+            selectedMachineId={selectedMachine}
+            selectedEndpoint={selectedEndpoint}
+            roboticArmParams={roboticArmParams}
+            onEndpointSelect={setSelectedEndpoint}
+          />
+        </div>
+
+        {/* Right Sidebar - Control Panel */}
+        <div className="w-96 flex-shrink-0">
+          <RoboticArmControlPanel 
+            selectedMachineId={selectedMachine}
+            onParametersChange={setRoboticArmParams}
+            selectedEndpoint={selectedEndpoint}
+          />
+        </div>
+      </div>
+
+      <AddRoboticArmDialog 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen}
+      />
     </div>
   );
 };

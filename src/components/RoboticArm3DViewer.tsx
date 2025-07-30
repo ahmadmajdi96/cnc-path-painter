@@ -1,9 +1,10 @@
+
 import React, { useRef, useState, useCallback, Suspense, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stage } from '@react-three/drei';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Square, Home, Save, Download, Send, Pause } from 'lucide-react';
+import { Play, Square, Home, Save, Download, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import * as THREE from 'three';
@@ -26,49 +27,34 @@ interface RoboticArmProps {
   joints: number;
   jointAngles: number[];
   maxReach: number;
-  isAnimating?: boolean;
 }
 
-function RoboticArmModel({ joints, jointAngles, maxReach, isAnimating }: RoboticArmProps) {
+function RoboticArmModel({ joints, jointAngles, maxReach }: RoboticArmProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const [animatedAngles, setAnimatedAngles] = useState<number[]>(jointAngles);
-  const segmentLength = (maxReach / 1000) / joints;
+  const segmentLength = (maxReach / 1000) / joints; // Convert to meters and divide by joints
 
-  // Animate joint angles smoothly
-  useFrame((state, delta) => {
-    if (isAnimating) {
-      setAnimatedAngles(prev => 
-        prev.map((angle, i) => {
-          const target = jointAngles[i] || 0;
-          const diff = target - angle;
-          const speed = 2; // Animation speed
-          return angle + diff * speed * delta;
-        })
-      );
-    } else {
-      setAnimatedAngles(jointAngles);
-    }
-  });
-
+  // Calculate joint positions based on angles
   const calculateJointPositions = () => {
     const positions = [];
     let x = 0, y = 0, z = 0;
     
     for (let i = 0; i < joints; i++) {
-      const angle = (animatedAngles[i] || 0) * Math.PI / 180;
+      const angle = (jointAngles[i] || 0) * Math.PI / 180; // Convert to radians
       
       if (i === 0) {
-        x = segmentLength * Math.cos(angle);
+        // Base rotation
+        x = 0;
         y = segmentLength * (i + 1);
-        z = segmentLength * Math.sin(angle);
+        z = 0;
       } else {
+        // Calculate position based on previous joint
         const prevX = positions[i - 1]?.x || 0;
         const prevY = positions[i - 1]?.y || segmentLength * i;
         const prevZ = positions[i - 1]?.z || 0;
         
         x = prevX + segmentLength * Math.cos(angle);
-        y = prevY + segmentLength * 0.5;
-        z = prevZ + segmentLength * Math.sin(angle);
+        y = prevY + segmentLength * Math.sin(angle);
+        z = prevZ;
       }
       
       positions.push({ x, y, z, angle });
@@ -142,12 +128,9 @@ export const RoboticArm3DViewer = ({
 }: RoboticArm3DViewerProps) => {
   const [jointAngles, setJointAngles] = useState<number[]>(new Array(joints).fill(0));
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [motionSequence, setMotionSequence] = useState<MotionStep[]>([]);
   const [savedSequences, setSavedSequences] = useState<any[]>([]);
-  const playbackRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
 
   // Update joint angles when roboticArmParams changes
@@ -161,8 +144,6 @@ export const RoboticArm3DViewer = ({
         }
       });
       setJointAngles(newAngles);
-      setIsAnimating(true);
-      setTimeout(() => setIsAnimating(false), 1000);
     }
   }, [roboticArmParams, joints]);
 
@@ -192,18 +173,20 @@ export const RoboticArm3DViewer = ({
 
   const handlePlaySequence = async () => {
     if (!motionSequence.length) {
-      toast({
-        title: "No Sequence",
-        description: "Please add steps to create a motion sequence",
-        variant: "destructive"
-      });
-      return;
+      // Create a sequence from current position
+      const currentSequence: MotionStep[] = [
+        {
+          id: '1',
+          jointAngles: [...jointAngles],
+          duration: 2000,
+          description: 'Current position'
+        }
+      ];
+      setMotionSequence(currentSequence);
     }
 
     setIsPlaying(true);
-    setIsPaused(false);
     setCurrentStep(0);
-    setIsAnimating(true);
     
     // Play through the sequence
     for (let i = 0; i < motionSequence.length; i++) {
@@ -212,45 +195,20 @@ export const RoboticArm3DViewer = ({
       setCurrentStep(i);
       setJointAngles(motionSequence[i].jointAngles);
       
-      await new Promise(resolve => {
-        playbackRef.current = setTimeout(resolve, motionSequence[i].duration);
-      });
+      await new Promise(resolve => setTimeout(resolve, motionSequence[i].duration));
     }
     
     setIsPlaying(false);
-    setIsAnimating(false);
-    
-    toast({
-      title: "Sequence Complete",
-      description: "Motion sequence playback finished"
-    });
-  };
-
-  const handlePauseSequence = () => {
-    setIsPaused(true);
-    setIsPlaying(false);
-    if (playbackRef.current) {
-      clearTimeout(playbackRef.current);
-    }
   };
 
   const handleStopSequence = () => {
     setIsPlaying(false);
-    setIsPaused(false);
-    setIsAnimating(false);
-    setCurrentStep(0);
-    if (playbackRef.current) {
-      clearTimeout(playbackRef.current);
-    }
   };
 
   const handleHomePosition = () => {
     const homeAngles = new Array(joints).fill(0);
     setJointAngles(homeAngles);
     setIsPlaying(false);
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 1000);
-    
     toast({
       title: "Home Position",
       description: "Robotic arm returned to home position"
@@ -267,15 +225,6 @@ export const RoboticArm3DViewer = ({
       return;
     }
 
-    if (motionSequence.length === 0) {
-      toast({
-        title: "Error",
-        description: "No motion sequence to save",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       const sequenceData = {
         robotic_arm_id: selectedMachineId,
@@ -284,7 +233,7 @@ export const RoboticArm3DViewer = ({
           step: index + 1,
           jointAngles: step.jointAngles,
           duration: step.duration,
-          description: step.description || `Step ${index + 1}`
+          description: step.description
         })),
         duration_seconds: motionSequence.reduce((total, step) => total + step.duration, 0) / 1000
       };
@@ -302,42 +251,12 @@ export const RoboticArm3DViewer = ({
       
       loadSavedSequences();
     } catch (error) {
-      console.error('Error saving sequence:', error);
       toast({
         title: "Save Failed",
         description: "Failed to save sequence",
         variant: "destructive"
       });
     }
-  };
-
-  const addCurrentPositionToSequence = () => {
-    const newStep: MotionStep = {
-      id: Date.now().toString(),
-      jointAngles: [...jointAngles],
-      duration: 2000,
-      description: `Step ${motionSequence.length + 1}`
-    };
-    setMotionSequence([...motionSequence, newStep]);
-    toast({
-      title: "Step Added",
-      description: `Added step ${motionSequence.length + 1} to sequence`
-    });
-  };
-
-  const clearSequence = () => {
-    setMotionSequence([]);
-    setCurrentStep(0);
-    setIsPlaying(false);
-    setIsPaused(false);
-    setIsAnimating(false);
-    if (playbackRef.current) {
-      clearTimeout(playbackRef.current);
-    }
-    toast({
-      title: "Sequence Cleared",
-      description: "Motion sequence cleared"
-    });
   };
 
   const handleDownloadGCode = () => {
@@ -414,21 +333,41 @@ export const RoboticArm3DViewer = ({
     }
   };
 
+  const addCurrentPositionToSequence = () => {
+    const newStep: MotionStep = {
+      id: Date.now().toString(),
+      jointAngles: [...jointAngles],
+      duration: 2000,
+      description: `Step ${motionSequence.length + 1}`
+    };
+    setMotionSequence([...motionSequence, newStep]);
+    toast({
+      title: "Step Added",
+      description: `Added step ${motionSequence.length + 1} to sequence`
+    });
+  };
+
+  const clearSequence = () => {
+    setMotionSequence([]);
+    setCurrentStep(0);
+    setIsPlaying(false);
+    toast({
+      title: "Sequence Cleared",
+      description: "Motion sequence cleared"
+    });
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Robotic Arm - 3D Visualization</h3>
           <div className="flex gap-2">
-            <Button onClick={handlePlaySequence} disabled={isPlaying || isPaused} size="sm">
+            <Button onClick={handlePlaySequence} disabled={isPlaying} size="sm">
               <Play className="w-4 h-4 mr-2" />
               Play Sequence
             </Button>
-            <Button onClick={handlePauseSequence} disabled={!isPlaying} size="sm" variant="outline">
-              <Pause className="w-4 h-4 mr-2" />
-              Pause
-            </Button>
-            <Button onClick={handleStopSequence} disabled={!isPlaying && !isPaused} size="sm" variant="outline">
+            <Button onClick={handleStopSequence} disabled={!isPlaying} size="sm" variant="outline">
               <Square className="w-4 h-4 mr-2" />
               Stop
             </Button>
@@ -443,8 +382,18 @@ export const RoboticArm3DViewer = ({
             <Button onClick={clearSequence} size="sm" variant="outline">
               Clear Sequence
             </Button>
-            <Button onClick={handleSaveSequence} size="sm" variant="default">
-              Save Sequence
+            <Button onClick={handleDownloadGCode} size="sm" variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Download G-Code
+            </Button>
+            <Button 
+              onClick={handleSendToConfiguration} 
+              size="sm" 
+              variant="default"
+              disabled={!selectedMachineId || !selectedEndpoint}
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Send to Configuration
             </Button>
           </div>
         </div>
@@ -471,8 +420,8 @@ export const RoboticArm3DViewer = ({
             <div className="flex items-center justify-between text-sm">
               <span>Sequence: {motionSequence.length} steps</span>
               <span>Current Step: {currentStep + 1}</span>
-              <span className={isPlaying ? "text-green-600" : isPaused ? "text-orange-600" : "text-gray-600"}>
-                Status: {isPlaying ? "Playing" : isPaused ? "Paused" : "Stopped"}
+              <span className={isPlaying ? "text-green-600" : "text-gray-600"}>
+                Status: {isPlaying ? "Playing" : "Stopped"}
               </span>
             </div>
           </div>
@@ -491,7 +440,6 @@ export const RoboticArm3DViewer = ({
                   joints={joints}
                   jointAngles={jointAngles}
                   maxReach={maxReach}
-                  isAnimating={isAnimating}
                 />
               </Stage>
             </Suspense>
@@ -503,7 +451,6 @@ export const RoboticArm3DViewer = ({
           <p>Joints: {joints} | Max Reach: {maxReach}mm | Max Payload: {maxPayload}kg</p>
           <p>Use mouse to rotate, scroll to zoom, right-click to pan</p>
           <p>Current Joint Angles: {jointAngles.map(a => a.toFixed(1)).join(', ')}°</p>
-          {isAnimating && <p className="text-blue-600">● Animating to new position...</p>}
         </div>
       </Card>
     </div>
