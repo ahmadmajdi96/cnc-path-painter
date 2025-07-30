@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { navItems } from "./nav-items";
 import Index from "./pages/Index";
 import LaserControl from "./pages/LaserControl";
+import LaserMarking from "./pages/LaserMarking";
 import Printer3D from "./pages/Printer3D";
 import RoboticArms from "./pages/RoboticArms";
 import NotFound from "./pages/NotFound";
@@ -20,6 +21,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/laser-control" element={<LaserControl />} />
+          <Route path="/laser-marking" element={<LaserMarking />} />
           <Route path="/3d-printer" element={<Printer3D />} />
           <Route path="/robotic-arms" element={<RoboticArms />} />
           <Route path="*" element={<NotFound />} />
