@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
-import { LaserVisualization } from './LaserVisualization';
+import { CNCVisualization } from './CNCVisualization';
 import { LaserControlPanel } from './LaserControlPanel';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -59,10 +59,10 @@ export const LaserMarkingControlSystem = () => {
 
         {/* Center - 2D Visualization and Endpoint Manager */}
         <div className="flex-1 min-w-0 space-y-6">
-          <LaserVisualization 
+          <CNCVisualization 
             selectedMachineId={selectedMachine}
             selectedEndpoint={selectedEndpoint}
-            laserParams={laserParams}
+            cncParams={laserParams}
             onEndpointSelect={setSelectedEndpoint}
           />
         </div>
