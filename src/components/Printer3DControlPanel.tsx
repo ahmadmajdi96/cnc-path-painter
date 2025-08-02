@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,6 +103,17 @@ export const Printer3DControlPanel = ({
       description: "Print job stopped immediately",
       variant: "destructive"
     });
+  };
+
+  const getEndpointHostname = (endpoint: string) => {
+    try {
+      // Try to construct URL, if it fails, return the original string
+      const url = new URL(endpoint.startsWith('http') ? endpoint : `http://${endpoint}`);
+      return url.hostname;
+    } catch {
+      // If URL construction fails, just return the endpoint as is
+      return endpoint;
+    }
   };
 
   if (!selectedMachineId) {
@@ -242,7 +254,7 @@ export const Printer3DControlPanel = ({
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Send Actions</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Connected to: {new URL(selectedEndpoint).hostname}
+            Connected to: {getEndpointHostname(selectedEndpoint)}
           </p>
           <div className="space-y-2">
             <Button
