@@ -15,6 +15,22 @@ export const CNCControlSystem = () => {
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [cncParams, setCncParams] = useState({});
 
+  // Persist endpoint selection across page reloads
+  useEffect(() => {
+    const savedEndpoint = localStorage.getItem(`cnc-endpoint-${selectedMachine}`);
+    if (savedEndpoint && selectedMachine) {
+      setSelectedEndpoint(savedEndpoint);
+    }
+  }, [selectedMachine]);
+
+  // Save endpoint selection to localStorage
+  const handleEndpointSelect = (endpoint: string) => {
+    setSelectedEndpoint(endpoint);
+    if (selectedMachine && endpoint) {
+      localStorage.setItem(`cnc-endpoint-${selectedMachine}`, endpoint);
+    }
+  };
+
   // Clear endpoint when machine changes
   useEffect(() => {
     setSelectedEndpoint('');
@@ -47,9 +63,9 @@ export const CNCControlSystem = () => {
       </div>
 
       {/* Main Content */}
-      <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
+      <div className="px-6 pb-6 flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-200px)]">
         {/* Left Sidebar - Machine List */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-full lg:w-80 flex-shrink-0">
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
@@ -58,17 +74,17 @@ export const CNCControlSystem = () => {
         </div>
 
         {/* Center - 2D Visualization and Endpoint Manager */}
-        <div className="flex-1 min-w-0 space-y-6">
+        <div className="flex-1 min-w-0 space-y-6 overflow-hidden">
           <CNCVisualization 
             selectedMachineId={selectedMachine}
             selectedEndpoint={selectedEndpoint}
             cncParams={cncParams}
-            onEndpointSelect={setSelectedEndpoint}
+            onEndpointSelect={handleEndpointSelect}
           />
         </div>
 
         {/* Right Sidebar - Control Panel */}
-        <div className="w-96 flex-shrink-0">
+        <div className="w-full lg:w-96 flex-shrink-0">
           <ControlPanel 
             selectedMachineId={selectedMachine}
             onParametersChange={setCncParams}
