@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Laser2DVisualization } from './Laser2DVisualization';
 
 type CNCMachine = Tables<'cnc_machines'>;
+type LaserMachine = Tables<'laser_machines'>;
 type Toolpath = Tables<'toolpaths'>;
 
 interface Point {
@@ -72,7 +73,6 @@ export const CNCVisualization = ({
 
   // Determine which table to query based on machine type
   const machineTable = machineType === 'laser' ? 'laser_machines' : 'cnc_machines';
-  const toolpathForeignKey = machineType === 'laser' ? 'laser_machine_id' : 'cnc_machine_id';
 
   // Fetch selected machine data
   const { data: selectedMachine } = useQuery({
@@ -93,7 +93,7 @@ export const CNCVisualization = ({
       return data;
     },
     enabled: !!selectedMachineId
-  });
+  }) as { data: CNCMachine | LaserMachine | null };
 
   // Fetch toolpaths for selected machine
   const { data: toolpaths = [] } = useQuery({
@@ -101,17 +101,32 @@ export const CNCVisualization = ({
     queryFn: async () => {
       if (!selectedMachineId) return [];
       console.log(`Fetching toolpaths for ${machineType} machine:`, selectedMachineId);
-      const { data, error } = await supabase
-        .from('toolpaths')
-        .select('*')
-        .eq(toolpathForeignKey, selectedMachineId)
-        .order('created_at', { ascending: false });
-      if (error) {
-        console.error(`Error fetching ${machineType} toolpaths:`, error);
-        throw error;
+      
+      if (machineType === 'laser') {
+        const { data, error } = await supabase
+          .from('laser_toolpaths')
+          .select('*')
+          .eq('laser_machine_id', selectedMachineId)
+          .order('created_at', { ascending: false });
+        if (error) {
+          console.error('Error fetching laser toolpaths:', error);
+          throw error;
+        }
+        console.log('Fetched laser toolpaths:', data);
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from('toolpaths')
+          .select('*')
+          .eq('cnc_machine_id', selectedMachineId)
+          .order('created_at', { ascending: false });
+        if (error) {
+          console.error('Error fetching CNC toolpaths:', error);
+          throw error;
+        }
+        console.log('Fetched CNC toolpaths:', data);
+        return data;
       }
-      console.log(`Fetched ${machineType} toolpaths:`, data);
-      return data;
     },
     enabled: !!selectedMachineId
   });
@@ -121,22 +136,38 @@ export const CNCVisualization = ({
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
-      const insertData = {
-        name: toolpathName || `Toolpath ${Date.now()}`,
-        points: points as any,
-        machine_params: defaultCncParams as any,
-        [toolpathForeignKey]: selectedMachineId
-      };
+      const toolpathName = toolpathName || `Toolpath ${Date.now()}`;
       
-      console.log(`Saving ${machineType} toolpath:`, insertData);
-      const { error } = await supabase
-        .from('toolpaths')
-        .insert(insertData);
-      
-      if (error) {
-        console.error(`Error saving ${machineType} toolpath:`, error);
-        throw error;
+      if (machineType === 'laser') {
+        const { error } = await supabase
+          .from('laser_toolpaths')
+          .insert({
+            name: toolpathName,
+            points: points as any,
+            laser_params: defaultCncParams as any,
+            laser_machine_id: selectedMachineId
+          });
+        
+        if (error) {
+          console.error('Error saving laser toolpath:', error);
+          throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from('toolpaths')
+          .insert({
+            name: toolpathName,
+            points: points as any,
+            machine_params: defaultCncParams as any,
+            cnc_machine_id: selectedMachineId
+          });
+        
+        if (error) {
+          console.error('Error saving CNC toolpath:', error);
+          throw error;
+        }
       }
+      
       console.log(`${machineType} toolpath saved successfully`);
     },
     onSuccess: () => {
@@ -220,7 +251,7 @@ export const CNCVisualization = ({
     }
   }, [toolpaths, selectedMachineId, hasAutoLoaded, loadedToolpathId, points.length, machineType]);
 
-  const loadToolpath = (toolpath: Toolpath) => {
+  const loadToolpath = (toolpath: any) => {
     console.log(`Loading ${machineType} toolpath, clearing previous points:`, toolpath);
     const pathPoints = Array.isArray(toolpath.points) 
       ? (toolpath.points as unknown as Point[])
