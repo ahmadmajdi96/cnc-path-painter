@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -237,6 +236,36 @@ export const Printer3DControlPanel = ({
           Emergency Stop
         </Button>
       </Card>
+
+      {/* Send Actions - New section similar to CNC */}
+      {selectedEndpoint && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Send Actions</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Connected to: {new URL(selectedEndpoint).hostname}
+          </p>
+          <div className="space-y-2">
+            <Button
+              onClick={() => {/* Model sending is handled in Model3DViewer */}}
+              variant="outline"
+              className="w-full"
+              disabled
+            >
+              Send Model (Available in Model Viewer)
+            </Button>
+            <Button
+              onClick={() => {/* Configuration sending is handled in Model3DViewer */}}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled
+            >
+              Send Configuration (Available in Model Viewer)
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Use the buttons in the Model Viewer section above to send models and configurations.
+          </p>
+        </Card>
+      )}
     </div>
   );
 };

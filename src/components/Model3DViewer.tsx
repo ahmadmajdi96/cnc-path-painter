@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { Upload, Trash2, Send, Settings } from 'lucide-react';
+import { Upload, Trash2, Send, Settings, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -181,6 +181,7 @@ interface Model3DViewerProps {
   buildVolumeZ?: number;
   selectedMachineId?: string;
   selectedEndpoint?: string;
+  printParams?: any;
 }
 
 export const Model3DViewer = ({
@@ -188,7 +189,8 @@ export const Model3DViewer = ({
   buildVolumeY = 200,
   buildVolumeZ = 200,
   selectedMachineId,
-  selectedEndpoint
+  selectedEndpoint,
+  printParams
 }: Model3DViewerProps) => {
   const [modelData, setModelData] = useState<Array<{
     url: string;
@@ -553,6 +555,181 @@ export const Model3DViewer = ({
     }));
   };
 
+  const generateGCode = () => {
+    if (modelData.length === 0) return '';
+
+    let gcode = `; Generated 3D Printer G-Code\n`;
+    gcode += `; Printer: ${selectedMachineId || 'Unknown'}\n`;
+    gcode += `; Date: ${new Date().toISOString()}\n`;
+    gcode += `; Models: ${modelData.length}\n`;
+    gcode += 'G21 ; Set units to millimeters\n';
+    gcode += 'G90 ; Absolute positioning\n';
+    gcode += `M104 S${printParams?.printTemperature || 200} ; Set hotend temperature\n`;
+    gcode += `M140 S${printParams?.bedTemperature || 60} ; Set bed temperature\n`;
+    gcode += 'M190 ; Wait for bed temperature\n';
+    gcode += 'M109 ; Wait for hotend temperature\n';
+    gcode += 'G28 ; Home all axes\n';
+    gcode += 'G1 Z15.0 F6000 ; Move platform down\n';
+    
+    // Add model positions as comments for reference
+    modelData.forEach((model, index) => {
+      const x = typeof model.position[0] === 'number' ? model.position[0] : 0;
+      const y = typeof model.position[1] === 'number' ? model.position[1] : 0;
+      const z = typeof model.position[2] === 'number' ? model.position[2] : 0;
+      gcode += `; Model ${index + 1}: ${model.file.name} at X${x.toFixed(3)} Y${y.toFixed(3)} Z${z.toFixed(3)}\n`;
+    });
+
+    gcode += '; [SLICING REQUIRED - Models need to be processed by slicer]\n';
+    gcode += 'M104 S0 ; Turn off hotend\n';
+    gcode += 'M140 S0 ; Turn off bed\n';
+    gcode += 'G28 X0 ; Home X axis\n';
+    gcode += 'M84 ; Disable steppers\n';
+
+    return gcode;
+  };
+
+  const downloadGCode = () => {
+    const gcode = generateGCode();
+    const blob = new Blob([gcode], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `3d-print-${Date.now()}.gcode`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const sendModelToEndpoint = async () => {
+    if (!selectedEndpoint || modelData.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please select an endpoint and upload models first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const payload = {
+      type: 'model',
+      models: modelData.map(model => ({
+        filename: model.file.name,
+        fileType: model.fileType,
+        position: model.position.map(p => (typeof p === 'number' ? p : 0).toFixed(3)),
+        rotation: model.rotation.map(r => (typeof r === 'number' ? r : 0).toFixed(3)),
+        scale: model.scale.map(s => (typeof s === 'number' ? s : 1).toFixed(3))
+      })),
+      buildVolume: {
+        x: buildVolumeX,
+        y: buildVolumeY,
+        z: buildVolumeZ
+      },
+      machine_id: selectedMachineId,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      toast({
+        title: "Sending Model...",
+        description: `Please wait while we send your 3D models`,
+      });
+
+      const response = await fetch(selectedEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "✅ Model Sent Successfully",
+          description: `${modelData.length} model(s) sent to ${new URL(selectedEndpoint).hostname}`,
+        });
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Model Send Failed",
+        description: `Failed to send model: ${error instanceof Error ? error.message : 'Network error occurred'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sendConfigurationToEndpoint = async () => {
+    if (!selectedEndpoint || !selectedMachineId) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both a machine and an endpoint first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const gcode = generateGCode();
+    const payload = {
+      type: 'configuration',
+      gcode,
+      parameters: printParams || {
+        layerHeight: 0.2,
+        printSpeed: 50,
+        infillDensity: 20,
+        printTemperature: 200,
+        bedTemperature: 60,
+        filamentType: 'PLA'
+      },
+      models: modelData.map(model => ({
+        filename: model.file.name,
+        fileType: model.fileType,
+        position: model.position.map(p => (typeof p === 'number' ? p : 0).toFixed(3)),
+        rotation: model.rotation.map(r => (typeof r === 'number' ? r : 0).toFixed(3)),
+        scale: model.scale.map(s => (typeof s === 'number' ? s : 1).toFixed(3))
+      })),
+      buildVolume: {
+        x: buildVolumeX,
+        y: buildVolumeY,
+        z: buildVolumeZ
+      },
+      machine_id: selectedMachineId,
+      machine_type: '3d_printer',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      toast({
+        title: "Sending Configuration...",
+        description: `Please wait while we send your 3D printer configuration`,
+      });
+
+      const response = await fetch(selectedEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "✅ Configuration Sent Successfully",
+          description: `3D printer configuration with ${modelData.length} model(s) sent to ${new URL(selectedEndpoint).hostname}`,
+        });
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Configuration Send Failed",
+        description: `Failed to send configuration: ${error instanceof Error ? error.message : 'Network error occurred'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   return <div className="space-y-4">
       <Card className="p-4 py-[59px]">
         <div className="flex items-center justify-between mb-4">
@@ -563,15 +740,34 @@ export const Model3DViewer = ({
               Upload Model
             </Button>
             {modelData.length > 0 && (
-              <Button 
-                onClick={handleSendToConfiguration} 
-                size="sm" 
-                variant="default"
-                disabled={!selectedMachineId}
-              >
-                <Send className="w-4 h-4 mr-2" />
-                Send to Configuration
-              </Button>
+              <>
+                <Button
+                  onClick={downloadGCode}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download G-Code
+                </Button>
+                <Button
+                  onClick={sendModelToEndpoint}
+                  disabled={!selectedEndpoint}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Model
+                </Button>
+                <Button
+                  onClick={sendConfigurationToEndpoint}
+                  disabled={!selectedEndpoint || !selectedMachineId}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Send Configuration
+                </Button>
+              </>
             )}
           </div>
         </div>
