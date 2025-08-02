@@ -136,13 +136,13 @@ export const CNCVisualization = ({
     mutationFn: async () => {
       if (!selectedMachineId || points.length === 0) return;
       
-      const toolpathName = toolpathName || `Toolpath ${Date.now()}`;
+      const currentToolpathName = toolpathName || `Toolpath ${Date.now()}`;
       
       if (machineType === 'laser') {
         const { error } = await supabase
           .from('laser_toolpaths')
           .insert({
-            name: toolpathName,
+            name: currentToolpathName,
             points: points as any,
             laser_params: defaultCncParams as any,
             laser_machine_id: selectedMachineId
@@ -156,7 +156,7 @@ export const CNCVisualization = ({
         const { error } = await supabase
           .from('toolpaths')
           .insert({
-            name: toolpathName,
+            name: currentToolpathName,
             points: points as any,
             machine_params: defaultCncParams as any,
             cnc_machine_id: selectedMachineId
@@ -180,7 +180,6 @@ export const CNCVisualization = ({
     }
   });
 
-  // Parse G-code file and extract points
   const parseGCodeFile = (gcode: string): Point[] => {
     const lines = gcode.split('\n');
     const extractedPoints: Point[] = [];
