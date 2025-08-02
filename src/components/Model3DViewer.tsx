@@ -78,7 +78,6 @@ function SafeModelRenderer({
     </mesh>
   );
 
-  // Skip rendering if URL is empty (stored models without actual files)
   if (!url) {
     return <group position={position} rotation={rotation} scale={scale}>
         <mesh>
@@ -163,16 +162,6 @@ function BuildVolume({
     </mesh>;
 }
 
-interface StoredModel {
-  id: string;
-  filename: string;
-  fileType: string;
-  position: [number, number, number];
-  rotation: [number, number, number];
-  scale: [number, number, number];
-  uploadedAt: string;
-}
-
 interface Model3DViewerProps {
   buildVolumeX?: number;
   buildVolumeY?: number;
@@ -197,9 +186,10 @@ export const Model3DViewer = ({
     position: [number, number, number];
     rotation: [number, number, number];
     scale: [number, number, number];
+    storagePath?: string;
   }>>([]);
-  const [storedModels, setStoredModels] = useState<StoredModel[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -208,11 +198,9 @@ export const Model3DViewer = ({
     const loadConfiguration = async () => {
       if (!selectedMachineId) {
         setModelData([]);
-        setStoredModels([]);
         return;
       }
 
-      // Clear existing models when switching printers
       setModelData([]);
       
       try {
@@ -229,28 +217,42 @@ export const Model3DViewer = ({
           return;
         }
 
-        if (data) {
-          const savedModels = Array.isArray(data.models) ? data.models : [];
-          const modelsWithIds = savedModels.map((model: any, index: number) => ({
-            id: `${model.filename}-${index}`,
-            filename: model.filename,
-            fileType: model.fileType,
-            position: model.position,
-            rotation: model.rotation,
-            scale: model.scale,
-            uploadedAt: data.updated_at
-          }));
+        if (data && data.models_with_files) {
+          const savedModels = Array.isArray(data.models_with_files) ? data.models_with_files : [];
           
-          setStoredModels(modelsWithIds);
+          // Load actual models from storage
+          const loadedModels = [];
+          for (const model of savedModels) {
+            if (model.storagePath) {
+              const { data: publicUrl } = supabase.storage
+                .from('3d-models')
+                .getPublicUrl(model.storagePath);
+                
+              if (publicUrl.publicUrl) {
+                // Create a fake File object for display purposes
+                const fakeFile = new File([''], model.filename, { type: 'application/octet-stream' });
+                
+                loadedModels.push({
+                  url: publicUrl.publicUrl,
+                  file: fakeFile,
+                  fileType: model.fileType,
+                  position: model.position,
+                  rotation: model.rotation,
+                  scale: model.scale,
+                  storagePath: model.storagePath
+                });
+              }
+            }
+          }
           
-          if (savedModels.length > 0) {
+          setModelData(loadedModels);
+          
+          if (loadedModels.length > 0) {
             toast({
               title: "Configuration Loaded",
-              description: `Found ${savedModels.length} model(s) from previous session. Upload files again to see actual models.`
+              description: `Loaded ${loadedModels.length} model(s) from previous session.`
             });
           }
-        } else {
-          setStoredModels([]);
         }
       } catch (error) {
         console.error('Error loading configuration:', error);
@@ -258,6 +260,27 @@ export const Model3DViewer = ({
     };
     loadConfiguration();
   }, [selectedMachineId, toast]);
+
+  // Upload file to Supabase Storage
+  const uploadFileToStorage = async (file: File): Promise<string | null> => {
+    const fileName = `${selectedMachineId}/${Date.now()}-${file.name}`;
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from('3d-models')
+        .upload(fileName, file);
+        
+      if (error) {
+        console.error('Storage upload error:', error);
+        return null;
+      }
+      
+      return data.path;
+    } catch (error) {
+      console.error('Storage upload error:', error);
+      return null;
+    }
+  };
 
   // Save configuration whenever data changes
   useEffect(() => {
@@ -276,6 +299,14 @@ export const Model3DViewer = ({
           position: model.position,
           rotation: model.rotation,
           scale: model.scale
+        })),
+        models_with_files: modelData.map(model => ({
+          filename: model.file.name,
+          fileType: model.fileType,
+          position: model.position,
+          rotation: model.rotation,
+          scale: model.scale,
+          storagePath: model.storagePath
         }))
       };
       
@@ -299,7 +330,7 @@ export const Model3DViewer = ({
     return () => clearTimeout(timeoutId);
   }, [selectedMachineId, selectedEndpoint, buildVolumeX, buildVolumeY, buildVolumeZ, modelData]);
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
     
@@ -310,7 +341,6 @@ export const Model3DViewer = ({
       const extension = file.name.toLowerCase();
       const isValidType = extension.endsWith('.gltf') || extension.endsWith('.glb') || extension.endsWith('.fbx') || extension.endsWith('.obj') || extension.endsWith('.stl');
       
-      // Check file size (limit to 100MB)
       const maxSize = 100 * 1024 * 1024; // 100MB
       if (file.size > maxSize) {
         toast({
@@ -340,111 +370,88 @@ export const Model3DViewer = ({
     }
     
     if (validFiles.length > 0) {
-      validFiles.forEach(file => {
+      setIsUploading(true);
+      
+      for (const file of validFiles) {
         try {
-          const url = URL.createObjectURL(file);
-          const fileType = file.name.split('.').pop()?.toLowerCase() || '';
-          setModelData(prev => [...prev, {
-            url,
-            file,
-            fileType,
-            position: [0, 0, 0],
-            rotation: [0, 0, 0],
-            scale: [1, 1, 1]
-          }]);
+          // Upload to storage first
+          const storagePath = await uploadFileToStorage(file);
+          
+          if (storagePath) {
+            // Get the public URL
+            const { data: publicUrl } = supabase.storage
+              .from('3d-models')
+              .getPublicUrl(storagePath);
+              
+            if (publicUrl.publicUrl) {
+              const fileType = file.name.split('.').pop()?.toLowerCase() || '';
+              setModelData(prev => [...prev, {
+                url: publicUrl.publicUrl,
+                file,
+                fileType,
+                position: [0, 0, 0],
+                rotation: [0, 0, 0],
+                scale: [1, 1, 1],
+                storagePath
+              }]);
+            }
+          } else {
+            toast({
+              title: "Upload failed",
+              description: `Could not upload ${file.name}`,
+              variant: "destructive"
+            });
+          }
         } catch (error) {
-          console.error('Error creating object URL for file:', file.name, error);
+          console.error('Error processing file:', file.name, error);
           toast({
             title: "File processing error",
             description: `Could not process ${file.name}`,
             variant: "destructive"
           });
         }
-      });
+      }
+      
+      setIsUploading(false);
       
       if (validFiles.length > 0) {
         toast({
           title: "Files uploaded",
-          description: `${validFiles.length} file(s) added to the viewer`
+          description: `${validFiles.length} file(s) uploaded and saved to storage`
         });
       }
     }
-  }, [toast]);
+  }, [toast, selectedMachineId]);
 
-  const handleRemoveModel = (index: number) => {
+  const handleRemoveModel = async (index: number) => {
     const modelToRemove = modelData[index];
     if (modelToRemove) {
-      URL.revokeObjectURL(modelToRemove.url);
+      // Clean up local URL if it exists
+      if (modelToRemove.url && modelToRemove.url.startsWith('blob:')) {
+        URL.revokeObjectURL(modelToRemove.url);
+      }
+      
+      // Remove from storage if it has a storage path
+      if (modelToRemove.storagePath) {
+        try {
+          const { error } = await supabase.storage
+            .from('3d-models')
+            .remove([modelToRemove.storagePath]);
+            
+          if (error) {
+            console.error('Error removing from storage:', error);
+          }
+        } catch (error) {
+          console.error('Error removing from storage:', error);
+        }
+      }
     }
+    
     setModelData(prev => prev.filter((_, i) => i !== index));
     toast({
       title: "Model removed",
-      description: "Model has been removed from the viewer"
+      description: "Model has been removed and deleted from storage"
     });
-  };
-
-  const handleLoadStoredModel = async (storedModel: StoredModel) => {
-    toast({
-      title: "Model placeholder loaded",
-      description: `${storedModel.filename} loaded as placeholder. Upload the actual file to see the 3D model.`,
-      variant: "destructive"
-    });
-  };
-
-  const handleClearStoredModel = async (modelId: string) => {
-    if (!selectedMachineId) return;
-    
-    const updatedStoredModels = storedModels.filter(model => model.id !== modelId);
-    setStoredModels(updatedStoredModels);
-    
-    try {
-      const { error } = await supabase
-        .from('printer_3d_configurations')
-        .update({
-          models: updatedStoredModels.map(model => ({
-            filename: model.filename,
-            fileType: model.fileType,
-            position: model.position,
-            rotation: model.rotation,
-            scale: model.scale
-          }))
-        })
-        .eq('printer_id', selectedMachineId);
-        
-      if (error) {
-        console.error('Error clearing stored model:', error);
-      } else {
-        toast({
-          title: "Model cleared",
-          description: "Model removed from history"
-        });
-      }
-    } catch (error) {
-      console.error('Error clearing stored model:', error);
-    }
-  };
-
-  const handleClearAllStoredModels = async () => {
-    if (!selectedMachineId) return;
-    
-    try {
-      const { error } = await supabase
-        .from('printer_3d_configurations')
-        .update({ models: [] })
-        .eq('printer_id', selectedMachineId);
-        
-      if (error) {
-        console.error('Error clearing all stored models:', error);
-      } else {
-        setStoredModels([]);
-        toast({
-          title: "All models cleared",
-          description: "Model history cleared for this printer"
-        });
-      }
-    } catch (error) {
-      console.error('Error clearing all stored models:', error);
-    }
   };
 
   const downloadModels = () => {
@@ -461,6 +468,7 @@ export const Model3DViewer = ({
       const link = document.createElement('a');
       link.href = model.url;
       link.download = model.file.name;
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -682,9 +690,9 @@ export const Model3DViewer = ({
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">3D Model Viewer</h3>
           <div className="flex gap-2">
-            <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline">
+            <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" disabled={isUploading}>
               <Upload className="w-4 h-4 mr-2" />
-              Upload Model
+              {isUploading ? "Uploading..." : "Upload Model"}
             </Button>
             {modelData.length > 0 && (
               <>
@@ -744,39 +752,6 @@ export const Model3DViewer = ({
                 </span>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Model History Section */}
-        {storedModels.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium">Model History (Placeholders):</h4>
-              <Button onClick={handleClearAllStoredModels} size="sm" variant="ghost" className="text-destructive hover:text-destructive">
-                Clear All
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {storedModels.map((storedModel) => (
-                <div key={storedModel.id} className="flex items-center justify-between p-2 border rounded-md bg-orange-50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{storedModel.filename}</span>
-                    <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">Placeholder</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={() => handleLoadStoredModel(storedModel)} size="sm" variant="outline">
-                      Load Placeholder
-                    </Button>
-                    <Button onClick={() => handleClearStoredModel(storedModel.id)} size="sm" variant="ghost">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              These are saved configurations without actual model files. Upload the files again to see the 3D models.
-            </p>
           </div>
         )}
 

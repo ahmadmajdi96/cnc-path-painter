@@ -218,6 +218,36 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          industry: string
+          location: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry: string
+          location: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry?: string
+          location?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conveyor_belts: {
         Row: {
           belt_length: number
@@ -337,6 +367,114 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      departments: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      division_departments: {
+        Row: {
+          created_at: string | null
+          department_id: string
+          division_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          department_id: string
+          division_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          department_id?: string
+          division_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "division_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      divisions: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          head_id: string | null
+          id: string
+          location: string | null
+          name: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          head_id?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          head_id?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divisions_head_id_fkey"
+            columns: ["head_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employees: {
         Row: {
@@ -971,6 +1109,7 @@ export type Database = {
           endpoint_url: string | null
           id: string
           models: Json | null
+          models_with_files: Json | null
           print_params: Json | null
           printer_id: string | null
           updated_at: string
@@ -983,6 +1122,7 @@ export type Database = {
           endpoint_url?: string | null
           id?: string
           models?: Json | null
+          models_with_files?: Json | null
           print_params?: Json | null
           printer_id?: string | null
           updated_at?: string
@@ -995,6 +1135,7 @@ export type Database = {
           endpoint_url?: string | null
           id?: string
           models?: Json | null
+          models_with_files?: Json | null
           print_params?: Json | null
           printer_id?: string | null
           updated_at?: string
@@ -1094,6 +1235,57 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          department_id: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          position: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          position?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          position?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resources: {
         Row: {
           created_at: string
@@ -1123,6 +1315,83 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      responsibilities: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responsibilities_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      responsibility_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          responsibility_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          responsibility_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          responsibility_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responsibility_assignments_responsibility_id_fkey"
+            columns: ["responsibility_id"]
+            isOneToOne: false
+            referencedRelation: "responsibilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responsibility_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       robotic_arms: {
         Row: {
@@ -1186,6 +1455,83 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      role_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          role_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_assignments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          level: string | null
+          permissions: Json | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          level?: string | null
+          permissions?: Json | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          level?: string | null
+          permissions?: Json | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       section_capacity: {
         Row: {
@@ -1341,6 +1687,93 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          team_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          name: string
+          objectives: string[] | null
+          status: string | null
+          team_lead_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          objectives?: string[] | null
+          status?: string | null
+          team_lead_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          objectives?: string[] | null
+          status?: string | null
+          team_lead_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_team_lead_id_fkey"
+            columns: ["team_lead_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       toolpaths: {
         Row: {
