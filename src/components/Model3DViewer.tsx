@@ -23,7 +23,6 @@ function STLModel({ url }: { url: string }) {
     );
   } catch (error) {
     console.error('STL loading error:', error);
-    // Return null to let parent handle fallback
     return null;
   }
 }
@@ -34,7 +33,6 @@ function OBJModel({ url }: { url: string }) {
     return <primitive object={obj} />;
   } catch (error) {
     console.error('OBJ loading error:', error);
-    // Return null to let parent handle fallback
     return null;
   }
 }
@@ -203,9 +201,7 @@ export const Model3DViewer = ({
   const [storedModels, setStoredModels] = useState<StoredModel[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
   // Load configuration on mount
   useEffect(() => {
@@ -250,7 +246,7 @@ export const Model3DViewer = ({
           if (savedModels.length > 0) {
             toast({
               title: "Configuration Loaded",
-              description: `Found ${savedModels.length} model(s) from previous session.`
+              description: `Found ${savedModels.length} model(s) from previous session. Upload files again to see actual models.`
             });
           }
         } else {
@@ -388,33 +384,11 @@ export const Model3DViewer = ({
   };
 
   const handleLoadStoredModel = async (storedModel: StoredModel) => {
-    try {
-      // Create a placeholder for stored models since we don't have the actual file
-      // This shows users what was previously configured without trying to load non-existent files
-      const placeholderFile = new File([], storedModel.filename, { type: 'application/octet-stream' });
-      
-      // Add the stored model as a placeholder to current view
-      setModelData(prev => [...prev, {
-        url: '', // Empty URL to trigger placeholder rendering
-        file: placeholderFile,
-        fileType: storedModel.fileType,
-        position: storedModel.position,
-        rotation: storedModel.rotation,
-        scale: storedModel.scale
-      }]);
-      
-      toast({
-        title: "Model placeholder loaded",
-        description: `${storedModel.filename} loaded as placeholder. Upload the file again to see the actual model.`
-      });
-    } catch (error) {
-      console.error('Error loading stored model:', error);
-      toast({
-        title: "Load failed",
-        description: "Failed to load model from history",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Model placeholder loaded",
+      description: `${storedModel.filename} loaded as placeholder. Upload the actual file to see the 3D model.`,
+      variant: "destructive"
+    });
   };
 
   const handleClearStoredModel = async (modelId: string) => {
@@ -473,86 +447,29 @@ export const Model3DViewer = ({
     }
   };
 
-  const handleSendToConfiguration = async () => {
-    if (!selectedMachineId) {
+  const downloadModels = () => {
+    if (modelData.length === 0) {
       toast({
-        title: "Configuration Error",
-        description: "Please select a machine first",
+        title: "No models to download",
+        description: "Upload some models first",
         variant: "destructive"
       });
       return;
     }
 
-    if (!selectedEndpoint) {
-      toast({
-        title: "Configuration Error",
-        description: "Please select an endpoint first",
-        variant: "destructive"
-      });
-      return;
-    }
+    modelData.forEach((model, index) => {
+      const link = document.createElement('a');
+      link.href = model.url;
+      link.download = model.file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
 
-    const configData = {
-      machineId: selectedMachineId,
-      endpoint: selectedEndpoint,
-      buildVolume: {
-        x: buildVolumeX,
-        y: buildVolumeY,
-        z: buildVolumeZ
-      },
-      models: modelData.map(model => ({
-        filename: model.file.name,
-        fileType: model.fileType,
-        position: model.position,
-        rotation: model.rotation,
-        scale: model.scale
-      }))
-    };
-
-    try {
-      // Here you would send to your actual endpoint
-      console.log('Sending configuration:', configData);
-      toast({
-        title: "Configuration Sent",
-        description: `Sent ${modelData.length} model(s) to ${selectedEndpoint}`
-      });
-    } catch (error) {
-      toast({
-        title: "Send Failed",
-        description: "Failed to send configuration to endpoint",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const updateModelPosition = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
-    setModelData(prev => prev.map((model, i) => {
-      if (i === index) {
-        const newPosition = [...model.position] as [number, number, number];
-        const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
-        newPosition[axisIndex] = value;
-        return {
-          ...model,
-          position: newPosition
-        };
-      }
-      return model;
-    }));
-  };
-
-  const updateModelRotation = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
-    setModelData(prev => prev.map((model, i) => {
-      if (i === index) {
-        const newRotation = [...model.rotation] as [number, number, number];
-        const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
-        newRotation[axisIndex] = value * Math.PI / 180; // Convert degrees to radians
-        return {
-          ...model,
-          rotation: newRotation
-        };
-      }
-      return model;
-    }));
+    toast({
+      title: "Models downloaded",
+      description: `Downloaded ${modelData.length} model file(s)`
+    });
   };
 
   const generateGCode = () => {
@@ -730,6 +647,36 @@ export const Model3DViewer = ({
     }
   };
 
+  const updateModelPosition = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
+    setModelData(prev => prev.map((model, i) => {
+      if (i === index) {
+        const newPosition = [...model.position] as [number, number, number];
+        const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+        newPosition[axisIndex] = value;
+        return {
+          ...model,
+          position: newPosition
+        };
+      }
+      return model;
+    }));
+  };
+
+  const updateModelRotation = (index: number, axis: 'x' | 'y' | 'z', value: number) => {
+    setModelData(prev => prev.map((model, i) => {
+      if (i === index) {
+        const newRotation = [...model.rotation] as [number, number, number];
+        const axisIndex = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+        newRotation[axisIndex] = value * Math.PI / 180; // Convert degrees to radians
+        return {
+          ...model,
+          rotation: newRotation
+        };
+      }
+      return model;
+    }));
+  };
+
   return <div className="space-y-4">
       <Card className="p-4 py-[59px]">
         <div className="flex items-center justify-between mb-4">
@@ -741,6 +688,14 @@ export const Model3DViewer = ({
             </Button>
             {modelData.length > 0 && (
               <>
+                <Button
+                  onClick={downloadModels}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Models
+                </Button>
                 <Button
                   onClick={downloadGCode}
                   size="sm"
@@ -796,18 +751,21 @@ export const Model3DViewer = ({
         {storedModels.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium">Model History:</h4>
+              <h4 className="text-sm font-medium">Model History (Placeholders):</h4>
               <Button onClick={handleClearAllStoredModels} size="sm" variant="ghost" className="text-destructive hover:text-destructive">
                 Clear All
               </Button>
             </div>
             <div className="space-y-2">
               {storedModels.map((storedModel) => (
-                <div key={storedModel.id} className="flex items-center justify-between p-2 border rounded-md">
-                  <span className="text-sm">{storedModel.filename}</span>
+                <div key={storedModel.id} className="flex items-center justify-between p-2 border rounded-md bg-orange-50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{storedModel.filename}</span>
+                    <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">Placeholder</span>
+                  </div>
                   <div className="flex gap-2">
                     <Button onClick={() => handleLoadStoredModel(storedModel)} size="sm" variant="outline">
-                      Load
+                      Load Placeholder
                     </Button>
                     <Button onClick={() => handleClearStoredModel(storedModel.id)} size="sm" variant="ghost">
                       <Trash2 className="w-4 h-4" />
@@ -816,6 +774,9 @@ export const Model3DViewer = ({
                 </div>
               ))}
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              These are saved configurations without actual model files. Upload the files again to see the 3D models.
+            </p>
           </div>
         )}
 
