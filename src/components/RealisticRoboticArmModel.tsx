@@ -6,14 +6,44 @@ interface RealisticRoboticArmProps {
   joints: number;
   jointAngles: number[];
   maxReach: number;
+  targetPosition?: [number, number, number];
 }
 
-export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: RealisticRoboticArmProps) {
+export function RealisticRoboticArmModel({ joints, jointAngles, maxReach, targetPosition }: RealisticRoboticArmProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const segmentLength = (maxReach / 800) / Math.max(joints, 1); // Increased connector length
+  const segmentLength = (maxReach / 800) / Math.max(joints, 1);
+  
+  // Calculate joint angles based on target position if provided
+  const calculateInverseKinematics = (target: [number, number, number]) => {
+    const [targetX, targetY, targetZ] = target;
+    const angles = [...jointAngles];
+    
+    if (joints >= 2) {
+      // First joint: horizontal rotation only (around Y axis) to point towards target
+      const horizontalAngle = Math.atan2(targetX, targetZ) * 180 / Math.PI;
+      angles[0] = horizontalAngle;
+      
+      // Second joint: vertical rotation only (around Z axis) to reach target height
+      const horizontalDistance = Math.sqrt(targetX * targetX + targetZ * targetZ);
+      const heightDiff = targetY - 0.2; // Subtract base height
+      const verticalAngle = Math.atan2(heightDiff, horizontalDistance) * 180 / Math.PI;
+      angles[3] = verticalAngle; // Second joint vertical angle (index 3)
+      
+      // Keep other joints as provided
+      for (let i = 2; i < joints; i++) {
+        if (angles[i * 2] === undefined) angles[i * 2] = 0;
+        if (angles[i * 2 + 1] === undefined) angles[i * 2 + 1] = 0;
+      }
+    }
+    
+    return angles;
+  };
+  
+  // Use inverse kinematics if target position is provided
+  const finalAngles = targetPosition ? calculateInverseKinematics(targetPosition) : jointAngles;
   
   // Ensure we have angles for all joints (2 angles per joint: horizontal and vertical)
-  const angles = Array(joints * 2).fill(0).map((_, i) => jointAngles[i] || 0);
+  const angles = Array(joints * 2).fill(0).map((_, i) => finalAngles[i] || 0);
   
   // Base configuration - smaller joints, thinner connectors
   const baseHeight = 0.2;
@@ -31,24 +61,24 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
       let horizontalAngle = 0;
       let verticalAngle = 0;
       
-      // First joint only moves horizontally
+      // First joint: only horizontal movement + fixed 75-degree vertical rotation
       if (i === 0) {
         horizontalAngle = (angles[i * 2] || 0) * Math.PI / 180;
-        verticalAngle = 0; // Fixed vertical
+        verticalAngle = 75 * Math.PI / 180; // Fixed 75-degree vertical rotation
       }
-      // Second joint only moves vertically  
+      // Second joint: only vertical movement  
       else if (i === 1) {
         horizontalAngle = 0; // Fixed horizontal
         verticalAngle = (angles[i * 2 + 1] || 0) * Math.PI / 180;
       }
-      // Other joints can move in both directions
+      // Other joints: both movement directions
       else {
         horizontalAngle = (angles[i * 2] || 0) * Math.PI / 180;
         verticalAngle = (angles[i * 2 + 1] || 0) * Math.PI / 180;
       }
       
       if (i === 0) {
-        // Base joint - starts at base height
+        // Base joint - starts at base height with fixed vertical rotation
         const translation = new THREE.Matrix4().makeTranslation(0, baseHeight, 0);
         const rotationY = new THREE.Matrix4().makeRotationY(horizontalAngle);
         const rotationZ = new THREE.Matrix4().makeRotationZ(verticalAngle);
@@ -114,6 +144,14 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
         <meshStandardMaterial color="#4a5568" metalness={0.7} roughness={0.3} />
       </mesh>
 
+      {/* Target position indicator */}
+      {targetPosition && (
+        <mesh position={targetPosition}>
+          <sphereGeometry args={[0.03]} />
+          <meshStandardMaterial color="#ff6b6b" emissive="#ff6b6b" emissiveIntensity={0.5} />
+        </mesh>
+      )}
+
       {/* Joint assemblies and links */}
       {jointTransforms.map((transform, index) => {
         const [x, y, z] = transform.position;
@@ -160,11 +198,18 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
               
               {/* Movement indicators based on joint constraints */}
               {index === 0 && (
-                // First joint: only horizontal movement indicator
-                <mesh position={[0, jointRadius * 1.2, 0]} rotation={[0, transform.horizontalAngle, 0]}>
-                  <boxGeometry args={[0.02, 0.015, jointRadius * 0.8]} />
-                  <meshStandardMaterial color="#e53e3e" />
-                </mesh>
+                <>
+                  {/* Horizontal movement indicator */}
+                  <mesh position={[0, jointRadius * 1.2, 0]} rotation={[0, transform.horizontalAngle, 0]}>
+                    <boxGeometry args={[0.02, 0.015, jointRadius * 0.8]} />
+                    <meshStandardMaterial color="#e53e3e" />
+                  </mesh>
+                  {/* Fixed vertical indicator (75 degrees) */}
+                  <mesh position={[jointRadius * 0.8, 0, 0]} rotation={[0, 0, 75 * Math.PI / 180]}>
+                    <boxGeometry args={[0.015, 0.02, 0.015]} />
+                    <meshStandardMaterial color="#ffa500" />
+                  </mesh>
+                </>
               )}
               
               {index === 1 && (
@@ -191,11 +236,18 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
               
               {/* Dual movement levers - adjusted for joint constraints */}
               {index === 0 && (
-                // First joint: only horizontal lever
-                <mesh position={[0, jointRadius + 0.03, 0]} rotation={[0, transform.horizontalAngle, 0]}>
-                  <cylinderGeometry args={[0.01, 0.01, 0.06]} />
-                  <meshStandardMaterial color="#dc2626" metalness={0.8} roughness={0.2} />
-                </mesh>
+                <>
+                  {/* Horizontal lever */}
+                  <mesh position={[0, jointRadius + 0.03, 0]} rotation={[0, transform.horizontalAngle, 0]}>
+                    <cylinderGeometry args={[0.01, 0.01, 0.06]} />
+                    <meshStandardMaterial color="#dc2626" metalness={0.8} roughness={0.2} />
+                  </mesh>
+                  {/* Fixed vertical lever (75 degrees) */}
+                  <mesh position={[0, 0, jointRadius + 0.03]} rotation={[75 * Math.PI / 180, 0, 0]}>
+                    <cylinderGeometry args={[0.01, 0.01, 0.06]} />
+                    <meshStandardMaterial color="#ff8c00" metalness={0.8} roughness={0.2} />
+                  </mesh>
+                </>
               )}
               
               {index === 1 && (
