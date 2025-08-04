@@ -71,6 +71,20 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
 
   const jointTransforms = calculateJointTransforms();
 
+  // Helper function to create link geometry between two points
+  const createLinkGeometry = (start: THREE.Vector3, end: THREE.Vector3) => {
+    const direction = new THREE.Vector3().subVectors(end, start);
+    const length = direction.length();
+    const center = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+    
+    // Calculate rotation to align cylinder with direction
+    const up = new THREE.Vector3(0, 1, 0);
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(up, direction.normalize());
+    const euler = new THREE.Euler().setFromQuaternion(quaternion);
+    
+    return { center, length, rotation: euler };
+  };
+
   return (
     <group ref={groupRef}>
       {/* Base Platform */}
@@ -94,21 +108,21 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
           <group key={index}>
             {/* Link from previous joint (except for first joint) */}
             {index > 0 && (
-              <group 
-                position={[
-                  (jointTransforms[index-1].position[0] + x) / 2,
-                  (jointTransforms[index-1].position[1] + y) / 2,
-                  (jointTransforms[index-1].position[2] + z) / 2
-                ]}
-              >
-                <mesh
-                  lookAt={[x, y, z]}
-                  rotation={[Math.PI/2, 0, 0]}
-                >
-                  <cylinderGeometry args={[linkRadius, linkRadius, linkLength]} />
-                  <meshStandardMaterial color="#3182ce" metalness={0.6} roughness={0.4} />
-                </mesh>
-              </group>
+              (() => {
+                const startPos = new THREE.Vector3(...jointTransforms[index-1].position);
+                const endPos = new THREE.Vector3(x, y, z);
+                const linkGeom = createLinkGeometry(startPos, endPos);
+                
+                return (
+                  <mesh 
+                    position={[linkGeom.center.x, linkGeom.center.y, linkGeom.center.z]}
+                    rotation={[linkGeom.rotation.x, linkGeom.rotation.y, linkGeom.rotation.z]}
+                  >
+                    <cylinderGeometry args={[linkRadius, linkRadius, linkGeom.length]} />
+                    <meshStandardMaterial color="#3182ce" metalness={0.6} roughness={0.4} />
+                  </mesh>
+                );
+              })()
             )}
             
             {/* Joint housing */}
@@ -139,6 +153,19 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
               <mesh>
                 <torusGeometry args={[jointRadius * 0.7, 0.02, 8, 16]} />
                 <meshStandardMaterial color="#1a202c" metalness={0.9} roughness={0.1} />
+              </mesh>
+              
+              {/* Dual movement levers */}
+              {/* Horizontal movement lever */}
+              <mesh position={[0, jointRadius + 0.05, 0]} rotation={[0, transform.horizontalAngle, 0]}>
+                <cylinderGeometry args={[0.015, 0.015, 0.08]} />
+                <meshStandardMaterial color="#dc2626" metalness={0.8} roughness={0.2} />
+              </mesh>
+              
+              {/* Vertical movement lever */}
+              <mesh position={[0, 0, jointRadius + 0.05]} rotation={[transform.verticalAngle, 0, 0]}>
+                <cylinderGeometry args={[0.015, 0.015, 0.08]} />
+                <meshStandardMaterial color="#059669" metalness={0.8} roughness={0.2} />
               </mesh>
             </group>
           </group>
