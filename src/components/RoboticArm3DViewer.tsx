@@ -1,9 +1,10 @@
-
 import React, { useRef, useState, useCallback, Suspense, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stage, Environment } from '@react-three/drei';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 import { Play, Square, Home, Save, Download, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +35,8 @@ export const RoboticArm3DViewer = ({
   selectedEndpoint,
   roboticArmParams
 }: RoboticArm3DViewerProps) => {
-  const [jointAngles, setJointAngles] = useState<number[]>(new Array(joints).fill(0));
+  // Initialize with 2 angles per joint (horizontal and vertical)
+  const [jointAngles, setJointAngles] = useState<number[]>(new Array(joints * 2).fill(0));
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [motionSequence, setMotionSequence] = useState<MotionStep[]>([]);
@@ -47,11 +49,14 @@ export const RoboticArm3DViewer = ({
   // Update joint angles when roboticArmParams changes
   useEffect(() => {
     if (roboticArmParams?.jointAngles) {
-      const newAngles = new Array(joints).fill(0);
+      const newAngles = new Array(joints * 2).fill(0);
       Object.keys(roboticArmParams.jointAngles).forEach(key => {
         const jointIndex = parseInt(key.replace('joint_', '')) - 1;
         if (jointIndex >= 0 && jointIndex < joints) {
-          newAngles[jointIndex] = roboticArmParams.jointAngles[key][0] || 0;
+          // Assume the first value is horizontal, second is vertical
+          const angles = roboticArmParams.jointAngles[key];
+          newAngles[jointIndex * 2] = angles[0] || 0; // Horizontal
+          newAngles[jointIndex * 2 + 1] = angles[1] || 0; // Vertical
         }
       });
       setJointAngles(newAngles);
@@ -84,7 +89,6 @@ export const RoboticArm3DViewer = ({
   };
 
   const smoothTransition = (startAngles: number[], endAngles: number[], progress: number): number[] => {
-    // Smooth easing function
     const easeInOutCubic = (t: number): number => {
       return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     };
@@ -98,28 +102,16 @@ export const RoboticArm3DViewer = ({
   };
 
   const handlePlaySequence = async () => {
-    let sequenceToPlay = motionSequence;
-
-    // If no sequence exists, create one from current position
-    if (!motionSequence.length) {
-      const currentSequence: MotionStep[] = [
-        {
-          id: '1',
-          jointAngles: [...jointAngles],
-          duration: 2000,
-          description: 'Current position'
-        }
-      ];
-      setMotionSequence(currentSequence);
-      sequenceToPlay = currentSequence;
-      
+    if (motionSequence.length === 0) {
       toast({
-        title: "Sequence Created",
-        description: "Created sequence from current position"
+        title: "No Sequence",
+        description: "Please add some motion steps first",
+        variant: "destructive"
       });
+      return;
     }
 
-    await playSequenceFromStep(0, sequenceToPlay);
+    await playSequenceFromStep(0, motionSequence);
   };
 
   const handlePlayFromStep = async (stepIndex: number) => {
@@ -140,29 +132,24 @@ export const RoboticArm3DViewer = ({
     if (isPlaying) return;
     
     setIsPlaying(true);
-    setCurrentStep(startIndex);
     playbackRef.current.shouldStop = false;
     
     try {
-      const startAngles = [...jointAngles];
-      
       for (let i = startIndex; i < sequence.length; i++) {
-        if (playbackRef.current.shouldStop) {
-          break;
-        }
+        if (playbackRef.current.shouldStop) break;
         
         setCurrentStep(i + 1);
-        const targetAngles = sequence[i].jointAngles.slice(0, joints);
+        const targetAngles = sequence[i].jointAngles.slice(0, joints * 2);
         const duration = sequence[i].duration / animationSpeed;
         
         toast({
-          title: `Step ${i + 1}`,
-          description: sequence[i].description || `Playing step ${i + 1} of ${sequence.length}`
+          title: `Playing: ${sequence[i].description || `Step ${i + 1}`}`,
+          description: `Step ${i + 1} of ${sequence.length}`,
+          duration: Math.min(duration, 3000)
         });
         
-        // Smooth animation to target position
         const stepStartTime = Date.now();
-        const previousAngles = i === startIndex ? startAngles : [...jointAngles];
+        const previousAngles = [...jointAngles];
         
         await new Promise<void>((resolve) => {
           const animate = () => {
@@ -187,7 +174,6 @@ export const RoboticArm3DViewer = ({
           animate();
         });
         
-        // Small pause between steps
         if (!playbackRef.current.shouldStop && i < sequence.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 200));
         }
@@ -233,7 +219,7 @@ export const RoboticArm3DViewer = ({
     if (isPlaying) {
       handleStopSequence();
     }
-    const homeAngles = new Array(joints).fill(0);
+    const homeAngles = new Array(joints * 2).fill(0);
     setJointAngles(homeAngles);
     toast({
       title: "Home Position",
@@ -241,17 +227,17 @@ export const RoboticArm3DViewer = ({
     });
   };
 
-  const addCurrentPositionToSequence = () => {
+  const handleAddCurrentStep = (description: string, duration: number) => {
     const newStep: MotionStep = {
       id: Date.now().toString(),
       jointAngles: [...jointAngles],
-      duration: 2000,
-      description: `Position ${motionSequence.length + 1}`
+      duration: duration,
+      description: description
     };
     setMotionSequence([...motionSequence, newStep]);
     toast({
       title: "Step Added",
-      description: `Added step ${motionSequence.length + 1} to sequence`
+      description: `Added "${description}" to sequence`
     });
   };
 
@@ -391,6 +377,13 @@ export const RoboticArm3DViewer = ({
     }
   };
 
+  const updateJointAngle = (jointIndex: number, angleType: 'horizontal' | 'vertical', value: number) => {
+    const newAngles = [...jointAngles];
+    const angleIndex = jointIndex * 2 + (angleType === 'horizontal' ? 0 : 1);
+    newAngles[angleIndex] = value;
+    setJointAngles(newAngles);
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-4">
@@ -409,25 +402,8 @@ export const RoboticArm3DViewer = ({
               <Home className="w-4 h-4 mr-2" />
               Home
             </Button>
-            <Button onClick={addCurrentPositionToSequence} size="sm" variant="outline">
-              <Save className="w-4 h-4 mr-2" />
-              Add Step
-            </Button>
             <Button onClick={clearSequence} size="sm" variant="outline" disabled={isPlaying}>
               Clear Sequence
-            </Button>
-            <Button onClick={handleDownloadGCode} size="sm" variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Download G-Code
-            </Button>
-            <Button 
-              onClick={handleSendToConfiguration} 
-              size="sm" 
-              variant="default"
-              disabled={!selectedMachineId || !selectedEndpoint}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Send to Configuration
             </Button>
           </div>
         </div>
@@ -490,8 +466,45 @@ export const RoboticArm3DViewer = ({
 
         <div className="mt-4 text-sm text-gray-600">
           <p>Joints: {joints} | Max Reach: {maxReach}mm | Max Payload: {maxPayload}kg</p>
-          <p>Current Joint Angles: {jointAngles.slice(0, joints).map(a => a.toFixed(1)).join(', ')}°</p>
           <p>Use mouse to rotate, scroll to zoom, right-click to pan</p>
+        </div>
+      </Card>
+
+      {/* Joint Control Panel */}
+      <Card className="p-4">
+        <h4 className="text-md font-semibold mb-4">Joint Controls</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: joints }, (_, i) => (
+            <div key={i} className="p-3 border rounded-lg bg-gray-50">
+              <h5 className="font-medium mb-3">Joint {i + 1}</h5>
+              
+              {/* Horizontal Control */}
+              <div className="mb-3">
+                <Label className="text-xs text-gray-600">Horizontal: {jointAngles[i * 2]?.toFixed(1)}°</Label>
+                <Slider
+                  value={[jointAngles[i * 2] || 0]}
+                  onValueChange={([value]) => updateJointAngle(i, 'horizontal', value)}
+                  min={-180}
+                  max={180}
+                  step={1}
+                  className="mt-1"
+                />
+              </div>
+              
+              {/* Vertical Control */}
+              <div>
+                <Label className="text-xs text-gray-600">Vertical: {jointAngles[i * 2 + 1]?.toFixed(1)}°</Label>
+                <Slider
+                  value={[jointAngles[i * 2 + 1] || 0]}
+                  onValueChange={([value]) => updateJointAngle(i, 'vertical', value)}
+                  min={-90}
+                  max={90}
+                  step={1}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </Card>
 
@@ -499,6 +512,7 @@ export const RoboticArm3DViewer = ({
         steps={motionSequence}
         onStepsChange={setMotionSequence}
         onPlayFromStep={handlePlayFromStep}
+        onAddCurrentStep={handleAddCurrentStep}
         currentStep={currentStep}
         isPlaying={isPlaying}
         joints={joints}
