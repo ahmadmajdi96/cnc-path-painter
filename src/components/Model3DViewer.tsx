@@ -12,6 +12,16 @@ import { Upload, Trash2, Send, Settings, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+// Type definition for stored model data
+interface StoredModelData {
+  filename: string;
+  fileType: string;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+  storagePath: string;
+}
+
 function STLModel({ url }: { url: string }) {
   try {
     const geometry = useLoader(STLLoader, url);
@@ -193,6 +203,18 @@ export const Model3DViewer = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Type guard function to check if an object is StoredModelData
+  const isStoredModelData = (obj: any): obj is StoredModelData => {
+    return obj && 
+           typeof obj === 'object' && 
+           typeof obj.filename === 'string' &&
+           typeof obj.fileType === 'string' &&
+           Array.isArray(obj.position) &&
+           Array.isArray(obj.rotation) &&
+           Array.isArray(obj.scale) &&
+           typeof obj.storagePath === 'string';
+  };
+
   // Load configuration on mount
   useEffect(() => {
     const loadConfiguration = async () => {
@@ -218,7 +240,9 @@ export const Model3DViewer = ({
         }
 
         if (data && data.models_with_files) {
-          const savedModels = Array.isArray(data.models_with_files) ? data.models_with_files : [];
+          // Type check and filter valid stored models
+          const rawModels = Array.isArray(data.models_with_files) ? data.models_with_files : [];
+          const savedModels = rawModels.filter(isStoredModelData);
           
           // Load actual models from storage
           const loadedModels = [];
