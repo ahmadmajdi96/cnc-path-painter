@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -11,16 +10,16 @@ interface RealisticRoboticArmProps {
 
 export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: RealisticRoboticArmProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const segmentLength = (maxReach / 1000) / Math.max(joints, 1); // Convert to meters
+  const segmentLength = (maxReach / 800) / Math.max(joints, 1); // Increased connector length
   
   // Ensure we have angles for all joints (2 angles per joint: horizontal and vertical)
   const angles = Array(joints * 2).fill(0).map((_, i) => jointAngles[i] || 0);
   
-  // Base configuration
-  const baseHeight = 0.25;
-  const baseRadius = 0.25;
-  const linkRadius = 0.04;
-  const jointRadius = 0.08;
+  // Base configuration - smaller joints, thinner connectors
+  const baseHeight = 0.2;
+  const baseRadius = 0.2;
+  const linkRadius = 0.025; // Thinner connectors
+  const jointRadius = 0.05; // Smaller joints
   const linkLength = segmentLength;
   
   // Calculate joint positions and rotations with proper forward kinematics
@@ -29,8 +28,24 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
     let currentTransform = new THREE.Matrix4();
     
     for (let i = 0; i < joints; i++) {
-      const horizontalAngle = (angles[i * 2] || 0) * Math.PI / 180; // First angle - horizontal
-      const verticalAngle = (angles[i * 2 + 1] || 0) * Math.PI / 180; // Second angle - vertical
+      let horizontalAngle = 0;
+      let verticalAngle = 0;
+      
+      // First joint only moves horizontally
+      if (i === 0) {
+        horizontalAngle = (angles[i * 2] || 0) * Math.PI / 180;
+        verticalAngle = 0; // Fixed vertical
+      }
+      // Second joint only moves vertically  
+      else if (i === 1) {
+        horizontalAngle = 0; // Fixed horizontal
+        verticalAngle = (angles[i * 2 + 1] || 0) * Math.PI / 180;
+      }
+      // Other joints can move in both directions
+      else {
+        horizontalAngle = (angles[i * 2] || 0) * Math.PI / 180;
+        verticalAngle = (angles[i * 2 + 1] || 0) * Math.PI / 180;
+      }
       
       if (i === 0) {
         // Base joint - starts at base height
@@ -106,7 +121,7 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
         
         return (
           <group key={index}>
-            {/* Link from previous joint (except for first joint) */}
+            {/* Link from previous joint (except for first joint) - thinner and longer */}
             {index > 0 && (
               (() => {
                 const startPos = new THREE.Vector3(...jointTransforms[index-1].position);
@@ -125,11 +140,11 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
               })()
             )}
             
-            {/* Joint housing */}
+            {/* Joint housing - smaller and circular */}
             <group position={[x, y, z]} rotation={[rx, ry, rz]}>
-              {/* Main joint body */}
+              {/* Main joint body - smaller circular design */}
               <mesh>
-                <cylinderGeometry args={[jointRadius, jointRadius, 0.12]} />
+                <sphereGeometry args={[jointRadius, 16, 16]} />
                 <meshStandardMaterial 
                   color={index === 0 ? "#2b6cb0" : "#4299e1"} 
                   metalness={0.7} 
@@ -137,63 +152,100 @@ export function RealisticRoboticArmModel({ joints, jointAngles, maxReach }: Real
                 />
               </mesh>
               
-              {/* Horizontal rotation indicator */}
-              <mesh position={[0, 0.07, 0]} rotation={[0, transform.horizontalAngle, 0]}>
-                <boxGeometry args={[0.03, 0.02, jointRadius * 1.2]} />
-                <meshStandardMaterial color="#e53e3e" />
-              </mesh>
-              
-              {/* Vertical rotation indicator */}
-              <mesh position={[jointRadius * 0.6, 0, 0]} rotation={[0, 0, transform.verticalAngle]}>
-                <boxGeometry args={[0.02, 0.03, 0.02]} />
-                <meshStandardMaterial color="#38a169" />
-              </mesh>
-              
-              {/* Joint connection ring */}
+              {/* Joint ring for mechanical detail */}
               <mesh>
-                <torusGeometry args={[jointRadius * 0.7, 0.02, 8, 16]} />
+                <torusGeometry args={[jointRadius * 0.9, jointRadius * 0.15, 8, 16]} />
                 <meshStandardMaterial color="#1a202c" metalness={0.9} roughness={0.1} />
               </mesh>
               
-              {/* Dual movement levers */}
-              {/* Horizontal movement lever */}
-              <mesh position={[0, jointRadius + 0.05, 0]} rotation={[0, transform.horizontalAngle, 0]}>
-                <cylinderGeometry args={[0.015, 0.015, 0.08]} />
-                <meshStandardMaterial color="#dc2626" metalness={0.8} roughness={0.2} />
-              </mesh>
+              {/* Movement indicators based on joint constraints */}
+              {index === 0 && (
+                // First joint: only horizontal movement indicator
+                <mesh position={[0, jointRadius * 1.2, 0]} rotation={[0, transform.horizontalAngle, 0]}>
+                  <boxGeometry args={[0.02, 0.015, jointRadius * 0.8]} />
+                  <meshStandardMaterial color="#e53e3e" />
+                </mesh>
+              )}
               
-              {/* Vertical movement lever */}
-              <mesh position={[0, 0, jointRadius + 0.05]} rotation={[transform.verticalAngle, 0, 0]}>
-                <cylinderGeometry args={[0.015, 0.015, 0.08]} />
-                <meshStandardMaterial color="#059669" metalness={0.8} roughness={0.2} />
-              </mesh>
+              {index === 1 && (
+                // Second joint: only vertical movement indicator
+                <mesh position={[jointRadius * 0.8, 0, 0]} rotation={[0, 0, transform.verticalAngle]}>
+                  <boxGeometry args={[0.015, 0.02, 0.015]} />
+                  <meshStandardMaterial color="#38a169" />
+                </mesh>
+              )}
+              
+              {index > 1 && (
+                // Other joints: both movement indicators
+                <>
+                  <mesh position={[0, jointRadius * 1.2, 0]} rotation={[0, transform.horizontalAngle, 0]}>
+                    <boxGeometry args={[0.02, 0.015, jointRadius * 0.8]} />
+                    <meshStandardMaterial color="#e53e3e" />
+                  </mesh>
+                  <mesh position={[jointRadius * 0.8, 0, 0]} rotation={[0, 0, transform.verticalAngle]}>
+                    <boxGeometry args={[0.015, 0.02, 0.015]} />
+                    <meshStandardMaterial color="#38a169" />
+                  </mesh>
+                </>
+              )}
+              
+              {/* Dual movement levers - adjusted for joint constraints */}
+              {index === 0 && (
+                // First joint: only horizontal lever
+                <mesh position={[0, jointRadius + 0.03, 0]} rotation={[0, transform.horizontalAngle, 0]}>
+                  <cylinderGeometry args={[0.01, 0.01, 0.06]} />
+                  <meshStandardMaterial color="#dc2626" metalness={0.8} roughness={0.2} />
+                </mesh>
+              )}
+              
+              {index === 1 && (
+                // Second joint: only vertical lever
+                <mesh position={[0, 0, jointRadius + 0.03]} rotation={[transform.verticalAngle, 0, 0]}>
+                  <cylinderGeometry args={[0.01, 0.01, 0.06]} />
+                  <meshStandardMaterial color="#059669" metalness={0.8} roughness={0.2} />
+                </mesh>
+              )}
+              
+              {index > 1 && (
+                // Other joints: both levers
+                <>
+                  <mesh position={[0, jointRadius + 0.03, 0]} rotation={[0, transform.horizontalAngle, 0]}>
+                    <cylinderGeometry args={[0.01, 0.01, 0.06]} />
+                    <meshStandardMaterial color="#dc2626" metalness={0.8} roughness={0.2} />
+                  </mesh>
+                  <mesh position={[0, 0, jointRadius + 0.03]} rotation={[transform.verticalAngle, 0, 0]}>
+                    <cylinderGeometry args={[0.01, 0.01, 0.06]} />
+                    <meshStandardMaterial color="#059669" metalness={0.8} roughness={0.2} />
+                  </mesh>
+                </>
+              )}
             </group>
           </group>
         );
       })}
 
-      {/* End Effector */}
+      {/* End Effector - adjusted size */}
       {jointTransforms.length > 0 && (
         <group position={jointTransforms[jointTransforms.length - 1].position}>
           {/* End effector body */}
           <mesh>
-            <boxGeometry args={[0.15, 0.1, 0.15]} />
+            <boxGeometry args={[0.1, 0.08, 0.1]} />
             <meshStandardMaterial color="#38a169" metalness={0.5} roughness={0.3} />
           </mesh>
           
           {/* Gripper jaws */}
-          <mesh position={[0.1, 0, 0]}>
-            <boxGeometry args={[0.05, 0.08, 0.03]} />
+          <mesh position={[0.08, 0, 0]}>
+            <boxGeometry args={[0.04, 0.06, 0.02]} />
             <meshStandardMaterial color="#2d3748" metalness={0.6} roughness={0.4} />
           </mesh>
-          <mesh position={[-0.1, 0, 0]}>
-            <boxGeometry args={[0.05, 0.08, 0.03]} />
+          <mesh position={[-0.08, 0, 0]}>
+            <boxGeometry args={[0.04, 0.06, 0.02]} />
             <meshStandardMaterial color="#2d3748" metalness={0.6} roughness={0.4} />
           </mesh>
           
           {/* Tool tip indicator */}
-          <mesh position={[0, -0.08, 0]}>
-            <sphereGeometry args={[0.02]} />
+          <mesh position={[0, -0.06, 0]}>
+            <sphereGeometry args={[0.015]} />
             <meshStandardMaterial color="#f56565" emissive="#f56565" emissiveIntensity={0.3} />
           </mesh>
         </group>
