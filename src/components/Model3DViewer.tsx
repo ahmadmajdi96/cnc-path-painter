@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useCallback, Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage, useGLTF, useFBX } from '@react-three/drei';
@@ -242,7 +243,7 @@ export const Model3DViewer = ({
         if (data && data.models_with_files) {
           // Type check and filter valid stored models
           const rawModels = Array.isArray(data.models_with_files) ? data.models_with_files : [];
-          const savedModels = rawModels.filter(isStoredModelData);
+          const savedModels: StoredModelData[] = rawModels.filter(isStoredModelData);
           
           // Load actual models from storage
           const loadedModels = [];
