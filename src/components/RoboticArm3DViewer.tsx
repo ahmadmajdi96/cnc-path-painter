@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Play, Square, Home, Save, Download, Send } from 'lucide-react';
+import { Play, Square, Home, Save, Download, Send, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RealisticRoboticArmModel } from './RealisticRoboticArmModel';
@@ -42,6 +42,8 @@ export const RoboticArm3DViewer = ({
   const [motionSequence, setMotionSequence] = useState<MotionStep[]>([]);
   const [savedSequences, setSavedSequences] = useState<any[]>([]);
   const [animationSpeed, setAnimationSpeed] = useState(1.0);
+  const [positionMode, setPositionMode] = useState(false);
+  const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null);
   const { toast } = useToast();
   const playbackRef = useRef<{ shouldStop: boolean }>({ shouldStop: false });
   const animationRef = useRef<number>();
@@ -85,6 +87,39 @@ export const RoboticArm3DViewer = ({
       setSavedSequences(data || []);
     } catch (error) {
       console.error('Error loading sequences:', error);
+    }
+  };
+
+  const handlePositionModeToggle = () => {
+    setPositionMode(!positionMode);
+    if (!positionMode) {
+      setTargetPosition(null);
+      toast({
+        title: "Position Mode Enabled",
+        description: "Click anywhere in the 3D view to move the arm to that position"
+      });
+    } else {
+      toast({
+        title: "Position Mode Disabled",
+        description: "Returned to normal view mode"
+      });
+    }
+  };
+
+  const handleCanvasClick = (event: any) => {
+    if (!positionMode) return;
+    
+    // Get the intersection point from the click
+    const intersections = event.intersections;
+    if (intersections && intersections.length > 0) {
+      const point = intersections[0].point;
+      const newTarget: [number, number, number] = [point.x, point.y, point.z];
+      setTargetPosition(newTarget);
+      
+      toast({
+        title: "Target Position Set",
+        description: `Moving arm to X:${point.x.toFixed(2)}, Y:${point.y.toFixed(2)}, Z:${point.z.toFixed(2)}`
+      });
     }
   };
 
@@ -390,7 +425,16 @@ export const RoboticArm3DViewer = ({
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Robotic Arm - 3D Visualization</h3>
           <div className="flex gap-2">
-            <Button onClick={handlePlaySequence} disabled={isPlaying} size="sm">
+            <Button 
+              onClick={handlePositionModeToggle} 
+              size="sm" 
+              variant={positionMode ? "default" : "outline"}
+              disabled={isPlaying}
+            >
+              <Target className="w-4 h-4 mr-2" />
+              {positionMode ? "Exit Position Mode" : "Position Mode"}
+            </Button>
+            <Button onClick={handlePlaySequence} disabled={isPlaying || positionMode} size="sm">
               <Play className="w-4 h-4 mr-2" />
               Play Sequence
             </Button>
@@ -407,6 +451,16 @@ export const RoboticArm3DViewer = ({
             </Button>
           </div>
         </div>
+
+        {/* Position Mode Status */}
+        {positionMode && (
+          <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-green-700 font-medium">Position Mode Active</span>
+              <span className="text-green-600">Click anywhere in the 3D view to move the arm</span>
+            </div>
+          </div>
+        )}
 
         {/* Configuration Status */}
         <div className="mb-4 p-3 bg-blue-50 rounded-lg">
@@ -443,6 +497,7 @@ export const RoboticArm3DViewer = ({
               position: [3, 3, 3],
               fov: 50
             }}
+            onClick={handleCanvasClick}
           >
             <Suspense fallback={null}>
               <Environment preset="city" />
@@ -458,15 +513,24 @@ export const RoboticArm3DViewer = ({
                 joints={joints}
                 jointAngles={jointAngles}
                 maxReach={maxReach}
+                targetPosition={targetPosition}
               />
             </Suspense>
-            <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
+            <OrbitControls 
+              enablePan={!positionMode} 
+              enableZoom={!positionMode} 
+              enableRotate={!positionMode} 
+            />
           </Canvas>
         </div>
 
         <div className="mt-4 text-sm text-gray-600">
           <p>Joints: {joints} | Max Reach: {maxReach}mm | Max Payload: {maxPayload}kg</p>
-          <p>Use mouse to rotate, scroll to zoom, right-click to pan</p>
+          {positionMode ? (
+            <p className="text-green-600 font-medium">Position Mode: Click in the 3D view to move the arm</p>
+          ) : (
+            <p>Use mouse to rotate, scroll to zoom, right-click to pan</p>
+          )}
         </div>
       </Card>
 
@@ -478,31 +542,96 @@ export const RoboticArm3DViewer = ({
             <div key={i} className="p-3 border rounded-lg bg-gray-50">
               <h5 className="font-medium mb-3">Joint {i + 1}</h5>
               
-              {/* Horizontal Control */}
-              <div className="mb-3">
-                <Label className="text-xs text-gray-600">Horizontal: {jointAngles[i * 2]?.toFixed(1)}°</Label>
-                <Slider
-                  value={[jointAngles[i * 2] || 0]}
-                  onValueChange={([value]) => updateJointAngle(i, 'horizontal', value)}
-                  min={-180}
-                  max={180}
-                  step={1}
-                  className="mt-1"
-                />
-              </div>
-              
-              {/* Vertical Control */}
-              <div>
-                <Label className="text-xs text-gray-600">Vertical: {jointAngles[i * 2 + 1]?.toFixed(1)}°</Label>
-                <Slider
-                  value={[jointAngles[i * 2 + 1] || 0]}
-                  onValueChange={([value]) => updateJointAngle(i, 'vertical', value)}
-                  min={-90}
-                  max={90}
-                  step={1}
-                  className="mt-1"
-                />
-              </div>
+              {/* First joint: only horizontal control */}
+              {i === 0 && (
+                <>
+                  <div className="mb-3">
+                    <Label className="text-xs text-gray-600">Horizontal: {jointAngles[i * 2]?.toFixed(1)}°</Label>
+                    <Slider
+                      value={[jointAngles[i * 2] || 0]}
+                      onValueChange={([value]) => updateJointAngle(i, 'horizontal', value)}
+                      min={-180}
+                      max={180}
+                      step={1}
+                      className="mt-1"
+                      disabled={positionMode}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-400">Vertical: 75° (Fixed)</Label>
+                    <Slider
+                      value={[75]}
+                      onValueChange={() => {}}
+                      min={75}
+                      max={75}
+                      step={1}
+                      className="mt-1 opacity-50"
+                      disabled={true}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Second joint: only vertical control */}
+              {i === 1 && (
+                <>
+                  <div className="mb-3">
+                    <Label className="text-xs text-gray-400">Horizontal: 0° (Fixed)</Label>
+                    <Slider
+                      value={[0]}
+                      onValueChange={() => {}}
+                      min={0}
+                      max={0}
+                      step={1}
+                      className="mt-1 opacity-50"
+                      disabled={true}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600">Vertical: {jointAngles[i * 2 + 1]?.toFixed(1)}°</Label>
+                    <Slider
+                      value={[jointAngles[i * 2 + 1] || 0]}
+                      onValueChange={([value]) => updateJointAngle(i, 'vertical', value)}
+                      min={-90}
+                      max={90}
+                      step={1}
+                      className="mt-1"
+                      disabled={positionMode}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Other joints: both controls */}
+              {i > 1 && (
+                <>
+                  <div className="mb-3">
+                    <Label className="text-xs text-gray-600">Horizontal: {jointAngles[i * 2]?.toFixed(1)}°</Label>
+                    <Slider
+                      value={[jointAngles[i * 2] || 0]}
+                      onValueChange={([value]) => updateJointAngle(i, 'horizontal', value)}
+                      min={-180}
+                      max={180}
+                      step={1}
+                      className="mt-1"
+                      disabled={positionMode}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-gray-600">Vertical: {jointAngles[i * 2 + 1]?.toFixed(1)}°</Label>
+                    <Slider
+                      value={[jointAngles[i * 2 + 1] || 0]}
+                      onValueChange={([value]) => updateJointAngle(i, 'vertical', value)}
+                      min={-90}
+                      max={90}
+                      step={1}
+                      className="mt-1"
+                      disabled={positionMode}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
