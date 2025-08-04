@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useCallback, Suspense, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stage } from '@react-three/drei';
@@ -132,6 +131,7 @@ export const RoboticArm3DViewer = ({
   const [motionSequence, setMotionSequence] = useState<MotionStep[]>([]);
   const [savedSequences, setSavedSequences] = useState<any[]>([]);
   const { toast } = useToast();
+  const playbackRef = useRef<{ shouldStop: boolean }>({ shouldStop: false });
 
   // Update joint angles when roboticArmParams changes
   useEffect(() => {
@@ -183,25 +183,42 @@ export const RoboticArm3DViewer = ({
         }
       ];
       setMotionSequence(currentSequence);
+      return;
     }
 
     setIsPlaying(true);
     setCurrentStep(0);
+    playbackRef.current.shouldStop = false;
     
     // Play through the sequence
     for (let i = 0; i < motionSequence.length; i++) {
-      if (!isPlaying) break;
+      if (playbackRef.current.shouldStop) {
+        break;
+      }
       
       setCurrentStep(i);
-      setJointAngles(motionSequence[i].jointAngles);
+      setJointAngles([...motionSequence[i].jointAngles]);
       
-      await new Promise(resolve => setTimeout(resolve, motionSequence[i].duration));
+      // Use a promise-based delay that can be interrupted
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve();
+        }, motionSequence[i].duration);
+        
+        // Store timeout reference for potential cleanup
+        if (playbackRef.current.shouldStop) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
     }
     
     setIsPlaying(false);
+    playbackRef.current.shouldStop = false;
   };
 
   const handleStopSequence = () => {
+    playbackRef.current.shouldStop = true;
     setIsPlaying(false);
   };
 

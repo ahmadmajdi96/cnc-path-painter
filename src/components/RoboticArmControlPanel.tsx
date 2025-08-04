@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface RoboticArmControlPanelProps {
@@ -29,6 +29,7 @@ export const RoboticArmControlPanel = ({
   const [speed, setSpeed] = useState([50]);
   const [acceleration, setAcceleration] = useState([25]);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch selected machine data
   const { data: selectedMachine } = useQuery({
@@ -145,8 +146,8 @@ export const RoboticArmControlPanel = ({
         description: "Joint configuration saved successfully"
       });
 
-      // Refresh configurations
-      window.location.reload();
+      // Invalidate and refetch configurations instead of reloading the page
+      queryClient.invalidateQueries({ queryKey: ['joint_configurations', selectedMachineId] });
     } catch (error) {
       toast({
         title: "Save Failed",
