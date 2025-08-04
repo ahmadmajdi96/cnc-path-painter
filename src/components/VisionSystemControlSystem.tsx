@@ -47,7 +47,7 @@ export const VisionSystemControlSystem = () => {
 
       {/* Status Cards */}
       <div className="px-6 py-4">
-        <StatusCards machineType="vision_system" />
+        <StatusCards machineType="laser" />
       </div>
 
       {/* Main Content */}
@@ -57,7 +57,7 @@ export const VisionSystemControlSystem = () => {
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
-            machineType="vision_system"
+            machineType="laser"
           />
         </div>
 

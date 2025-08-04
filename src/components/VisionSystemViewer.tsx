@@ -115,7 +115,7 @@ export const VisionSystemViewer = ({
           selectedMachineId={selectedMachineId}
           onEndpointSelect={onEndpointSelect || (() => {})}
           selectedEndpoint={selectedEndpoint || ''}
-          machineType="vision_system"
+          machineType="laser"
         />
       </div>
     );
@@ -248,7 +248,7 @@ export const VisionSystemViewer = ({
         selectedMachineId={selectedMachineId}
         onEndpointSelect={onEndpointSelect || (() => {})}
         selectedEndpoint={selectedEndpoint || ''}
-        machineType="vision_system"
+        machineType="laser"
       />
     </div>
   );

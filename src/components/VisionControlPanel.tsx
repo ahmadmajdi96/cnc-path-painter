@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Contrast, 
-  Brightness4, 
-  Blur, 
+  Sun, 
+  Focus, 
   Filter,
   Crosshair,
   Zap,
@@ -204,7 +204,7 @@ export const VisionControlPanel = ({
               <div className="space-y-4">
                 <div>
                   <Label className="flex items-center gap-2 mb-2">
-                    <Brightness4 className="w-4 h-4" />
+                    <Sun className="w-4 h-4" />
                     Brightness: {filters.brightness}
                   </Label>
                   <Slider
@@ -232,7 +232,7 @@ export const VisionControlPanel = ({
 
                 <div>
                   <Label className="flex items-center gap-2 mb-2">
-                    <Blur className="w-4 h-4" />
+                    <Focus className="w-4 h-4" />
                     Noise Reduction: {filters.noiseReduction}
                   </Label>
                   <Slider
