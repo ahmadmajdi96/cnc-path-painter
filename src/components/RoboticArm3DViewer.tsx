@@ -172,8 +172,10 @@ export const RoboticArm3DViewer = ({
   };
 
   const handlePlaySequence = async () => {
+    let sequenceToPlay = motionSequence;
+
+    // If no sequence exists, create one from current position
     if (!motionSequence.length) {
-      // Create a sequence from current position
       const currentSequence: MotionStep[] = [
         {
           id: '1',
@@ -183,43 +185,82 @@ export const RoboticArm3DViewer = ({
         }
       ];
       setMotionSequence(currentSequence);
-      return;
+      sequenceToPlay = currentSequence;
+      
+      toast({
+        title: "Sequence Created",
+        description: "Created sequence from current position"
+      });
     }
 
     setIsPlaying(true);
     setCurrentStep(0);
     playbackRef.current.shouldStop = false;
     
-    // Play through the sequence
-    for (let i = 0; i < motionSequence.length; i++) {
-      if (playbackRef.current.shouldStop) {
-        break;
+    try {
+      // Play through the sequence
+      for (let i = 0; i < sequenceToPlay.length; i++) {
+        if (playbackRef.current.shouldStop) {
+          break;
+        }
+        
+        setCurrentStep(i + 1); // Display as 1-based indexing
+        setJointAngles([...sequenceToPlay[i].jointAngles]);
+        
+        // Provide visual feedback for the movement
+        toast({
+          title: `Step ${i + 1}`,
+          description: sequenceToPlay[i].description || `Playing step ${i + 1} of ${sequenceToPlay.length}`
+        });
+        
+        // Use a promise-based delay that can be interrupted
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            resolve();
+          }, sequenceToPlay[i].duration);
+          
+          // Check for stop condition periodically
+          const checkStop = () => {
+            if (playbackRef.current.shouldStop) {
+              clearTimeout(timeout);
+              resolve();
+            }
+          };
+          
+          // Check every 100ms if we should stop
+          const stopCheck = setInterval(checkStop, 100);
+          
+          // Clean up interval when timeout completes
+          setTimeout(() => clearInterval(stopCheck), sequenceToPlay[i].duration);
+        });
       }
       
-      setCurrentStep(i);
-      setJointAngles([...motionSequence[i].jointAngles]);
-      
-      // Use a promise-based delay that can be interrupted
-      await new Promise<void>((resolve) => {
-        const timeout = setTimeout(() => {
-          resolve();
-        }, motionSequence[i].duration);
-        
-        // Store timeout reference for potential cleanup
-        if (playbackRef.current.shouldStop) {
-          clearTimeout(timeout);
-          resolve();
-        }
+      if (!playbackRef.current.shouldStop) {
+        toast({
+          title: "Sequence Complete",
+          description: `Finished playing ${sequenceToPlay.length} steps`
+        });
+      }
+    } catch (error) {
+      console.error('Error during sequence playback:', error);
+      toast({
+        title: "Playback Error",
+        description: "An error occurred during sequence playback",
+        variant: "destructive"
       });
+    } finally {
+      setIsPlaying(false);
+      playbackRef.current.shouldStop = false;
     }
-    
-    setIsPlaying(false);
-    playbackRef.current.shouldStop = false;
   };
 
   const handleStopSequence = () => {
     playbackRef.current.shouldStop = true;
     setIsPlaying(false);
+    toast({
+      title: "Sequence Stopped",
+      description: "Playback has been stopped"
+    });
   };
 
   const handleHomePosition = () => {
