@@ -9,6 +9,7 @@ import LaserControl from "./pages/LaserControl";
 import LaserMarking from "./pages/LaserMarking";
 import Printer3D from "./pages/Printer3D";
 import RoboticArms from "./pages/RoboticArms";
+import VisionSystem from "./pages/VisionSystem";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/laser-marking" element={<LaserMarking />} />
           <Route path="/3d-printer" element={<Printer3D />} />
           <Route path="/robotic-arms" element={<RoboticArms />} />
+          <Route path="/vision-system" element={<VisionSystem />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
