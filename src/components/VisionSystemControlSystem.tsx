@@ -4,10 +4,30 @@ import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { VisionSystemViewer } from './VisionSystemViewer';
 import { VisionControlPanel } from './VisionControlPanel';
+import { VisionSystemManager } from './VisionSystemManager';
+import { ImageGallery } from './ImageGallery';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddVisionSystemDialog } from './AddVisionSystemDialog';
 import { MainNavigation } from './MainNavigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+interface VisionSystem {
+  id: string;
+  name: string;
+  endpoint: string;
+  cameraType: string;
+  resolution: string;
+  status: 'online' | 'offline';
+}
+
+interface SavedImage {
+  id: string;
+  url: string;
+  name: string;
+  timestamp: Date;
+  filters?: any;
+}
 
 export const VisionSystemControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -16,6 +36,21 @@ export const VisionSystemControlSystem = () => {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [imageFilters, setImageFilters] = useState({});
+  
+  // Vision systems management
+  const [visionSystems, setVisionSystems] = useState<VisionSystem[]>([
+    {
+      id: '1',
+      name: 'Main Inspection Camera',
+      endpoint: 'http://192.168.1.100:8080',
+      cameraType: 'Industrial CCD',
+      resolution: '1920x1080',
+      status: 'online'
+    }
+  ]);
+
+  // Image gallery
+  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
 
   // Clear endpoint when machine changes
   useEffect(() => {
@@ -23,6 +58,43 @@ export const VisionSystemControlSystem = () => {
     setCurrentImage(null);
     setProcessedImage(null);
   }, [selectedMachine]);
+
+  const handleAddVisionSystem = (systemData: Omit<VisionSystem, 'id' | 'status'>) => {
+    const newSystem: VisionSystem = {
+      ...systemData,
+      id: Date.now().toString(),
+      status: 'online'
+    };
+    setVisionSystems(prev => [...prev, newSystem]);
+  };
+
+  const handleEditVisionSystem = (id: string, systemData: Omit<VisionSystem, 'id' | 'status'>) => {
+    setVisionSystems(prev => prev.map(system => 
+      system.id === id ? { ...system, ...systemData } : system
+    ));
+  };
+
+  const handleDeleteVisionSystem = (id: string) => {
+    setVisionSystems(prev => prev.filter(system => system.id !== id));
+    if (selectedMachine === id) {
+      setSelectedMachine('');
+    }
+  };
+
+  const handleSaveImage = (image: SavedImage) => {
+    setSavedImages(prev => [image, ...prev]);
+  };
+
+  const handleDeleteImage = (id: string) => {
+    setSavedImages(prev => prev.filter(img => img.id !== id));
+  };
+
+  const handleDownloadImage = (image: SavedImage) => {
+    const link = document.createElement('a');
+    link.href = image.url;
+    link.download = `${image.name}.png`;
+    link.click();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,17 +124,24 @@ export const VisionSystemControlSystem = () => {
 
       {/* Main Content */}
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Machine List */}
-        <div className="w-80 flex-shrink-0">
+        {/* Left Sidebar - Machine List and System Management */}
+        <div className="w-80 flex-shrink-0 space-y-6">
           <MachineList 
             selectedMachine={selectedMachine}
             onMachineSelect={setSelectedMachine}
             machineType="laser"
           />
+          
+          <VisionSystemManager
+            visionSystems={visionSystems}
+            onAddSystem={handleAddVisionSystem}
+            onEditSystem={handleEditVisionSystem}
+            onDeleteSystem={handleDeleteVisionSystem}
+          />
         </div>
 
         {/* Center - Image Viewer and Processing */}
-        <div className="flex-1 min-w-0 space-y-6">
+        <div className="flex-1 min-w-0">
           <VisionSystemViewer 
             selectedMachineId={selectedMachine}
             selectedEndpoint={selectedEndpoint}
@@ -75,15 +154,34 @@ export const VisionSystemControlSystem = () => {
           />
         </div>
 
-        {/* Right Sidebar - Control Panel */}
+        {/* Right Sidebar - Control Panel and Gallery */}
         <div className="w-96 flex-shrink-0">
-          <VisionControlPanel 
-            selectedMachineId={selectedMachine}
-            selectedEndpoint={selectedEndpoint}
-            currentImage={currentImage}
-            onFiltersChange={setImageFilters}
-            onImageProcessed={setProcessedImage}
-          />
+          <Tabs defaultValue="control" className="h-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="control">Control</TabsTrigger>
+              <TabsTrigger value="gallery">Gallery</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="control" className="mt-0">
+              <VisionControlPanel 
+                selectedMachineId={selectedMachine}
+                selectedEndpoint={selectedEndpoint}
+                currentImage={processedImage || currentImage}
+                onFiltersChange={setImageFilters}
+                onImageProcessed={setProcessedImage}
+                savedImages={savedImages}
+                onSaveImage={handleSaveImage}
+              />
+            </TabsContent>
+            
+            <TabsContent value="gallery" className="mt-0">
+              <ImageGallery
+                savedImages={savedImages}
+                onDeleteImage={handleDeleteImage}
+                onDownloadImage={handleDownloadImage}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 

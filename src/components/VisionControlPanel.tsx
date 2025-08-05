@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 import { 
   Contrast, 
   Sun, 
@@ -18,15 +18,27 @@ import {
   Search,
   Grid3X3,
   Eye,
-  Settings
+  Settings,
+  Save
 } from 'lucide-react';
+import { applyImageFilters, ImageFilters } from '@/utils/imageProcessing';
+
+interface SavedImage {
+  id: string;
+  url: string;
+  name: string;
+  timestamp: Date;
+  filters?: ImageFilters;
+}
 
 interface VisionControlPanelProps {
   selectedMachineId?: string;
   selectedEndpoint?: string;
   currentImage?: string | null;
-  onFiltersChange?: (filters: any) => void;
+  onFiltersChange?: (filters: ImageFilters) => void;
   onImageProcessed?: (image: string) => void;
+  savedImages: SavedImage[];
+  onSaveImage: (image: SavedImage) => void;
 }
 
 export const VisionControlPanel = ({
@@ -34,10 +46,12 @@ export const VisionControlPanel = ({
   selectedEndpoint,
   currentImage,
   onFiltersChange,
-  onImageProcessed
+  onImageProcessed,
+  savedImages,
+  onSaveImage
 }: VisionControlPanelProps) => {
   const { toast } = useToast();
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<ImageFilters>({
     brightness: 0,
     contrast: 0,
     blur: 0,
@@ -46,21 +60,16 @@ export const VisionControlPanel = ({
     noiseReduction: 0
   });
 
-  const [inspectionParams, setInspectionParams] = useState({
-    defectDetection: false,
-    dimensionalCheck: false,
-    surfaceAnalysis: false,
-    patternMatching: false,
-    tolerance: 5
-  });
+  const [imageName, setImageName] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFilterChange = useCallback((key: string, value: number | boolean) => {
+  const handleFilterChange = useCallback((key: keyof ImageFilters, value: number | boolean) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFiltersChange?.(newFilters);
   }, [filters, onFiltersChange]);
 
-  const applyFilter = useCallback(async (filterType: string) => {
+  const applyFilters = useCallback(async () => {
     if (!currentImage) {
       toast({
         title: "No image",
@@ -70,75 +79,27 @@ export const VisionControlPanel = ({
       return;
     }
 
+    setIsProcessing(true);
     try {
-      // Simulate image processing
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx?.drawImage(img, 0, 0);
-        
-        if (ctx) {
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-
-          // Apply different filters based on type
-          switch (filterType) {
-            case 'edge':
-              // Simple edge detection simulation
-              for (let i = 0; i < data.length; i += 4) {
-                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const edge = gray > filters.threshold ? 255 : 0;
-                data[i] = edge;
-                data[i + 1] = edge;
-                data[i + 2] = edge;
-              }
-              break;
-            
-            case 'brightness':
-              for (let i = 0; i < data.length; i += 4) {
-                data[i] = Math.min(255, Math.max(0, data[i] + filters.brightness));
-                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + filters.brightness));
-                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + filters.brightness));
-              }
-              break;
-            
-            case 'contrast':
-              const contrastFactor = (259 * (filters.contrast + 255)) / (255 * (259 - filters.contrast));
-              for (let i = 0; i < data.length; i += 4) {
-                data[i] = Math.min(255, Math.max(0, contrastFactor * (data[i] - 128) + 128));
-                data[i + 1] = Math.min(255, Math.max(0, contrastFactor * (data[i + 1] - 128) + 128));
-                data[i + 2] = Math.min(255, Math.max(0, contrastFactor * (data[i + 2] - 128) + 128));
-              }
-              break;
-          }
-
-          ctx.putImageData(imageData, 0, 0);
-          const processedDataUrl = canvas.toDataURL();
-          onImageProcessed?.(processedDataUrl);
-          
-          toast({
-            title: "Filter applied",
-            description: `${filterType} filter has been applied successfully`
-          });
-        }
-      };
-      
-      img.src = currentImage;
+      const processedImage = await applyImageFilters(currentImage, filters);
+      onImageProcessed?.(processedImage);
+      toast({
+        title: "Filters applied",
+        description: "Image has been processed successfully"
+      });
     } catch (error) {
       console.error('Filter application failed:', error);
       toast({
         title: "Filter failed",
-        description: "Failed to apply filter to image",
+        description: "Failed to apply filters to image",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   }, [currentImage, filters, onImageProcessed, toast]);
 
-  const runInspection = useCallback(async (inspectionType: string) => {
+  const saveCurrentImage = useCallback(() => {
     if (!currentImage) {
       toast({
         title: "No image",
@@ -148,22 +109,22 @@ export const VisionControlPanel = ({
       return;
     }
 
-    // Simulate inspection results
-    const results = {
-      defectDetection: { defects: Math.floor(Math.random() * 3), severity: 'Low' },
-      dimensionalCheck: { withinTolerance: Math.random() > 0.3, deviation: (Math.random() * 2 - 1).toFixed(2) },
-      surfaceAnalysis: { roughness: (Math.random() * 5 + 1).toFixed(2), quality: 'Good' },
-      patternMatching: { confidence: (Math.random() * 30 + 70).toFixed(1) }
+    const name = imageName.trim() || `Image_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
+    const savedImage: SavedImage = {
+      id: Date.now().toString(),
+      url: currentImage,
+      name,
+      timestamp: new Date(),
+      filters: { ...filters }
     };
 
+    onSaveImage(savedImage);
+    setImageName('');
     toast({
-      title: "Inspection complete",
-      description: `${inspectionType} inspection finished with results`,
-      duration: 5000
+      title: "Image saved",
+      description: `Image "${name}" has been saved to gallery`
     });
-
-    console.log(`${inspectionType} results:`, results[inspectionType as keyof typeof results]);
-  }, [currentImage, toast]);
+  }, [currentImage, imageName, filters, onSaveImage, toast]);
 
   if (!selectedMachineId) {
     return (
@@ -197,7 +158,7 @@ export const VisionControlPanel = ({
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="filters">Filters</TabsTrigger>
               <TabsTrigger value="inspection">Inspection</TabsTrigger>
-              <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              <TabsTrigger value="save">Save</TabsTrigger>
             </TabsList>
 
             <TabsContent value="filters" className="space-y-4">
@@ -258,102 +219,28 @@ export const VisionControlPanel = ({
                   />
                 </div>
 
-                <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" onClick={() => applyFilter('brightness')}>
-                    Apply Brightness
-                  </Button>
-                  <Button size="sm" onClick={() => applyFilter('contrast')}>
-                    Apply Contrast
-                  </Button>
-                  <Button size="sm" onClick={() => applyFilter('edge')}>
-                    Edge Detection
-                  </Button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="edgeDetection"
+                    checked={filters.edgeDetection}
+                    onChange={(e) => handleFilterChange('edgeDetection', e.target.checked)}
+                  />
+                  <Label htmlFor="edgeDetection">Enable Edge Detection</Label>
                 </div>
+
+                <Button 
+                  onClick={applyFilters} 
+                  disabled={!currentImage || isProcessing}
+                  className="w-full"
+                >
+                  {isProcessing ? 'Processing...' : 'Apply Filters'}
+                </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="inspection" className="space-y-4">
               <div className="space-y-4">
-                <div>
-                  <Label className="mb-2 block">Inspection Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select inspection type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="defect">Defect Detection</SelectItem>
-                      <SelectItem value="dimensional">Dimensional Check</SelectItem>
-                      <SelectItem value="surface">Surface Analysis</SelectItem>
-                      <SelectItem value="pattern">Pattern Matching</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="mb-2 block">Tolerance (%): {inspectionParams.tolerance}</Label>
-                  <Slider
-                    value={[inspectionParams.tolerance]}
-                    onValueChange={([value]) => 
-                      setInspectionParams(prev => ({ ...prev, tolerance: value }))
-                    }
-                    min={0.1}
-                    max={20}
-                    step={0.1}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={() => runInspection('defectDetection')}
-                    className="flex items-center gap-1"
-                  >
-                    <Search className="w-4 h-4" />
-                    Defect Check
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => runInspection('dimensionalCheck')}
-                    className="flex items-center gap-1"
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                    Dimensions
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => runInspection('surfaceAnalysis')}
-                    className="flex items-center gap-1"
-                  >
-                    <Crosshair className="w-4 h-4" />
-                    Surface
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => runInspection('patternMatching')}
-                    className="flex items-center gap-1"
-                  >
-                    <Zap className="w-4 h-4" />
-                    Pattern
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="analysis" className="space-y-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="font-medium text-gray-700">Status</div>
-                    <Badge variant="outline" className="mt-1">
-                      {currentImage ? 'Image Loaded' : 'No Image'}
-                    </Badge>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="font-medium text-gray-700">Processing</div>
-                    <Badge variant="outline" className="mt-1">Ready</Badge>
-                  </div>
-                </div>
-                
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Industrial Features</h4>
                   <ul className="text-sm text-blue-800 space-y-1">
@@ -364,6 +251,35 @@ export const VisionControlPanel = ({
                     <li>• Pattern matching & recognition</li>
                     <li>• Quality control automation</li>
                   </ul>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="save" className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="imageName">Image Name</Label>
+                  <Input
+                    id="imageName"
+                    value={imageName}
+                    onChange={(e) => setImageName(e.target.value)}
+                    placeholder="Enter image name (optional)"
+                  />
+                </div>
+
+                <Button 
+                  onClick={saveCurrentImage}
+                  disabled={!currentImage}
+                  className="w-full flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Current Image
+                </Button>
+
+                <div className="bg-gray-50 p-3 rounded">
+                  <p className="text-sm text-gray-600">
+                    Saved Images: {savedImages.length}
+                  </p>
                 </div>
               </div>
             </TabsContent>
