@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -58,6 +57,14 @@ export const VisionControlPanel = ({
 
   const [imageName, setImageName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+
+  // Store the original image when currentImage changes
+  useEffect(() => {
+    if (currentImage && currentImage !== originalImage) {
+      setOriginalImage(currentImage);
+    }
+  }, [currentImage, originalImage]);
 
   const handleFilterChange = useCallback((key: keyof ImageFilters, value: number | boolean) => {
     const newFilters = { ...filters, [key]: value };
@@ -66,7 +73,10 @@ export const VisionControlPanel = ({
   }, [filters, onFiltersChange]);
 
   const applyFilters = useCallback(async () => {
-    if (!currentImage) {
+    // Use original image if available, otherwise use current image
+    const imageToProcess = originalImage || currentImage;
+    
+    if (!imageToProcess) {
       toast({
         title: "No image",
         description: "Please load an image first",
@@ -77,7 +87,7 @@ export const VisionControlPanel = ({
 
     setIsProcessing(true);
     try {
-      const processedImage = await applyImageFilters(currentImage, filters);
+      const processedImage = await applyImageFilters(imageToProcess, filters);
       onImageProcessed?.(processedImage);
       toast({
         title: "Filters applied",
@@ -93,7 +103,7 @@ export const VisionControlPanel = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [currentImage, filters, onImageProcessed, toast]);
+  }, [originalImage, currentImage, filters, onImageProcessed, toast]);
 
   const saveCurrentImage = useCallback(() => {
     if (!currentImage) {
