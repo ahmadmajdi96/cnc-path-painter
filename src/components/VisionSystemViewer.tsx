@@ -2,8 +2,9 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, Upload, Download, RotateCw, ZoomIn, ZoomOut, Move, Square } from 'lucide-react';
+import { Camera, Upload, Download, RotateCw, ZoomIn, ZoomOut, X, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface VisionSystem {
   id: string;
@@ -12,6 +13,15 @@ interface VisionSystem {
   cameraType: string;
   resolution: string;
   status: 'online' | 'offline';
+}
+
+interface SavedImage {
+  id: string;
+  url: string;
+  name: string;
+  timestamp: Date;
+  filters?: any;
+  systemId: string;
 }
 
 interface VisionSystemViewerProps {
@@ -24,6 +34,8 @@ interface VisionSystemViewerProps {
   onImageProcessed?: (image: string) => void;
   imageFilters?: any;
   visionSystems: VisionSystem[];
+  savedImages: SavedImage[];
+  onClearView?: () => void;
 }
 
 export const VisionSystemViewer = ({ 
@@ -35,7 +47,9 @@ export const VisionSystemViewer = ({
   onImageReceived,
   onImageProcessed,
   imageFilters,
-  visionSystems
+  visionSystems,
+  savedImages,
+  onClearView
 }: VisionSystemViewerProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,8 +57,10 @@ export const VisionSystemViewer = ({
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
 
   const selectedSystem = visionSystems.find(s => s.id === selectedSystemId);
+  const systemImages = savedImages.filter(img => img.systemId === selectedSystemId);
 
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -116,6 +132,26 @@ export const VisionSystemViewer = ({
     link.click();
   }, [currentImage, processedImage, selectedSystem]);
 
+  const handleClearView = useCallback(() => {
+    setZoom(100);
+    setRotation(0);
+    setViewMode('original');
+    onClearView?.();
+    toast({
+      title: "View cleared",
+      description: "Vision system view has been reset"
+    });
+  }, [onClearView, toast]);
+
+  const loadImageFromGallery = useCallback((image: SavedImage) => {
+    onImageReceived?.(image.url);
+    setShowGallery(false);
+    toast({
+      title: "Image loaded",
+      description: `Loaded "${image.name}" from gallery`
+    });
+  }, [onImageReceived, toast]);
+
   if (!selectedSystemId) {
     return (
       <Card>
@@ -139,129 +175,172 @@ export const VisionSystemViewer = ({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Camera className="w-5 h-5" />
-            <span>Image Viewer - {selectedSystem?.name}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Button
-                variant={viewMode === 'original' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('original')}
-              >
-                Original
-              </Button>
-              <Button
-                variant={viewMode === 'processed' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('processed')}
-                disabled={!processedImage}
-              >
-                Processed
-              </Button>
-              <Button
-                variant={viewMode === 'split' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('split')}
-                disabled={!processedImage}
-              >
-                Split View
-              </Button>
+              <Camera className="w-5 h-5" />
+              <span>Image Viewer - {selectedSystem?.name}</span>
             </div>
             
-            <div className="flex items-center gap-2 ml-4">
-              <Button size="sm" variant="outline" onClick={() => setZoom(Math.max(25, zoom - 25))}>
-                <ZoomOut className="w-4 h-4" />
-              </Button>
-              <span className="text-sm text-gray-600 w-12 text-center">{zoom}%</span>
-              <Button size="sm" variant="outline" onClick={() => setZoom(Math.min(400, zoom + 25))}>
-                <ZoomIn className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setRotation((rotation + 90) % 360)}>
-                <RotateCw className="w-4 h-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={downloadImage} disabled={!currentImage}>
-                <Download className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="relative bg-gray-50 rounded-lg min-h-96 flex items-center justify-center overflow-hidden">
-          {currentImage ? (
-            <div className="flex w-full h-full">
-              {viewMode === 'split' && processedImage ? (
-                <>
-                  <div className="flex-1 flex items-center justify-center border-r-2 border-gray-300">
-                    <img 
-                      src={currentImage} 
-                      alt="Original" 
-                      className="max-w-full max-h-full object-contain"
-                      style={{ 
-                        transform: `scale(${zoom/100}) rotate(${rotation}deg)`,
-                        transition: 'transform 0.2s ease'
-                      }}
-                    />
-                  </div>
-                  <div className="flex-1 flex items-center justify-center">
-                    <img 
-                      src={processedImage} 
-                      alt="Processed" 
-                      className="max-w-full max-h-full object-contain"
-                      style={{ 
-                        transform: `scale(${zoom/100}) rotate(${rotation}deg)`,
-                        transition: 'transform 0.2s ease'
-                      }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <img 
-                  src={viewMode === 'processed' ? processedImage || currentImage : currentImage} 
-                  alt={viewMode === 'processed' ? 'Processed' : 'Original'} 
-                  className="max-w-full max-h-full object-contain"
-                  style={{ 
-                    transform: `scale(${zoom/100}) rotate(${rotation}deg)`,
-                    transition: 'transform 0.2s ease'
-                  }}
-                />
-              )}
-            </div>
-          ) : (
-            <div className="text-center">
-              <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No image loaded</p>
-              <div className="flex gap-2 justify-center">
-                <Button onClick={() => fileInputRef.current?.click()}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Image
-                </Button>
-                <Button 
-                  onClick={captureFromEndpoint} 
-                  disabled={!selectedEndpoint || isCapturing}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === 'original' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('original')}
                 >
-                  <Camera className="w-4 h-4 mr-2" />
-                  {isCapturing ? 'Capturing...' : 'Capture'}
+                  Original
+                </Button>
+                <Button
+                  variant={viewMode === 'processed' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('processed')}
+                  disabled={!processedImage}
+                >
+                  Processed
+                </Button>
+                <Button
+                  variant={viewMode === 'split' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('split')}
+                  disabled={!processedImage}
+                >
+                  Split View
+                </Button>
+              </div>
+              
+              <div className="flex items-center gap-2 ml-4">
+                <Button size="sm" variant="outline" onClick={() => setShowGallery(true)} disabled={systemImages.length === 0}>
+                  <FolderOpen className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleClearView}>
+                  <X className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setZoom(Math.max(25, zoom - 25))}>
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                <span className="text-sm text-gray-600 w-12 text-center">{zoom}%</span>
+                <Button size="sm" variant="outline" onClick={() => setZoom(Math.min(400, zoom + 25))}>
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setRotation((rotation + 90) % 360)}>
+                  <RotateCw className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={downloadImage} disabled={!currentImage}>
+                  <Download className="w-4 h-4" />
                 </Button>
               </div>
             </div>
-          )}
-        </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative bg-gray-50 rounded-lg min-h-96 flex items-center justify-center overflow-hidden">
+            {currentImage ? (
+              <div className="flex w-full h-full">
+                {viewMode === 'split' && processedImage ? (
+                  <>
+                    <div className="flex-1 flex items-center justify-center border-r-2 border-gray-300">
+                      <img 
+                        src={currentImage} 
+                        alt="Original" 
+                        className="max-w-full max-h-full object-contain"
+                        style={{ 
+                          transform: `scale(${zoom/100}) rotate(${rotation}deg)`,
+                          transition: 'transform 0.2s ease'
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 flex items-center justify-center">
+                      <img 
+                        src={processedImage} 
+                        alt="Processed" 
+                        className="max-w-full max-h-full object-contain"
+                        style={{ 
+                          transform: `scale(${zoom/100}) rotate(${rotation}deg)`,
+                          transition: 'transform 0.2s ease'
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <img 
+                    src={viewMode === 'processed' ? processedImage || currentImage : currentImage} 
+                    alt={viewMode === 'processed' ? 'Processed' : 'Original'} 
+                    className="max-w-full max-h-full object-contain"
+                    style={{ 
+                      transform: `scale(${zoom/100}) rotate(${rotation}deg)`,
+                      transition: 'transform 0.2s ease'
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="text-center">
+                <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">No image loaded</p>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Image
+                  </Button>
+                  <Button 
+                    onClick={captureFromEndpoint} 
+                    disabled={!selectedEndpoint || isCapturing}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    {isCapturing ? 'Capturing...' : 'Capture'}
+                  </Button>
+                  <Button 
+                    onClick={() => setShowGallery(true)}
+                    disabled={systemImages.length === 0}
+                  >
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    Gallery ({systemImages.length})
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
-      </CardContent>
-    </Card>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Gallery Dialog */}
+      <Dialog open={showGallery} onOpenChange={setShowGallery}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Image Gallery - {selectedSystem?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+            {systemImages.map((image) => (
+              <div key={image.id} className="relative group cursor-pointer" onClick={() => loadImageFromGallery(image)}>
+                <img 
+                  src={image.url} 
+                  alt={image.name}
+                  className="w-full h-24 object-cover rounded border hover:border-purple-500"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                  <p className="text-white text-xs text-center p-2">{image.name}</p>
+                </div>
+              </div>
+            ))}
+            {systemImages.length === 0 && (
+              <div className="col-span-3 text-center py-8 text-gray-500">
+                <p>No saved images for this vision system</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

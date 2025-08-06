@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StatusCards } from './StatusCards';
 import { VisionSystemList } from './VisionSystemList';
 import { VisionSystemViewer } from './VisionSystemViewer';
 import { VisionControlPanel } from './VisionControlPanel';
 import { VisionSystemManager } from './VisionSystemManager';
+import { VisionSystemFilters } from './VisionSystemFilters';
+import { VisionEndpointManager } from './VisionEndpointManager';
 import { ImageGallery } from './ImageGallery';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -27,6 +29,16 @@ interface SavedImage {
   name: string;
   timestamp: Date;
   filters?: any;
+  systemId: string;
+}
+
+interface VisionEndpoint {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  status: 'active' | 'inactive';
+  systemId: string;
 }
 
 export const VisionSystemControlSystem = () => {
@@ -36,6 +48,11 @@ export const VisionSystemControlSystem = () => {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [imageFilters, setImageFilters] = useState({});
+
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   
   // Vision systems management
   const [visionSystems, setVisionSystems] = useState<VisionSystem[]>([
@@ -57,8 +74,48 @@ export const VisionSystemControlSystem = () => {
     }
   ]);
 
+  // Endpoints management
+  const [endpoints, setEndpoints] = useState<VisionEndpoint[]>([
+    {
+      id: '1',
+      name: 'Capture Endpoint',
+      url: 'http://192.168.1.100:8080/capture',
+      type: 'capture',
+      status: 'active',
+      systemId: '1'
+    },
+    {
+      id: '2',
+      name: 'Stream Endpoint',
+      url: 'http://192.168.1.100:8080/stream',
+      type: 'stream',
+      status: 'active',
+      systemId: '1'
+    },
+    {
+      id: '3',
+      name: 'Capture Endpoint',
+      url: 'http://192.168.1.101:8080/capture',
+      type: 'capture',
+      status: 'active',
+      systemId: '2'
+    }
+  ]);
+
   // Image gallery
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
+
+  // Filtered vision systems
+  const filteredVisionSystems = useMemo(() => {
+    return visionSystems.filter(system => {
+      const matchesSearch = system.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           system.cameraType.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || system.status === statusFilter;
+      const matchesType = typeFilter === 'all' || system.cameraType === typeFilter;
+      
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [visionSystems, searchTerm, statusFilter, typeFilter]);
 
   // Clear endpoint when system changes
   useEffect(() => {
@@ -70,12 +127,12 @@ export const VisionSystemControlSystem = () => {
   // Set default endpoint when system is selected
   useEffect(() => {
     if (selectedSystem && !selectedEndpoint) {
-      const system = visionSystems.find(s => s.id === selectedSystem);
-      if (system) {
-        setSelectedEndpoint(system.endpoint);
+      const systemEndpoints = endpoints.filter(ep => ep.systemId === selectedSystem && ep.status === 'active');
+      if (systemEndpoints.length > 0) {
+        setSelectedEndpoint(systemEndpoints[0].url);
       }
     }
-  }, [selectedSystem, visionSystems, selectedEndpoint]);
+  }, [selectedSystem, endpoints, selectedEndpoint]);
 
   const handleAddVisionSystem = (systemData: Omit<VisionSystem, 'id' | 'status'>) => {
     const newSystem: VisionSystem = {
@@ -94,13 +151,43 @@ export const VisionSystemControlSystem = () => {
 
   const handleDeleteVisionSystem = (id: string) => {
     setVisionSystems(prev => prev.filter(system => system.id !== id));
+    setEndpoints(prev => prev.filter(ep => ep.systemId !== id));
+    setSavedImages(prev => prev.filter(img => img.systemId !== id));
     if (selectedSystem === id) {
       setSelectedSystem('');
     }
   };
 
-  const handleSaveImage = (image: SavedImage) => {
-    setSavedImages(prev => [image, ...prev]);
+  const handleAddEndpoint = (endpointData: Omit<VisionEndpoint, 'id'>) => {
+    const newEndpoint: VisionEndpoint = {
+      ...endpointData,
+      id: Date.now().toString()
+    };
+    setEndpoints(prev => [...prev, newEndpoint]);
+  };
+
+  const handleEditEndpoint = (id: string, endpointData: Omit<VisionEndpoint, 'id'>) => {
+    setEndpoints(prev => prev.map(endpoint => 
+      endpoint.id === id ? { ...endpoint, ...endpointData } : endpoint
+    ));
+  };
+
+  const handleDeleteEndpoint = (id: string) => {
+    setEndpoints(prev => prev.filter(endpoint => endpoint.id !== id));
+    const deletedEndpoint = endpoints.find(ep => ep.id === id);
+    if (deletedEndpoint && selectedEndpoint === deletedEndpoint.url) {
+      setSelectedEndpoint('');
+    }
+  };
+
+  const handleSaveImage = (image: Omit<SavedImage, 'systemId'>) => {
+    if (!selectedSystem) return;
+    
+    const savedImage: SavedImage = {
+      ...image,
+      systemId: selectedSystem
+    };
+    setSavedImages(prev => [savedImage, ...prev]);
   };
 
   const handleDeleteImage = (id: string) => {
@@ -112,6 +199,12 @@ export const VisionSystemControlSystem = () => {
     link.href = image.url;
     link.download = `${image.name}.png`;
     link.click();
+  };
+
+  const handleClearView = () => {
+    setCurrentImage(null);
+    setProcessedImage(null);
+    setImageFilters({});
   };
 
   return (
@@ -144,10 +237,19 @@ export const VisionSystemControlSystem = () => {
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
         {/* Left Sidebar - Vision System List and Management */}
         <div className="w-80 flex-shrink-0 space-y-6">
+          <VisionSystemFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            typeFilter={typeFilter}
+            onTypeChange={setTypeFilter}
+          />
+          
           <VisionSystemList 
             selectedSystem={selectedSystem}
             onSystemSelect={setSelectedSystem}
-            visionSystems={visionSystems}
+            visionSystems={filteredVisionSystems}
           />
           
           <VisionSystemManager
@@ -155,6 +257,16 @@ export const VisionSystemControlSystem = () => {
             onAddSystem={handleAddVisionSystem}
             onEditSystem={handleEditVisionSystem}
             onDeleteSystem={handleDeleteVisionSystem}
+          />
+
+          <VisionEndpointManager
+            selectedSystemId={selectedSystem}
+            endpoints={endpoints}
+            selectedEndpoint={selectedEndpoint}
+            onEndpointSelect={setSelectedEndpoint}
+            onAddEndpoint={handleAddEndpoint}
+            onEditEndpoint={handleEditEndpoint}
+            onDeleteEndpoint={handleDeleteEndpoint}
           />
         </div>
 
@@ -170,6 +282,8 @@ export const VisionSystemControlSystem = () => {
             onImageProcessed={setProcessedImage}
             imageFilters={imageFilters}
             visionSystems={visionSystems}
+            savedImages={savedImages}
+            onClearView={handleClearView}
           />
         </div>
 
@@ -188,14 +302,14 @@ export const VisionSystemControlSystem = () => {
                 currentImage={processedImage || currentImage}
                 onFiltersChange={setImageFilters}
                 onImageProcessed={setProcessedImage}
-                savedImages={savedImages}
+                savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
                 onSaveImage={handleSaveImage}
               />
             </TabsContent>
             
             <TabsContent value="gallery" className="mt-0">
               <ImageGallery
-                savedImages={savedImages}
+                savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
                 onDeleteImage={handleDeleteImage}
                 onDownloadImage={handleDownloadImage}
               />

@@ -24,6 +24,7 @@ interface SavedImage {
   name: string;
   timestamp: Date;
   filters?: ImageFilters;
+  systemId: string;
 }
 
 interface VisionControlPanelProps {
@@ -33,7 +34,7 @@ interface VisionControlPanelProps {
   onFiltersChange?: (filters: ImageFilters) => void;
   onImageProcessed?: (image: string) => void;
   savedImages: SavedImage[];
-  onSaveImage: (image: SavedImage) => void;
+  onSaveImage: (image: Omit<SavedImage, 'systemId'>) => void;
 }
 
 export const VisionControlPanel = ({
@@ -104,8 +105,17 @@ export const VisionControlPanel = ({
       return;
     }
 
+    if (!selectedSystemId) {
+      toast({
+        title: "No system selected",
+        description: "Please select a vision system first",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const name = imageName.trim() || `Image_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`;
-    const savedImage: SavedImage = {
+    const savedImage = {
       id: Date.now().toString(),
       url: currentImage,
       name,
@@ -119,7 +129,7 @@ export const VisionControlPanel = ({
       title: "Image saved",
       description: `Image "${name}" has been saved to gallery`
     });
-  }, [currentImage, imageName, filters, onSaveImage, toast]);
+  }, [currentImage, imageName, filters, onSaveImage, selectedSystemId, toast]);
 
   if (!selectedSystemId) {
     return (
