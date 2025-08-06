@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StatusCards } from './StatusCards';
-import { MachineList } from './MachineList';
+import { VisionSystemList } from './VisionSystemList';
 import { VisionSystemViewer } from './VisionSystemViewer';
 import { VisionControlPanel } from './VisionControlPanel';
 import { VisionSystemManager } from './VisionSystemManager';
@@ -31,7 +31,7 @@ interface SavedImage {
 
 export const VisionSystemControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedMachine, setSelectedMachine] = useState<string>('');
+  const [selectedSystem, setSelectedSystem] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
@@ -46,18 +46,36 @@ export const VisionSystemControlSystem = () => {
       cameraType: 'Industrial CCD',
       resolution: '1920x1080',
       status: 'online'
+    },
+    {
+      id: '2',
+      name: 'Quality Control Camera',
+      endpoint: 'http://192.168.1.101:8080',
+      cameraType: 'CMOS Sensor',
+      resolution: '2592x1944',
+      status: 'online'
     }
   ]);
 
   // Image gallery
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
 
-  // Clear endpoint when machine changes
+  // Clear endpoint when system changes
   useEffect(() => {
     setSelectedEndpoint('');
     setCurrentImage(null);
     setProcessedImage(null);
-  }, [selectedMachine]);
+  }, [selectedSystem]);
+
+  // Set default endpoint when system is selected
+  useEffect(() => {
+    if (selectedSystem && !selectedEndpoint) {
+      const system = visionSystems.find(s => s.id === selectedSystem);
+      if (system) {
+        setSelectedEndpoint(system.endpoint);
+      }
+    }
+  }, [selectedSystem, visionSystems, selectedEndpoint]);
 
   const handleAddVisionSystem = (systemData: Omit<VisionSystem, 'id' | 'status'>) => {
     const newSystem: VisionSystem = {
@@ -76,8 +94,8 @@ export const VisionSystemControlSystem = () => {
 
   const handleDeleteVisionSystem = (id: string) => {
     setVisionSystems(prev => prev.filter(system => system.id !== id));
-    if (selectedMachine === id) {
-      setSelectedMachine('');
+    if (selectedSystem === id) {
+      setSelectedSystem('');
     }
   };
 
@@ -124,12 +142,12 @@ export const VisionSystemControlSystem = () => {
 
       {/* Main Content */}
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Machine List and System Management */}
+        {/* Left Sidebar - Vision System List and Management */}
         <div className="w-80 flex-shrink-0 space-y-6">
-          <MachineList 
-            selectedMachine={selectedMachine}
-            onMachineSelect={setSelectedMachine}
-            machineType="laser"
+          <VisionSystemList 
+            selectedSystem={selectedSystem}
+            onSystemSelect={setSelectedSystem}
+            visionSystems={visionSystems}
           />
           
           <VisionSystemManager
@@ -143,7 +161,7 @@ export const VisionSystemControlSystem = () => {
         {/* Center - Image Viewer and Processing */}
         <div className="flex-1 min-w-0">
           <VisionSystemViewer 
-            selectedMachineId={selectedMachine}
+            selectedSystemId={selectedSystem}
             selectedEndpoint={selectedEndpoint}
             currentImage={currentImage}
             processedImage={processedImage}
@@ -151,6 +169,7 @@ export const VisionSystemControlSystem = () => {
             onImageReceived={setCurrentImage}
             onImageProcessed={setProcessedImage}
             imageFilters={imageFilters}
+            visionSystems={visionSystems}
           />
         </div>
 
@@ -164,7 +183,7 @@ export const VisionSystemControlSystem = () => {
             
             <TabsContent value="control" className="mt-0">
               <VisionControlPanel 
-                selectedMachineId={selectedMachine}
+                selectedSystemId={selectedSystem}
                 selectedEndpoint={selectedEndpoint}
                 currentImage={processedImage || currentImage}
                 onFiltersChange={setImageFilters}
@@ -188,6 +207,7 @@ export const VisionSystemControlSystem = () => {
       <AddVisionSystemDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
+        onAddSystem={handleAddVisionSystem}
       />
     </div>
   );

@@ -1,11 +1,10 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { 
@@ -13,10 +12,6 @@ import {
   Sun, 
   Focus, 
   Filter,
-  Crosshair,
-  Zap,
-  Search,
-  Grid3X3,
   Eye,
   Settings,
   Save
@@ -32,7 +27,7 @@ interface SavedImage {
 }
 
 interface VisionControlPanelProps {
-  selectedMachineId?: string;
+  selectedSystemId?: string;
   selectedEndpoint?: string;
   currentImage?: string | null;
   onFiltersChange?: (filters: ImageFilters) => void;
@@ -42,7 +37,7 @@ interface VisionControlPanelProps {
 }
 
 export const VisionControlPanel = ({
-  selectedMachineId,
+  selectedSystemId,
   selectedEndpoint,
   currentImage,
   onFiltersChange,
@@ -126,7 +121,7 @@ export const VisionControlPanel = ({
     });
   }, [currentImage, imageName, filters, onSaveImage, toast]);
 
-  if (!selectedMachineId) {
+  if (!selectedSystemId) {
     return (
       <Card>
         <CardHeader>
@@ -242,7 +237,7 @@ export const VisionControlPanel = ({
             <TabsContent value="inspection" className="space-y-4">
               <div className="space-y-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">Industrial Features</h4>
+                  <h4 className="font-medium text-blue-900 mb-2">Industrial Vision Features</h4>
                   <ul className="text-sm text-blue-800 space-y-1">
                     <li>• Edge detection & contour analysis</li>
                     <li>• Dimensional measurement</li>
