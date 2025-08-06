@@ -5,7 +5,7 @@ import { VisionSystemList } from './VisionSystemList';
 import { VisionSystemViewer } from './VisionSystemViewer';
 import { VisionControlPanel } from './VisionControlPanel';
 import { VisionSystemFilters } from './VisionSystemFilters';
-import { EndpointManager } from './EndpointManager';
+import { VisionEndpointManager } from './VisionEndpointManager';
 import { ImageGallery } from './ImageGallery';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -55,7 +55,7 @@ export const VisionSystemControlSystem = () => {
   // Vision systems management
   const [visionSystems, setVisionSystems] = useState<VisionSystem[]>([
     {
-      id: '1',
+      id: 'vs-001',
       name: 'Main Inspection Camera',
       endpoint: 'http://192.168.1.100:8080',
       cameraType: 'Industrial CCD',
@@ -63,7 +63,7 @@ export const VisionSystemControlSystem = () => {
       status: 'online'
     },
     {
-      id: '2',
+      id: 'vs-002',
       name: 'Quality Control Camera',
       endpoint: 'http://192.168.1.101:8080',
       cameraType: 'CMOS Sensor',
@@ -72,31 +72,31 @@ export const VisionSystemControlSystem = () => {
     }
   ]);
 
-  // Endpoints management
+  // Endpoints management - Using proper UUID format
   const [endpoints, setEndpoints] = useState<VisionEndpoint[]>([
     {
-      id: '1',
+      id: 'ep-001',
       name: 'Capture Endpoint',
       url: 'http://192.168.1.100:8080/capture',
       type: 'capture',
       status: 'active',
-      systemId: '1'
+      systemId: 'vs-001'
     },
     {
-      id: '2',
+      id: 'ep-002',
       name: 'Stream Endpoint',
       url: 'http://192.168.1.100:8080/stream',
       type: 'stream',
       status: 'active',
-      systemId: '1'
+      systemId: 'vs-001'
     },
     {
-      id: '3',
+      id: 'ep-003',
       name: 'Capture Endpoint',
       url: 'http://192.168.1.101:8080/capture',
       type: 'capture',
       status: 'active',
-      systemId: '2'
+      systemId: 'vs-002'
     }
   ]);
 
@@ -135,7 +135,7 @@ export const VisionSystemControlSystem = () => {
   const handleAddVisionSystem = (systemData: Omit<VisionSystem, 'id' | 'status'>) => {
     const newSystem: VisionSystem = {
       ...systemData,
-      id: Date.now().toString(),
+      id: `vs-${Date.now()}`,
       status: 'online'
     };
     setVisionSystems(prev => [...prev, newSystem]);
@@ -153,6 +153,27 @@ export const VisionSystemControlSystem = () => {
     setSavedImages(prev => prev.filter(img => img.systemId !== id));
     if (selectedSystem === id) {
       setSelectedSystem('');
+    }
+  };
+
+  const handleAddEndpoint = (endpoint: Omit<VisionEndpoint, 'id'>) => {
+    const newEndpoint: VisionEndpoint = {
+      ...endpoint,
+      id: `ep-${Date.now()}`
+    };
+    setEndpoints(prev => [...prev, newEndpoint]);
+  };
+
+  const handleEditEndpoint = (id: string, endpoint: Omit<VisionEndpoint, 'id'>) => {
+    setEndpoints(prev => prev.map(ep => 
+      ep.id === id ? { ...ep, ...endpoint } : ep
+    ));
+  };
+
+  const handleDeleteEndpoint = (id: string) => {
+    setEndpoints(prev => prev.filter(ep => ep.id !== id));
+    if (selectedEndpoint === endpoints.find(ep => ep.id === id)?.url) {
+      setSelectedEndpoint('');
     }
   };
 
@@ -211,21 +232,19 @@ export const VisionSystemControlSystem = () => {
 
       {/* Main Content */}
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Combined Vision System Section */}
+        {/* Left Sidebar - Vision System Section */}
         <div className="w-96 flex-shrink-0 space-y-6">
-          {/* Filters - Side by side */}
-          <div className="grid grid-cols-2 gap-4">
-            <VisionSystemFilters
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              statusFilter={statusFilter}
-              onStatusChange={setStatusFilter}
-              typeFilter={typeFilter}
-              onTypeChange={setTypeFilter}
-            />
-          </div>
+          {/* Combined Search and Filters */}
+          <VisionSystemFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            typeFilter={typeFilter}
+            onTypeChange={setTypeFilter}
+          />
           
-          {/* Vision Systems List with integrated management */}
+          {/* Vision Systems List */}
           <VisionSystemList 
             selectedSystem={selectedSystem}
             onSystemSelect={setSelectedSystem}
@@ -253,22 +272,27 @@ export const VisionSystemControlSystem = () => {
             onClearView={handleClearView}
           />
 
-          {/* Image Gallery and Endpoints under Image Viewer - Increased width */}
-          <div className="grid grid-cols-2 gap-8">
-            <div className="space-y-4">
+          {/* Gallery and Endpoints under Image Viewer */}
+          <div className="grid grid-cols-1 gap-6">
+            {/* Saved Images Gallery */}
+            <div className="w-full">
               <ImageGallery
                 savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
                 onDeleteImage={handleDeleteImage}
                 onDownloadImage={handleDownloadImage}
               />
             </div>
-
-            <div className="space-y-4">
-              <EndpointManager
-                selectedMachineId={selectedSystem}
-                onEndpointSelect={setSelectedEndpoint}
+            
+            {/* Endpoints Management - Now under saved images */}
+            <div className="w-full">
+              <VisionEndpointManager
+                selectedSystemId={selectedSystem}
+                endpoints={endpoints}
                 selectedEndpoint={selectedEndpoint}
-                machineType="cnc"
+                onEndpointSelect={setSelectedEndpoint}
+                onAddEndpoint={handleAddEndpoint}
+                onEditEndpoint={handleEditEndpoint}
+                onDeleteEndpoint={handleDeleteEndpoint}
               />
             </div>
           </div>

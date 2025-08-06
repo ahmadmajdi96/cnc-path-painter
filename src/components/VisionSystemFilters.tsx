@@ -24,38 +24,26 @@ export const VisionSystemFilters = ({
   onTypeChange
 }: VisionSystemFiltersProps) => {
   return (
-    <>
-      {/* Search Filter Card */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Filter className="w-4 h-4" />
-            Search
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div>
-            <Label htmlFor="search" className="text-xs">Search Systems</Label>
-            <Input
-              id="search"
-              placeholder="Search by name..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Status & Type Filters Card */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Filter className="w-4 h-4" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-3">
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Filter className="w-4 h-4" />
+          Search & Filters
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-3">
+        <div>
+          <Label htmlFor="search" className="text-xs">Search Systems</Label>
+          <Input
+            id="search"
+            placeholder="Search by name..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="status" className="text-xs">Status</Label>
             <Select value={statusFilter} onValueChange={onStatusChange}>
@@ -84,8 +72,8 @@ export const VisionSystemFilters = ({
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
-    </>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
