@@ -59,16 +59,16 @@ export const ConveyorBeltList = ({
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingBelt, setEditingBelt] = useState<ConveyorBelt | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<ConveyorBelt, 'id'>>({
     name: '',
-    type: 'flat' as const,
-    status: 'idle' as const,
+    type: 'flat',
+    status: 'idle',
     speed: 0,
     length: 10,
     width: 0.6,
     load: 0,
     maxCapacity: 500,
-    direction: 'stopped' as const,
+    direction: 'stopped',
     motor: {
       power: 5.5,
       voltage: 380,
@@ -282,7 +282,7 @@ export const ConveyorBeltList = ({
               </div>
               <div>
                 <Label htmlFor="type">Belt Type</Label>
-                <Select value={formData.type} onValueChange={(value: any) => setFormData(prev => ({ ...prev, type: value }))}>
+                <Select value={formData.type} onValueChange={(value: ConveyorBelt['type']) => setFormData(prev => ({ ...prev, type: value }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
