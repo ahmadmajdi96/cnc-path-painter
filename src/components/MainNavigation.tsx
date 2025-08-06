@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wrench, Zap, Box, Bot, Target, Eye } from 'lucide-react';
+import { Wrench, Zap, Box, Bot, Target, Eye, Truck } from 'lucide-react';
 
 export const MainNavigation = () => {
   const location = useLocation();
@@ -13,7 +13,8 @@ export const MainNavigation = () => {
     { path: '/laser-marking', label: 'Laser Marking', icon: Target },
     { path: '/3d-printer', label: '3D Printer', icon: Box },
     { path: '/robotic-arms', label: 'Robotic Arms', icon: Bot },
-    { path: '/vision-system', label: 'Vision System', icon: Eye }
+    { path: '/vision-system', label: 'Vision System', icon: Eye },
+    { path: '/conveyor-belts', label: 'Conveyor Belts', icon: Truck }
   ];
 
   return (

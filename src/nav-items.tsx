@@ -1,5 +1,5 @@
 
-import { Home, Zap, Printer, Bot, Target, Eye } from "lucide-react";
+import { Home, Zap, Printer, Bot, Target, Eye, Truck } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -45,5 +45,11 @@ export const navItems: NavItem[] = [
     to: "/vision-system",
     icon: Eye,
     page: "VisionSystem",
+  },
+  {
+    title: "Conveyor Belts",
+    to: "/conveyor-belts",
+    icon: Truck,
+    page: "ConveyorBelts",
   },
 ];
