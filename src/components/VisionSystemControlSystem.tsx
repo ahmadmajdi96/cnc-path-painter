@@ -1,17 +1,16 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { StatusCards } from './StatusCards';
 import { VisionSystemList } from './VisionSystemList';
 import { VisionSystemViewer } from './VisionSystemViewer';
 import { VisionControlPanel } from './VisionControlPanel';
-import { VisionSystemManager } from './VisionSystemManager';
 import { VisionSystemFilters } from './VisionSystemFilters';
-import { VisionEndpointManager } from './VisionEndpointManager';
+import { EndpointManager } from './EndpointManager';
 import { ImageGallery } from './ImageGallery';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddVisionSystemDialog } from './AddVisionSystemDialog';
 import { MainNavigation } from './MainNavigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface VisionSystem {
   id: string;
@@ -157,28 +156,6 @@ export const VisionSystemControlSystem = () => {
     }
   };
 
-  const handleAddEndpoint = (endpointData: Omit<VisionEndpoint, 'id'>) => {
-    const newEndpoint: VisionEndpoint = {
-      ...endpointData,
-      id: Date.now().toString()
-    };
-    setEndpoints(prev => [...prev, newEndpoint]);
-  };
-
-  const handleEditEndpoint = (id: string, endpointData: Omit<VisionEndpoint, 'id'>) => {
-    setEndpoints(prev => prev.map(endpoint => 
-      endpoint.id === id ? { ...endpoint, ...endpointData } : endpoint
-    ));
-  };
-
-  const handleDeleteEndpoint = (id: string) => {
-    setEndpoints(prev => prev.filter(endpoint => endpoint.id !== id));
-    const deletedEndpoint = endpoints.find(ep => ep.id === id);
-    if (deletedEndpoint && selectedEndpoint === deletedEndpoint.url) {
-      setSelectedEndpoint('');
-    }
-  };
-
   const handleSaveImage = (image: Omit<SavedImage, 'systemId'>) => {
     if (!selectedSystem) return;
     
@@ -229,13 +206,13 @@ export const VisionSystemControlSystem = () => {
 
       {/* Status Cards */}
       <div className="px-6 py-4">
-        <StatusCards machineType="vision" />
+        <StatusCards machineType="cnc" />
       </div>
 
       {/* Main Content */}
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
         {/* Left Sidebar - Combined Vision System Section */}
-        <div className="w-80 flex-shrink-0 space-y-6">
+        <div className="w-96 flex-shrink-0 space-y-6">
           {/* Filters - Side by side */}
           <div className="grid grid-cols-2 gap-4">
             <VisionSystemFilters
@@ -248,21 +225,16 @@ export const VisionSystemControlSystem = () => {
             />
           </div>
           
-          {/* Combined Vision Systems Section */}
-          <div className="space-y-4">
-            <VisionSystemList 
-              selectedSystem={selectedSystem}
-              onSystemSelect={setSelectedSystem}
-              visionSystems={filteredVisionSystems}
-            />
-            
-            <VisionSystemManager
-              visionSystems={visionSystems}
-              onAddSystem={handleAddVisionSystem}
-              onEditSystem={handleEditVisionSystem}
-              onDeleteSystem={handleDeleteVisionSystem}
-            />
-          </div>
+          {/* Vision Systems List with integrated management */}
+          <VisionSystemList 
+            selectedSystem={selectedSystem}
+            onSystemSelect={setSelectedSystem}
+            visionSystems={filteredVisionSystems}
+            onAddSystem={handleAddVisionSystem}
+            onEditSystem={handleEditVisionSystem}
+            onDeleteSystem={handleDeleteVisionSystem}
+            allVisionSystems={visionSystems}
+          />
         </div>
 
         {/* Center - Image Viewer */}
@@ -281,23 +253,24 @@ export const VisionSystemControlSystem = () => {
             onClearView={handleClearView}
           />
 
-          {/* Endpoints and Gallery under Image Viewer */}
-          <div className="grid grid-cols-2 gap-6">
-            <VisionEndpointManager
-              selectedSystemId={selectedSystem}
-              endpoints={endpoints}
-              selectedEndpoint={selectedEndpoint}
-              onEndpointSelect={setSelectedEndpoint}
-              onAddEndpoint={handleAddEndpoint}
-              onEditEndpoint={handleEditEndpoint}
-              onDeleteEndpoint={handleDeleteEndpoint}
-            />
+          {/* Image Gallery and Endpoints under Image Viewer - Increased width */}
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <ImageGallery
+                savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
+                onDeleteImage={handleDeleteImage}
+                onDownloadImage={handleDownloadImage}
+              />
+            </div>
 
-            <ImageGallery
-              savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
-              onDeleteImage={handleDeleteImage}
-              onDownloadImage={handleDownloadImage}
-            />
+            <div className="space-y-4">
+              <EndpointManager
+                selectedMachineId={selectedSystem}
+                onEndpointSelect={setSelectedEndpoint}
+                selectedEndpoint={selectedEndpoint}
+                machineType="cnc"
+              />
+            </div>
           </div>
         </div>
 
