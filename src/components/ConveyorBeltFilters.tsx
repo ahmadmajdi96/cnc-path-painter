@@ -53,12 +53,12 @@ export const ConveyorBeltFilters = ({
         <div className="grid grid-cols-1 gap-3">
           <div>
             <Label>Status</Label>
-            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+            <Select value={statusFilter || "all"} onValueChange={(value) => onStatusFilterChange(value === "all" ? "" : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="running">Running</SelectItem>
                 <SelectItem value="idle">Idle</SelectItem>
                 <SelectItem value="error">Error</SelectItem>
@@ -69,12 +69,12 @@ export const ConveyorBeltFilters = ({
 
           <div>
             <Label>Belt Type</Label>
-            <Select value={typeFilter} onValueChange={onTypeFilterChange}>
+            <Select value={typeFilter || "all"} onValueChange={(value) => onTypeFilterChange(value === "all" ? "" : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All types</SelectItem>
+                <SelectItem value="all">All types</SelectItem>
                 <SelectItem value="flat">Flat Belt</SelectItem>
                 <SelectItem value="modular">Modular Belt</SelectItem>
                 <SelectItem value="cleated">Cleated Belt</SelectItem>
