@@ -24,53 +24,68 @@ export const VisionSystemFilters = ({
   onTypeChange
 }: VisionSystemFiltersProps) => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Filter className="w-5 h-5" />
-          Filters
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="search">Search Vision Systems</Label>
-          <Input
-            id="search"
-            placeholder="Search by name..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="status">Status</Label>
-          <Select value={statusFilter} onValueChange={onStatusChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="online">Online</SelectItem>
-              <SelectItem value="offline">Offline</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Label htmlFor="type">Camera Type</Label>
-          <Select value={typeFilter} onValueChange={onTypeChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="All types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="Industrial CCD">Industrial CCD</SelectItem>
-              <SelectItem value="CMOS Sensor">CMOS Sensor</SelectItem>
-              <SelectItem value="USB Camera">USB Camera</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      {/* Search Filter Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Filter className="w-4 h-4" />
+            Search
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div>
+            <Label htmlFor="search" className="text-xs">Search Systems</Label>
+            <Input
+              id="search"
+              placeholder="Search by name..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Status & Type Filters Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Filter className="w-4 h-4" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 space-y-3">
+          <div>
+            <Label htmlFor="status" className="text-xs">Status</Label>
+            <Select value={statusFilter} onValueChange={onStatusChange}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="online">Online</SelectItem>
+                <SelectItem value="offline">Offline</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="type" className="text-xs">Camera Type</Label>
+            <Select value={typeFilter} onValueChange={onTypeChange}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Industrial CCD">Industrial CCD</SelectItem>
+                <SelectItem value="CMOS Sensor">CMOS Sensor</SelectItem>
+                <SelectItem value="USB Camera">USB Camera</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 };

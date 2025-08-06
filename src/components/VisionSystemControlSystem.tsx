@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { StatusCards } from './StatusCards';
 import { VisionSystemList } from './VisionSystemList';
@@ -230,48 +229,44 @@ export const VisionSystemControlSystem = () => {
 
       {/* Status Cards */}
       <div className="px-6 py-4">
-        <StatusCards machineType="laser" />
+        <StatusCards machineType="vision" />
       </div>
 
       {/* Main Content */}
       <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Vision System List and Management */}
+        {/* Left Sidebar - Combined Vision System Section */}
         <div className="w-80 flex-shrink-0 space-y-6">
-          <VisionSystemFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
-            typeFilter={typeFilter}
-            onTypeChange={setTypeFilter}
-          />
+          {/* Filters - Side by side */}
+          <div className="grid grid-cols-2 gap-4">
+            <VisionSystemFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              statusFilter={statusFilter}
+              onStatusChange={setStatusFilter}
+              typeFilter={typeFilter}
+              onTypeChange={setTypeFilter}
+            />
+          </div>
           
-          <VisionSystemList 
-            selectedSystem={selectedSystem}
-            onSystemSelect={setSelectedSystem}
-            visionSystems={filteredVisionSystems}
-          />
-          
-          <VisionSystemManager
-            visionSystems={visionSystems}
-            onAddSystem={handleAddVisionSystem}
-            onEditSystem={handleEditVisionSystem}
-            onDeleteSystem={handleDeleteVisionSystem}
-          />
-
-          <VisionEndpointManager
-            selectedSystemId={selectedSystem}
-            endpoints={endpoints}
-            selectedEndpoint={selectedEndpoint}
-            onEndpointSelect={setSelectedEndpoint}
-            onAddEndpoint={handleAddEndpoint}
-            onEditEndpoint={handleEditEndpoint}
-            onDeleteEndpoint={handleDeleteEndpoint}
-          />
+          {/* Combined Vision Systems Section */}
+          <div className="space-y-4">
+            <VisionSystemList 
+              selectedSystem={selectedSystem}
+              onSystemSelect={setSelectedSystem}
+              visionSystems={filteredVisionSystems}
+            />
+            
+            <VisionSystemManager
+              visionSystems={visionSystems}
+              onAddSystem={handleAddVisionSystem}
+              onEditSystem={handleEditVisionSystem}
+              onDeleteSystem={handleDeleteVisionSystem}
+            />
+          </div>
         </div>
 
-        {/* Center - Image Viewer and Processing */}
-        <div className="flex-1 min-w-0">
+        {/* Center - Image Viewer */}
+        <div className="flex-1 min-w-0 space-y-6">
           <VisionSystemViewer 
             selectedSystemId={selectedSystem}
             selectedEndpoint={selectedEndpoint}
@@ -285,36 +280,38 @@ export const VisionSystemControlSystem = () => {
             savedImages={savedImages}
             onClearView={handleClearView}
           />
+
+          {/* Endpoints and Gallery under Image Viewer */}
+          <div className="grid grid-cols-2 gap-6">
+            <VisionEndpointManager
+              selectedSystemId={selectedSystem}
+              endpoints={endpoints}
+              selectedEndpoint={selectedEndpoint}
+              onEndpointSelect={setSelectedEndpoint}
+              onAddEndpoint={handleAddEndpoint}
+              onEditEndpoint={handleEditEndpoint}
+              onDeleteEndpoint={handleDeleteEndpoint}
+            />
+
+            <ImageGallery
+              savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
+              onDeleteImage={handleDeleteImage}
+              onDownloadImage={handleDownloadImage}
+            />
+          </div>
         </div>
 
-        {/* Right Sidebar - Control Panel and Gallery */}
+        {/* Right Sidebar - Control Panel */}
         <div className="w-96 flex-shrink-0">
-          <Tabs defaultValue="control" className="h-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="control">Control</TabsTrigger>
-              <TabsTrigger value="gallery">Gallery</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="control" className="mt-0">
-              <VisionControlPanel 
-                selectedSystemId={selectedSystem}
-                selectedEndpoint={selectedEndpoint}
-                currentImage={processedImage || currentImage}
-                onFiltersChange={setImageFilters}
-                onImageProcessed={setProcessedImage}
-                savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
-                onSaveImage={handleSaveImage}
-              />
-            </TabsContent>
-            
-            <TabsContent value="gallery" className="mt-0">
-              <ImageGallery
-                savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
-                onDeleteImage={handleDeleteImage}
-                onDownloadImage={handleDownloadImage}
-              />
-            </TabsContent>
-          </Tabs>
+          <VisionControlPanel 
+            selectedSystemId={selectedSystem}
+            selectedEndpoint={selectedEndpoint}
+            currentImage={processedImage || currentImage}
+            onFiltersChange={setImageFilters}
+            onImageProcessed={setProcessedImage}
+            savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
+            onSaveImage={handleSaveImage}
+          />
         </div>
       </div>
 
