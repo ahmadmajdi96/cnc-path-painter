@@ -461,8 +461,8 @@ export const AppBuilderDrawer: React.FC<AppBuilderDrawerProps> = ({
                               </div>
                             )}
                           </div>
-                        </>
-                      )}
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>
