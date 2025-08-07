@@ -51,12 +51,12 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
     if (activeSection && event.activatorEvent) {
       const canvasRect = document.querySelector('.canvas-container')?.getBoundingClientRect();
       if (canvasRect && 'clientX' in event.activatorEvent && 'clientY' in event.activatorEvent) {
-        const currentX = (activeSection.layout?.x || 0) / 100 * canvasRect.width;
+        const currentX = ((activeSection.layout?.x || 0) / 100) * canvasRect.width;
         const currentY = activeSection.layout?.y || 0;
         
         setDragOffset({
-          x: event.activatorEvent.clientX - canvasRect.left - currentX,
-          y: event.activatorEvent.clientY - canvasRect.top - currentY,
+          x: (event.activatorEvent as MouseEvent).clientX - canvasRect.left - currentX,
+          y: (event.activatorEvent as MouseEvent).clientY - canvasRect.top - currentY,
         });
       }
     }
@@ -69,8 +69,9 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
     if (!canvasRect) return;
 
     // Calculate new position based on mouse position
-    const mouseX = event.activatorEvent?.clientX || 0;
-    const mouseY = event.activatorEvent?.clientY || 0;
+    const mouseEvent = event.activatorEvent as MouseEvent;
+    const mouseX = mouseEvent?.clientX || 0;
+    const mouseY = mouseEvent?.clientY || 0;
     
     const newX = Math.max(0, Math.min(100, ((mouseX - canvasRect.left - dragOffset.x) / canvasRect.width) * 100));
     const newY = Math.max(0, mouseY - canvasRect.top - dragOffset.y);
