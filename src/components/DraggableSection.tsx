@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useDraggable } from '@dnd-kit/core';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ interface DraggableSectionProps {
   onSelect: () => void;
   onUpdate: (section: AppSection) => void;
   onDelete: (sectionId: string) => void;
+  isDragging?: boolean;
 }
 
 const sectionIcons = {
@@ -50,48 +50,75 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
   onSelect,
   onUpdate,
   onDelete,
+  isDragging = false,
 }) => {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: section.id });
+    isDragging: isCurrentlyDragging,
+  } = useDraggable({ 
+    id: section.id,
+  });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
     position: 'absolute' as const,
     left: `${section.layout?.x || 0}%`,
     top: `${section.layout?.y || 0}px`,
     width: `${section.layout?.width || 100}%`,
     height: section.layout?.height ? `${section.layout.height}px` : 'auto',
     zIndex: section.layout?.zIndex || 1,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isCurrentlyDragging ? 0.5 : 1,
   };
 
   const Icon = sectionIcons[section.type];
   const colorClass = sectionColors[section.type];
 
-  const handlePositionChange = (e: React.MouseEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const rect = e.currentTarget.parentElement?.getBoundingClientRect();
-      if (rect) {
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = e.clientY - rect.top;
-        
-        onUpdate({
-          ...section,
-          layout: {
-            ...section.layout!,
-            x: Math.max(0, Math.min(100, x)),
-            y: Math.max(0, y),
-          },
-        });
+  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = section.layout?.width || 100;
+    const startHeight = section.layout?.height || 150;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const canvasRect = document.querySelector('.canvas-container')?.getBoundingClientRect();
+      if (!canvasRect) return;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+
+      if (direction.includes('right')) {
+        const deltaX = e.clientX - startX;
+        newWidth = Math.max(20, Math.min(100, startWidth + (deltaX / canvasRect.width) * 100));
       }
-    }
+
+      if (direction.includes('bottom')) {
+        const deltaY = e.clientY - startY;
+        newHeight = Math.max(100, startHeight + deltaY);
+      }
+
+      onUpdate({
+        ...section,
+        layout: {
+          ...section.layout!,
+          width: newWidth,
+          height: newHeight,
+        },
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   return (
@@ -105,9 +132,8 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
         className={`
           ${colorClass} 
           ${isSelected ? 'ring-2 ring-blue-400 ring-offset-2' : ''} 
-          hover:shadow-md transition-all cursor-pointer
+          hover:shadow-md transition-all cursor-pointer relative
         `}
-        onMouseDown={handlePositionChange}
       >
         <CardContent className="p-4">
           {/* Section Header */}
@@ -204,6 +230,24 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
             </div>
           )}
         </CardContent>
+
+        {/* Resize Handles */}
+        {isSelected && (
+          <>
+            <div
+              className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 cursor-se-resize"
+              onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
+            />
+            <div
+              className="absolute top-0 bottom-0 right-0 w-1 bg-blue-500 cursor-e-resize opacity-50 hover:opacity-100"
+              onMouseDown={(e) => handleResizeStart(e, 'right')}
+            />
+            <div
+              className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500 cursor-s-resize opacity-50 hover:opacity-100"
+              onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+            />
+          </>
+        )}
       </Card>
     </div>
   );
