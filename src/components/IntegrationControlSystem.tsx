@@ -5,8 +5,9 @@ import { IntegrationFilters } from './IntegrationFilters';
 import { AddIntegrationDialog } from './AddIntegrationDialog';
 import { EditIntegrationDialog } from './EditIntegrationDialog';
 import { IntegrationTestPanel } from './IntegrationTestPanel';
+import { IntegrationLiveDataPanel } from './IntegrationLiveDataPanel';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Activity } from 'lucide-react';
 
 export interface Integration {
   id: string;
@@ -18,14 +19,22 @@ export interface Integration {
     host: string;
     port: number;
     path?: string;
-    auth?: { type: string; credentials: any };
+    mode: 'server' | 'client';
+    auth?: { 
+      type: 'none' | 'basic' | 'bearer' | 'oauth2' | 'api_key' | 'certificate' | 'digest';
+      credentials: any;
+    };
   };
   targetEndpoint: {
     protocol: string;
     host: string;
     port: number;
     path?: string;
-    auth?: { type: string; credentials: any };
+    mode: 'server' | 'client';
+    auth?: { 
+      type: 'none' | 'basic' | 'bearer' | 'oauth2' | 'api_key' | 'certificate' | 'digest';
+      credentials: any;
+    };
   };
   parameters: {
     timeout: number;
@@ -50,6 +59,25 @@ export interface Integration {
       transformation?: string;
     }>;
   };
+  liveData?: {
+    lastReceived?: {
+      timestamp: string;
+      data: any;
+      size: number;
+    };
+    lastSent?: {
+      timestamp: string;
+      data: any;
+      size: number;
+    };
+    receivedCount: number;
+    sentCount: number;
+    errors: Array<{
+      timestamp: string;
+      type: 'receive' | 'send';
+      message: string;
+    }>;
+  };
   lastTest?: {
     timestamp: string;
     status: 'success' | 'failure';
@@ -72,13 +100,16 @@ export const IntegrationControlSystem = () => {
         host: 'erp-system.company.com',
         port: 443,
         path: '/api/v1/manufacturing',
+        mode: 'client',
         auth: { type: 'oauth2', credentials: {} }
       },
       targetEndpoint: {
         protocol: 'MQTT',
         host: 'mes-broker.local',
         port: 1883,
-        path: '/production/data'
+        path: '/production/data',
+        mode: 'client',
+        auth: { type: 'none', credentials: {} }
       },
       parameters: {
         timeout: 30000,
@@ -119,6 +150,21 @@ export const IntegrationControlSystem = () => {
           }
         ]
       },
+      liveData: {
+        receivedCount: 127,
+        sentCount: 124,
+        lastReceived: {
+          timestamp: '2024-01-15T14:30:25Z',
+          data: { order_id: 'PO-2024-001', qty: 500 },
+          size: 1024
+        },
+        lastSent: {
+          timestamp: '2024-01-15T14:30:26Z',
+          data: { productionOrderId: 'PO-2024-001', quantity: 500 },
+          size: 1156
+        },
+        errors: []
+      },
       lastTest: {
         timestamp: '2024-01-15T10:30:00Z',
         status: 'success'
@@ -135,13 +181,17 @@ export const IntegrationControlSystem = () => {
         protocol: 'OPC_UA',
         host: '192.168.1.100',
         port: 4840,
-        path: '/OPCUA/Server'
+        path: '/OPCUA/Server',
+        mode: 'client',
+        auth: { type: 'certificate', credentials: {} }
       },
       targetEndpoint: {
         protocol: 'HTTP',
         host: 'influxdb.company.com',
         port: 8086,
-        path: '/write'
+        path: '/write',
+        mode: 'client',
+        auth: { type: 'bearer', credentials: {} }
       },
       parameters: {
         timeout: 15000,
@@ -182,6 +232,17 @@ export const IntegrationControlSystem = () => {
           }
         ]
       },
+      liveData: {
+        receivedCount: 45,
+        sentCount: 43,
+        errors: [
+          {
+            timestamp: '2024-01-15T13:22:15Z',
+            type: 'send',
+            message: 'Connection timeout to InfluxDB'
+          }
+        ]
+      },
       createdAt: '2024-01-12T14:20:00Z',
       updatedAt: '2024-01-15T09:15:00Z'
     }
@@ -192,6 +253,7 @@ export const IntegrationControlSystem = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showTestPanel, setShowTestPanel] = useState(false);
+  const [showLiveDataPanel, setShowLiveDataPanel] = useState(false);
 
   const handleAddIntegration = (integration: Omit<Integration, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newIntegration: Integration = {
@@ -255,6 +317,14 @@ export const IntegrationControlSystem = () => {
         </div>
         <div className="flex gap-2">
           <Button
+            onClick={() => setShowLiveDataPanel(!showLiveDataPanel)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Activity className="w-4 h-4" />
+            Live Data
+          </Button>
+          <Button
             onClick={() => setShowTestPanel(!showTestPanel)}
             variant="outline"
             className="flex items-center gap-2"
@@ -289,9 +359,28 @@ export const IntegrationControlSystem = () => {
               setSelectedIntegration(integration);
               setShowTestPanel(true);
             }}
+            onViewLiveData={(integration) => {
+              setSelectedIntegration(integration);
+              setShowLiveDataPanel(true);
+            }}
           />
         </div>
       </div>
+
+      {showLiveDataPanel && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Live Data Monitor</CardTitle>
+            <CardDescription>Real-time data flow monitoring for integrations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <IntegrationLiveDataPanel 
+              integration={selectedIntegration}
+              onClose={() => setShowLiveDataPanel(false)}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {showTestPanel && (
         <Card className="mt-6">
