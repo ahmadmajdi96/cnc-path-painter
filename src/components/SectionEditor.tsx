@@ -33,6 +33,16 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({ section, onUpdate 
     });
   };
 
+  const handleLayoutUpdate = (field: string, value: any) => {
+    onUpdate({
+      ...section,
+      layout: {
+        ...section.layout!,
+        [field]: value,
+      },
+    });
+  };
+
   const handleAddField = () => {
     if (section.type !== 'form') return;
     
@@ -110,6 +120,37 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({ section, onUpdate 
           />
         </div>
       )}
+
+      {/* Layout Controls */}
+      <div className="p-3 bg-gray-50 rounded-lg">
+        <h4 className="font-medium mb-3 text-sm">Advanced Layout</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="zIndex" className="text-xs">Layer Order (Z-Index)</Label>
+            <Input
+              id="zIndex"
+              type="number"
+              min="1"
+              max="100"
+              value={section.layout?.zIndex || 1}
+              onChange={(e) => handleLayoutUpdate('zIndex', parseInt(e.target.value))}
+              className="h-8"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="minHeight" className="text-xs">Min Height (px)</Label>
+            <Input
+              id="minHeight"
+              type="number"
+              min="0"
+              value={section.layout?.height || ''}
+              placeholder="Auto"
+              onChange={(e) => handleLayoutUpdate('height', e.target.value ? parseInt(e.target.value) : undefined)}
+              className="h-8"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Configuration Options */}
       <div className="grid grid-cols-3 gap-4">

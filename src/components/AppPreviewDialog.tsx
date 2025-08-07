@@ -115,11 +115,54 @@ export const AppPreviewDialog: React.FC<AppPreviewDialogProps> = ({
     }
   };
 
+  const renderNavbar = () => {
+    if (!app.navbar?.enabled) return null;
+
+    return (
+      <div 
+        className="w-full px-6 py-3 border-b flex justify-between items-center"
+        style={{
+          backgroundColor: app.navbar.backgroundColor,
+          color: app.navbar.textColor,
+        }}
+      >
+        <div className="font-semibold text-lg">
+          {app.navbar.title || app.name}
+        </div>
+        <div className="flex gap-4">
+          {app.navbar.items.map((item) => (
+            <div key={item.id}>
+              {item.type === 'link' && (
+                <a href={item.url} className="hover:underline">
+                  {item.label}
+                </a>
+              )}
+              {item.type === 'button' && (
+                <Button variant="outline" size="sm">
+                  {item.label}
+                </Button>
+              )}
+              {item.type === 'text' && (
+                <span>{item.label}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderSection = (section: any) => {
     const sectionStyle = {
       backgroundColor: section.config?.backgroundColor || '#ffffff',
       textAlign: section.config?.textAlign || 'left',
       border: section.config?.showBorder ? '1px solid #e5e7eb' : 'none',
+      position: 'absolute' as const,
+      left: `${section.layout?.x || 0}%`,
+      top: `${section.layout?.y || 0}px`,
+      width: `${section.layout?.width || 100}%`,
+      height: section.layout?.height ? `${section.layout.height}px` : 'auto',
+      zIndex: section.layout?.zIndex || 1,
     };
 
     const gridCols = section.config?.columns === 3 ? 'grid-cols-3' :
@@ -185,9 +228,11 @@ export const AppPreviewDialog: React.FC<AppPreviewDialogProps> = ({
     }
   };
 
+  const maxHeight = Math.max(...app.sections.map(s => (s.layout?.y || 0) + 400));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{app.name} - Preview</DialogTitle>
           <DialogDescription>
@@ -195,19 +240,38 @@ export const AppPreviewDialog: React.FC<AppPreviewDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-6">
-          <div className="text-center py-4 bg-blue-50 rounded-lg">
+        <div className="border rounded-lg overflow-hidden bg-white">
+          {renderNavbar()}
+          
+          {app.requiresAuth && (
+            <div className="px-6 py-2 bg-yellow-50 border-b border-yellow-200">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <span className="text-sm font-medium">🔒 Authentication Required</span>
+                <span className="text-xs">Users will need to log in to access this app</span>
+              </div>
+            </div>
+          )}
+
+          <div className="text-center py-4 bg-blue-50">
             <h1 className="text-2xl font-bold">{app.name}</h1>
             <p className="text-gray-600">{app.description}</p>
           </div>
 
-          {app.sections.map(renderSection)}
+          <div 
+            className="relative"
+            style={{ 
+              height: app.sections.length > 0 ? `${maxHeight}px` : '400px',
+              minHeight: '400px'
+            }}
+          >
+            {app.sections.map(renderSection)}
 
-          {app.sections.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              No sections configured yet.
-            </div>
-          )}
+            {app.sections.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+                No sections configured yet.
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
