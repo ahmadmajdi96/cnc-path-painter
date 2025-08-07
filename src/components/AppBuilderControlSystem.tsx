@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Eye, Edit, Trash2, ExternalLink, Users } from 'lucide-react';
-import { AppBuilderDrawer } from './AppBuilderDrawer';
+import { ModernAppBuilderDrawer } from './ModernAppBuilderDrawer';
 import { AppPreviewDialog } from './AppPreviewDialog';
 import { AppAuthDialog } from './AppAuthDialog';
 
@@ -206,7 +205,7 @@ export const AppBuilderControlSystem = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">App Builder</h1>
-          <p className="text-gray-600">Create and manage custom applications with forms, cards, and automated data integration</p>
+          <p className="text-gray-600">Create and manage custom applications with modern drag-and-drop interface</p>
         </div>
         <Button onClick={handleCreateApp} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -311,7 +310,7 @@ export const AppBuilderControlSystem = () => {
         ))}
       </div>
 
-      <AppBuilderDrawer
+      <ModernAppBuilderDrawer
         open={showDrawer}
         onOpenChange={setShowDrawer}
         app={selectedApp}
