@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, Trash2 } from 'lucide-react';
 import { Integration } from './IntegrationControlSystem';
 
 interface EditIntegrationDialogProps {
@@ -16,6 +16,21 @@ interface EditIntegrationDialogProps {
   onEdit: (integration: Integration) => void;
 }
 
+interface Parameter {
+  id: string;
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  required: boolean;
+  description?: string;
+}
+
+interface VariableMapping {
+  id: string;
+  sourceField: string;
+  targetField: string;
+  transformation?: string;
+}
+
 export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
   open,
   onOpenChange,
@@ -23,9 +38,24 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
   onEdit
 }) => {
   const [formData, setFormData] = useState<Integration>(integration);
+  const [receiveDataType, setReceiveDataType] = useState<'json' | 'xml' | 'binary' | 'text'>('json');
+  const [sendDataType, setSendDataType] = useState<'json' | 'xml' | 'binary' | 'text'>('json');
+  const [expectedParameters, setExpectedParameters] = useState<Parameter[]>([]);
+  const [variableMappings, setVariableMappings] = useState<VariableMapping[]>([]);
 
   useEffect(() => {
     setFormData(integration);
+    if (integration.dataConfiguration) {
+      setReceiveDataType(integration.dataConfiguration.receiveDataType);
+      setSendDataType(integration.dataConfiguration.sendDataType);
+      setExpectedParameters(integration.dataConfiguration.expectedParameters || []);
+      setVariableMappings(integration.dataConfiguration.variableMappings || []);
+    } else {
+      setReceiveDataType('json');
+      setSendDataType('json');
+      setExpectedParameters([]);
+      setVariableMappings([]);
+    }
   }, [integration]);
 
   const protocols = [
@@ -35,15 +65,86 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
     'Kafka', 'RabbitMQ', 'Redis', 'CoAP', 'LoRaWAN'
   ];
 
+  const dataTypes = [
+    { value: 'json', label: 'JSON' },
+    { value: 'xml', label: 'XML' },
+    { value: 'binary', label: 'Binary' },
+    { value: 'text', label: 'Plain Text' }
+  ];
+
+  const parameterTypes = [
+    { value: 'string', label: 'String' },
+    { value: 'number', label: 'Number' },
+    { value: 'boolean', label: 'Boolean' },
+    { value: 'object', label: 'Object' },
+    { value: 'array', label: 'Array' }
+  ];
+
+  const addParameter = () => {
+    setExpectedParameters([
+      ...expectedParameters,
+      {
+        id: Date.now().toString(),
+        name: '',
+        type: 'string',
+        required: false,
+        description: ''
+      }
+    ]);
+  };
+
+  const updateParameter = (id: string, field: keyof Parameter, value: any) => {
+    setExpectedParameters(prev =>
+      prev.map(param => param.id === id ? { ...param, [field]: value } : param)
+    );
+  };
+
+  const removeParameter = (id: string) => {
+    setExpectedParameters(prev => prev.filter(param => param.id !== id));
+  };
+
+  const addVariableMapping = () => {
+    setVariableMappings([
+      ...variableMappings,
+      {
+        id: Date.now().toString(),
+        sourceField: '',
+        targetField: '',
+        transformation: ''
+      }
+    ]);
+  };
+
+  const updateVariableMapping = (id: string, field: keyof VariableMapping, value: string) => {
+    setVariableMappings(prev =>
+      prev.map(mapping => mapping.id === id ? { ...mapping, [field]: value } : mapping)
+    );
+  };
+
+  const removeVariableMapping = (id: string) => {
+    setVariableMappings(prev => prev.filter(mapping => mapping.id !== id));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onEdit(formData);
+    
+    const updatedIntegration = {
+      ...formData,
+      dataConfiguration: {
+        receiveDataType,
+        sendDataType,
+        expectedParameters,
+        variableMappings
+      }
+    };
+    
+    onEdit(updatedIntegration);
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Integration</DialogTitle>
         </DialogHeader>
@@ -230,6 +331,189 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-lg">Data Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label>Receive Data Type</Label>
+                <Select
+                  value={receiveDataType}
+                  onValueChange={(value: 'json' | 'xml' | 'binary' | 'text') => setReceiveDataType(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dataTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>Send Data Type</Label>
+                <Select
+                  value={sendDataType}
+                  onValueChange={(value: 'json' | 'xml' | 'binary' | 'text') => setSendDataType(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dataTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Expected Parameters</CardTitle>
+                <Button type="button" onClick={addParameter} className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Parameter
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {expectedParameters.map((param) => (
+                <div key={param.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={param.name}
+                      onChange={(e) => updateParameter(param.id, 'name', e.target.value)}
+                      placeholder="Parameter name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Type</Label>
+                    <Select
+                      value={param.type}
+                      onValueChange={(value: typeof param.type) => updateParameter(param.id, 'type', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {parameterTypes.map(type => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center pt-6">
+                    <input
+                      type="checkbox"
+                      checked={param.required}
+                      onChange={(e) => updateParameter(param.id, 'required', e.target.checked)}
+                      className="mr-2"
+                    />
+                    <Label>Required</Label>
+                  </div>
+                  
+                  <div>
+                    <Label>Description</Label>
+                    <Input
+                      value={param.description || ''}
+                      onChange={(e) => updateParameter(param.id, 'description', e.target.value)}
+                      placeholder="Description"
+                    />
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeParameter(param.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              {expectedParameters.length === 0 && (
+                <p className="text-gray-500 text-center py-4">No parameters defined</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Variable Mappings</CardTitle>
+                <Button type="button" onClick={addVariableMapping} className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Mapping
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {variableMappings.map((mapping) => (
+                <div key={mapping.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                  <div>
+                    <Label>Source Field</Label>
+                    <Input
+                      value={mapping.sourceField}
+                      onChange={(e) => updateVariableMapping(mapping.id, 'sourceField', e.target.value)}
+                      placeholder="Source field name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Target Field</Label>
+                    <Input
+                      value={mapping.targetField}
+                      onChange={(e) => updateVariableMapping(mapping.id, 'targetField', e.target.value)}
+                      placeholder="Target field name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Transformation (Optional)</Label>
+                    <Input
+                      value={mapping.transformation || ''}
+                      onChange={(e) => updateVariableMapping(mapping.id, 'transformation', e.target.value)}
+                      placeholder="e.g., toUpperCase(), multiply(2)"
+                    />
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeVariableMapping(mapping.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              {variableMappings.length === 0 && (
+                <p className="text-gray-500 text-center py-4">No variable mappings defined</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-lg">Configuration Parameters</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -270,10 +554,11 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="json">JSON</SelectItem>
-                    <SelectItem value="xml">XML</SelectItem>
-                    <SelectItem value="binary">Binary</SelectItem>
-                    <SelectItem value="text">Text</SelectItem>
+                    {dataTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

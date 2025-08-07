@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IntegrationList } from './IntegrationList';
@@ -33,6 +32,23 @@ export interface Integration {
     retryAttempts: number;
     dataFormat: 'json' | 'xml' | 'binary' | 'text';
     mappingRules: any[];
+  };
+  dataConfiguration?: {
+    receiveDataType: 'json' | 'xml' | 'binary' | 'text';
+    sendDataType: 'json' | 'xml' | 'binary' | 'text';
+    expectedParameters: Array<{
+      id: string;
+      name: string;
+      type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+      required: boolean;
+      description?: string;
+    }>;
+    variableMappings: Array<{
+      id: string;
+      sourceField: string;
+      targetField: string;
+      transformation?: string;
+    }>;
   };
   lastTest?: {
     timestamp: string;
@@ -70,6 +86,39 @@ export const IntegrationControlSystem = () => {
         dataFormat: 'json',
         mappingRules: []
       },
+      dataConfiguration: {
+        receiveDataType: 'json',
+        sendDataType: 'json',
+        expectedParameters: [
+          {
+            id: '1',
+            name: 'productionOrderId',
+            type: 'string',
+            required: true,
+            description: 'Unique identifier for production order'
+          },
+          {
+            id: '2',
+            name: 'quantity',
+            type: 'number',
+            required: true,
+            description: 'Number of items to produce'
+          }
+        ],
+        variableMappings: [
+          {
+            id: '1',
+            sourceField: 'order_id',
+            targetField: 'productionOrderId',
+            transformation: 'toUpperCase()'
+          },
+          {
+            id: '2',
+            sourceField: 'qty',
+            targetField: 'quantity'
+          }
+        ]
+      },
       lastTest: {
         timestamp: '2024-01-15T10:30:00Z',
         status: 'success'
@@ -99,6 +148,39 @@ export const IntegrationControlSystem = () => {
         retryAttempts: 5,
         dataFormat: 'json',
         mappingRules: []
+      },
+      dataConfiguration: {
+        receiveDataType: 'binary',
+        sendDataType: 'json',
+        expectedParameters: [
+          {
+            id: '3',
+            name: 'timestamp',
+            type: 'string',
+            required: true,
+            description: 'ISO 8601 timestamp'
+          },
+          {
+            id: '4',
+            name: 'sensorValues',
+            type: 'array',
+            required: true,
+            description: 'Array of sensor readings'
+          }
+        ],
+        variableMappings: [
+          {
+            id: '3',
+            sourceField: 'time',
+            targetField: 'timestamp',
+            transformation: 'toISOString()'
+          },
+          {
+            id: '4',
+            sourceField: 'data',
+            targetField: 'sensorValues'
+          }
+        ]
       },
       createdAt: '2024-01-12T14:20:00Z',
       updatedAt: '2024-01-15T09:15:00Z'
