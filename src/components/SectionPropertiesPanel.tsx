@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { AppSection, FormField } from './AppBuilderControlSystem';
 import { FormFieldEditor } from './FormFieldEditor';
+import { SectionStylingPanel } from './SectionStylingPanel';
+import { DataConfigPanel } from './DataConfigPanel';
 
 interface SectionPropertiesPanelProps {
   section: AppSection;
@@ -156,13 +158,13 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
       {/* Properties Content */}
       <div className="flex-1 overflow-auto p-4">
         <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="styling">Styling</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
             {section.type === 'form' && <TabsTrigger value="fields">Fields</TabsTrigger>}
             {section.type === 'list' && <TabsTrigger value="data">Data</TabsTrigger>}
             {section.type === 'confirmation' && <TabsTrigger value="actions">Actions</TabsTrigger>}
-            {section.type !== 'form' && section.type !== 'list' && section.type !== 'confirmation' && <TabsTrigger value="styling">Styling</TabsTrigger>}
           </TabsList>
 
           {/* General Tab */}
@@ -189,6 +191,11 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
                 />
               </div>
             )}
+          </TabsContent>
+
+          {/* Styling Tab */}
+          <TabsContent value="styling" className="space-y-4">
+            <SectionStylingPanel section={section} onUpdate={onUpdate} />
           </TabsContent>
 
           {/* Layout Tab */}
@@ -304,104 +311,7 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
           {/* Data Tab (List sections only) */}
           {section.type === 'list' && (
             <TabsContent value="data" className="space-y-4">
-              <div className="space-y-4">
-                <h4 className="font-medium">Integration Data Source</h4>
-                
-                <div className="space-y-2">
-                  <Label>Integration</Label>
-                  <Select
-                    value={section.config?.listItems?.integrationId || ''}
-                    onValueChange={(value) => handleListItemsUpdate('integrationId', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select integration" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockIntegrations.map((integration) => (
-                        <SelectItem key={integration.id} value={integration.id}>
-                          {integration.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Data Path</Label>
-                  <Input
-                    value={section.config?.listItems?.dataPath || ''}
-                    onChange={(e) => handleListItemsUpdate('dataPath', e.target.value)}
-                    placeholder="/api/inventory/items"
-                  />
-                </div>
-
-                <Separator />
-
-                <h4 className="font-medium">Item Template Mapping</h4>
-                
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Image Field</Label>
-                    <Input
-                      value={section.config?.listItems?.itemTemplate?.image?.field || ''}
-                      onChange={(e) => handleItemTemplateUpdate('image', {
-                        ...section.config?.listItems?.itemTemplate?.image,
-                        field: e.target.value
-                      })}
-                      placeholder="item.imageUrl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Title Field</Label>
-                    <Input
-                      value={section.config?.listItems?.itemTemplate?.title?.field || ''}
-                      onChange={(e) => handleItemTemplateUpdate('title', {
-                        ...section.config?.listItems?.itemTemplate?.title,
-                        field: e.target.value
-                      })}
-                      placeholder="item.name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Subtitle Field</Label>
-                    <Input
-                      value={section.config?.listItems?.itemTemplate?.subtitle?.field || ''}
-                      onChange={(e) => handleItemTemplateUpdate('subtitle', {
-                        ...section.config?.listItems?.itemTemplate?.subtitle,
-                        field: e.target.value
-                      })}
-                      placeholder="item.description"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Quantity Field</Label>
-                      <Input
-                        value={section.config?.listItems?.itemTemplate?.quantity?.field || ''}
-                        onChange={(e) => handleItemTemplateUpdate('quantity', {
-                          ...section.config?.listItems?.itemTemplate?.quantity,
-                          field: e.target.value
-                        })}
-                        placeholder="item.quantity"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Location Field</Label>
-                      <Input
-                        value={section.config?.listItems?.itemTemplate?.location?.field || ''}
-                        onChange={(e) => handleItemTemplateUpdate('location', {
-                          ...section.config?.listItems?.itemTemplate?.location,
-                          field: e.target.value
-                        })}
-                        placeholder="item.location"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <DataConfigPanel section={section} onUpdate={onUpdate} />
             </TabsContent>
           )}
 
@@ -481,66 +391,6 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
                     />
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-          )}
-
-          {/* Styling Tab */}
-          {section.type !== 'form' && section.type !== 'list' && section.type !== 'confirmation' && (
-            <TabsContent value="styling" className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="columns">Columns</Label>
-                  <Select
-                    value={section.config?.columns?.toString()}
-                    onValueChange={(value) => handleConfigUpdate('columns', parseInt(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 Column</SelectItem>
-                      <SelectItem value="2">2 Columns</SelectItem>
-                      <SelectItem value="3">3 Columns</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="textAlign">Text Alignment</Label>
-                  <Select
-                    value={section.config?.textAlign || 'left'}
-                    onValueChange={(value) => handleConfigUpdate('textAlign', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="left">Left</SelectItem>
-                      <SelectItem value="center">Center</SelectItem>
-                      <SelectItem value="right">Right</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="backgroundColor">Background Color</Label>
-                <Input
-                  id="backgroundColor"
-                  type="color"
-                  value={section.config?.backgroundColor || '#ffffff'}
-                  onChange={(e) => handleConfigUpdate('backgroundColor', e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="showBorder"
-                  checked={section.config?.showBorder || false}
-                  onCheckedChange={(checked) => handleConfigUpdate('showBorder', checked)}
-                />
-                <Label htmlFor="showBorder">Show Border</Label>
               </div>
             </TabsContent>
           )}

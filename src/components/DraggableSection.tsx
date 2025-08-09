@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Card, CardContent } from '@/components/ui/card';
@@ -79,6 +78,17 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
   const Icon = sectionIcons[section.type];
   const colorClass = sectionColors[section.type];
 
+  const getSectionStyles = () => {
+    const config = section.config || {};
+    return {
+      backgroundColor: config.backgroundColor || '#ffffff',
+      color: config.fontColor || '#000000',
+      fontSize: config.fontSize ? `var(--font-size-${config.fontSize})` : undefined,
+      fontWeight: config.fontWeight || 'normal',
+      textAlign: config.textAlign || 'left',
+    } as React.CSSProperties;
+  };
+
   const handleResizeStart = (e: React.MouseEvent, direction: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -124,6 +134,66 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const renderListPreview = () => {
+    const listConfig = section.config?.listItems;
+    const isGrid = listConfig?.viewType === 'grid';
+    const itemsPerRow = listConfig?.itemsPerRow || 3;
+    const cardStyle = listConfig?.cardStyle || false;
+    
+    // Sample data for preview
+    const sampleData = listConfig?.staticData || [
+      { id: '1', title: 'Item 1', subtitle: 'Description 1', quantity: 10, location: 'A1' },
+      { id: '2', title: 'Item 2', subtitle: 'Description 2', quantity: 5, location: 'B2' },
+    ];
+
+    return (
+      <div className="w-full space-y-2">
+        {listConfig?.showSearch && (
+          <div className="bg-gray-100 rounded px-2 py-1 text-xs">
+            🔍 Search enabled
+          </div>
+        )}
+        
+        <div className={`space-y-1 ${isGrid ? `grid grid-cols-${Math.min(itemsPerRow, 3)} gap-1` : ''}`}>
+          {sampleData.slice(0, 2).map((item, index) => (
+            <div
+              key={index}
+              className={`
+                ${cardStyle ? 'bg-white border rounded shadow-sm p-2' : 'bg-white/70 rounded p-2 border border-white/50'} 
+                text-xs transition-all hover:shadow-md
+              `}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
+                  <Image className="w-3 h-3" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{item.title}</div>
+                  <div className="text-gray-500 text-xs truncate">{item.subtitle}</div>
+                  {!isGrid && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                      <Hash className="w-2 h-2" />
+                      <span>{item.quantity}</span>
+                      <MapPin className="w-2 h-2" />
+                      <span>{item.location}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="text-xs text-center text-gray-500">
+          {listConfig?.dataSource === 'integration' 
+            ? `Integration: ${listConfig.integrationId ? 'Connected' : 'Not configured'}`
+            : `Static data (${sampleData.length} items)`
+          }
+        </div>
+      </div>
+    );
+  };
+
   const renderSectionPreview = () => {
     switch (section.type) {
       case 'form':
@@ -149,29 +219,7 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
         );
       
       case 'list':
-        return (
-          <div className="w-full space-y-2">
-            {[1, 2].map((item, index) => (
-              <div key={index} className="bg-white/70 rounded p-2 border border-white/50 flex items-center gap-2">
-                <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
-                  <Image className="w-3 h-3" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs font-medium">Item {item}</div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Hash className="w-2 h-2" />
-                    <span>Qty</span>
-                    <MapPin className="w-2 h-2" />
-                    <span>Location</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <div className="text-xs text-center text-gray-500">
-              {section.config?.listItems?.integrationId ? 'Connected to integration' : 'Configure integration data'}
-            </div>
-          </div>
-        );
+        return renderListPreview();
       
       case 'confirmation':
         return (
@@ -204,7 +252,16 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        position: 'absolute' as const,
+        left: `${section.layout?.x || 0}%`,
+        top: `${section.layout?.y || 0}px`,
+        width: `${section.layout?.width || 100}%`,
+        height: section.layout?.height ? `${section.layout.height}px` : 'auto',
+        zIndex: section.layout?.zIndex || 1,
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        opacity: isCurrentlyDragging ? 0.7 : 1,
+      }}
       className={`group transition-all duration-200 ${isDragging ? 'scale-105' : ''}`}
       onClick={onSelect}
     >
@@ -214,6 +271,7 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
           ${isSelected ? 'ring-2 ring-blue-400 ring-offset-2 shadow-lg' : 'shadow-sm hover:shadow-md'} 
           transition-all duration-200 cursor-pointer relative border-2
         `}
+        style={getSectionStyles()}
       >
         <CardContent className="p-4">
           {/* Section Header */}
