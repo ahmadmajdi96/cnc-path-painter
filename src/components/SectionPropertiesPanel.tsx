@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,13 @@ interface SectionPropertiesPanelProps {
   onUpdate: (section: AppSection) => void;
   onClose: () => void;
 }
+
+// Mock integrations - in real app, this would come from the integration system
+const mockIntegrations = [
+  { id: '1', name: 'ERP Integration', protocol: 'REST_API' },
+  { id: '2', name: 'SCADA System', protocol: 'OPC_UA' },
+  { id: '3', name: 'Inventory Database', protocol: 'SQL' },
+];
 
 export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
   section,
@@ -47,6 +53,48 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
       config: {
         ...section.config,
         [field]: value,
+      },
+    });
+  };
+
+  const handleListItemsUpdate = (field: string, value: any) => {
+    onUpdate({
+      ...section,
+      config: {
+        ...section.config,
+        listItems: {
+          ...section.config?.listItems,
+          [field]: value,
+        },
+      },
+    });
+  };
+
+  const handleItemTemplateUpdate = (field: string, value: any) => {
+    onUpdate({
+      ...section,
+      config: {
+        ...section.config,
+        listItems: {
+          ...section.config?.listItems,
+          itemTemplate: {
+            ...section.config?.listItems?.itemTemplate,
+            [field]: value,
+          },
+        },
+      },
+    });
+  };
+
+  const handleTriggerUpdate = (field: string, value: any) => {
+    onUpdate({
+      ...section,
+      config: {
+        ...section.config,
+        trigger: {
+          ...section.config?.trigger,
+          [field]: value,
+        },
       },
     });
   };
@@ -84,12 +132,20 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
     });
   };
 
+  const getAvailableForms = () => {
+    // In a real app, this would get forms from the app context
+    return [
+      { id: 'form1', name: 'Customer Registration Form' },
+      { id: 'form2', name: 'Product Order Form' },
+    ];
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="p-4 border-b flex items-center justify-between bg-gray-50">
         <div>
-          <h3 className="font-semibold">Section Properties</h3>
+          <h3 className="font-semibold text-gray-900">Section Properties</h3>
           <p className="text-sm text-gray-600">{section.type.toUpperCase()} - {section.title}</p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
@@ -100,11 +156,13 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
       {/* Properties Content */}
       <div className="flex-1 overflow-auto p-4">
         <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
             {section.type === 'form' && <TabsTrigger value="fields">Fields</TabsTrigger>}
-            {section.type !== 'form' && <TabsTrigger value="styling">Styling</TabsTrigger>}
+            {section.type === 'list' && <TabsTrigger value="data">Data</TabsTrigger>}
+            {section.type === 'confirmation' && <TabsTrigger value="actions">Actions</TabsTrigger>}
+            {section.type !== 'form' && section.type !== 'list' && section.type !== 'confirmation' && <TabsTrigger value="styling">Styling</TabsTrigger>}
           </TabsList>
 
           {/* General Tab */}
@@ -195,12 +253,6 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
                 onChange={(e) => handleLayoutUpdate('zIndex', parseInt(e.target.value))}
               />
             </div>
-
-            <div className="p-3 bg-blue-50 rounded-lg text-sm">
-              <p className="font-medium text-blue-900 mb-1">Layout Tips:</p>
-              <p className="text-blue-700">• Use Ctrl+Click on a section to position it quickly</p>
-              <p className="text-blue-700">• Adjust Z-index to control which sections appear on top</p>
-            </div>
           </TabsContent>
 
           {/* Fields Tab (Form sections only) */}
@@ -249,8 +301,192 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
             </TabsContent>
           )}
 
+          {/* Data Tab (List sections only) */}
+          {section.type === 'list' && (
+            <TabsContent value="data" className="space-y-4">
+              <div className="space-y-4">
+                <h4 className="font-medium">Integration Data Source</h4>
+                
+                <div className="space-y-2">
+                  <Label>Integration</Label>
+                  <Select
+                    value={section.config?.listItems?.integrationId || ''}
+                    onValueChange={(value) => handleListItemsUpdate('integrationId', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select integration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockIntegrations.map((integration) => (
+                        <SelectItem key={integration.id} value={integration.id}>
+                          {integration.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Data Path</Label>
+                  <Input
+                    value={section.config?.listItems?.dataPath || ''}
+                    onChange={(e) => handleListItemsUpdate('dataPath', e.target.value)}
+                    placeholder="/api/inventory/items"
+                  />
+                </div>
+
+                <Separator />
+
+                <h4 className="font-medium">Item Template Mapping</h4>
+                
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Image Field</Label>
+                    <Input
+                      value={section.config?.listItems?.itemTemplate?.image?.field || ''}
+                      onChange={(e) => handleItemTemplateUpdate('image', {
+                        ...section.config?.listItems?.itemTemplate?.image,
+                        field: e.target.value
+                      })}
+                      placeholder="item.imageUrl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Title Field</Label>
+                    <Input
+                      value={section.config?.listItems?.itemTemplate?.title?.field || ''}
+                      onChange={(e) => handleItemTemplateUpdate('title', {
+                        ...section.config?.listItems?.itemTemplate?.title,
+                        field: e.target.value
+                      })}
+                      placeholder="item.name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Subtitle Field</Label>
+                    <Input
+                      value={section.config?.listItems?.itemTemplate?.subtitle?.field || ''}
+                      onChange={(e) => handleItemTemplateUpdate('subtitle', {
+                        ...section.config?.listItems?.itemTemplate?.subtitle,
+                        field: e.target.value
+                      })}
+                      placeholder="item.description"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Quantity Field</Label>
+                      <Input
+                        value={section.config?.listItems?.itemTemplate?.quantity?.field || ''}
+                        onChange={(e) => handleItemTemplateUpdate('quantity', {
+                          ...section.config?.listItems?.itemTemplate?.quantity,
+                          field: e.target.value
+                        })}
+                        placeholder="item.quantity"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location Field</Label>
+                      <Input
+                        value={section.config?.listItems?.itemTemplate?.location?.field || ''}
+                        onChange={(e) => handleItemTemplateUpdate('location', {
+                          ...section.config?.listItems?.itemTemplate?.location,
+                          field: e.target.value
+                        })}
+                        placeholder="item.location"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Actions Tab (Confirmation sections only) */}
+          {section.type === 'confirmation' && (
+            <TabsContent value="actions" className="space-y-4">
+              <div className="space-y-4">
+                <h4 className="font-medium">Trigger Configuration</h4>
+                
+                <div className="space-y-2">
+                  <Label>Trigger Type</Label>
+                  <Select
+                    value={section.config?.trigger?.type || 'form_submit'}
+                    onValueChange={(value) => handleTriggerUpdate('type', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="form_submit">Form Submission</SelectItem>
+                      <SelectItem value="item_delete">Item Delete</SelectItem>
+                      <SelectItem value="custom_action">Custom Action</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {section.config?.trigger?.type === 'form_submit' && (
+                  <div className="space-y-2">
+                    <Label>Target Form</Label>
+                    <Select
+                      value={section.config?.trigger?.targetId || ''}
+                      onValueChange={(value) => handleTriggerUpdate('targetId', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select form" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableForms().map((form) => (
+                          <SelectItem key={form.id} value={form.id}>
+                            {form.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <Separator />
+
+                <h4 className="font-medium">Dialog Content</h4>
+                
+                <div className="space-y-2">
+                  <Label>Confirmation Text</Label>
+                  <Textarea
+                    value={section.config?.confirmationText || ''}
+                    onChange={(e) => handleConfigUpdate('confirmationText', e.target.value)}
+                    placeholder="Are you sure you want to proceed?"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Confirm Button</Label>
+                    <Input
+                      value={section.config?.confirmButtonText || ''}
+                      onChange={(e) => handleConfigUpdate('confirmButtonText', e.target.value)}
+                      placeholder="Confirm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cancel Button</Label>
+                    <Input
+                      value={section.config?.cancelButtonText || ''}
+                      onChange={(e) => handleConfigUpdate('cancelButtonText', e.target.value)}
+                      placeholder="Cancel"
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
           {/* Styling Tab */}
-          {section.type !== 'form' && (
+          {section.type !== 'form' && section.type !== 'list' && section.type !== 'confirmation' && (
             <TabsContent value="styling" className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">

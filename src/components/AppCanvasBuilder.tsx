@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   DndContext,
@@ -32,7 +31,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
   const [selectedSection, setSelectedSection] = useState<AppSection | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -45,57 +44,46 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
-    
-    // Store the initial drag offset
-    const activeSection = app.sections.find(section => section.id === event.active.id);
-    if (activeSection && event.activatorEvent) {
-      const canvasRect = document.querySelector('.canvas-container')?.getBoundingClientRect();
-      if (canvasRect && 'clientX' in event.activatorEvent && 'clientY' in event.activatorEvent) {
-        const currentX = ((activeSection.layout?.x || 0) / 100) * canvasRect.width;
-        const currentY = activeSection.layout?.y || 0;
-        
-        setDragOffset({
-          x: (event.activatorEvent as MouseEvent).clientX - canvasRect.left - currentX,
-          y: (event.activatorEvent as MouseEvent).clientY - canvasRect.top - currentY,
-        });
-      }
-    }
+    setIsDragging(true);
   };
 
   const handleDragMove = (event: DragMoveEvent) => {
-    if (!activeId) return;
+    if (!activeId || !event.delta) return;
     
     const canvasRect = document.querySelector('.canvas-container')?.getBoundingClientRect();
     if (!canvasRect) return;
 
-    // Calculate new position based on mouse position
-    const mouseEvent = event.activatorEvent as MouseEvent;
-    const mouseX = mouseEvent?.clientX || 0;
-    const mouseY = mouseEvent?.clientY || 0;
-    
-    const newX = Math.max(0, Math.min(100, ((mouseX - canvasRect.left - dragOffset.x) / canvasRect.width) * 100));
-    const newY = Math.max(0, mouseY - canvasRect.top - dragOffset.y);
+    // Calculate new position based on delta movement
+    const deltaX = (event.delta.x / canvasRect.width) * 100;
+    const deltaY = event.delta.y;
 
     // Update section position in real-time
-    const updatedSections = app.sections.map(section =>
-      section.id === activeId
-        ? {
-            ...section,
-            layout: {
-              ...section.layout!,
-              x: newX,
-              y: newY,
-            },
-          }
-        : section
-    );
+    const updatedSections = app.sections.map(section => {
+      if (section.id === activeId) {
+        const currentX = section.layout?.x || 0;
+        const currentY = section.layout?.y || 0;
+        
+        const newX = Math.max(0, Math.min(100 - (section.layout?.width || 100), currentX + deltaX));
+        const newY = Math.max(0, currentY + deltaY);
+
+        return {
+          ...section,
+          layout: {
+            ...section.layout!,
+            x: newX,
+            y: newY,
+          },
+        };
+      }
+      return section;
+    });
 
     onAppUpdate({ ...app, sections: updatedSections });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null);
-    setDragOffset({ x: 0, y: 0 });
+    setIsDragging(false);
   };
 
   const handleAddSection = (type: AppSection['type']) => {
@@ -104,18 +92,42 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
       type,
       title: `New ${type} section`,
       fields: type === 'form' ? [] : undefined,
+      content: type === 'list' ? '' : type === 'text' ? 'Add your text content here...' : undefined,
       config: {
         columns: 1,
         showBorder: true,
         backgroundColor: '#ffffff',
         textAlign: 'left',
+        ...(type === 'list' && {
+          listItems: {
+            integrationId: '',
+            dataPath: '',
+            itemTemplate: {
+              image: { field: '', fallback: '/placeholder.svg' },
+              title: { field: '', fallback: 'Item Title' },
+              subtitle: { field: '', fallback: 'Item Description' },
+              quantity: { field: '', fallback: '0' },
+              location: { field: '', fallback: 'Location' }
+            }
+          }
+        }),
+        ...(type === 'confirmation' && {
+          trigger: {
+            type: 'form_submit',
+            targetId: '',
+            action: 'submit'
+          },
+          confirmationText: 'Are you sure you want to proceed?',
+          confirmButtonText: 'Confirm',
+          cancelButtonText: 'Cancel'
+        })
       },
       layout: {
-        width: type === 'form' ? 60 : 40,
-        x: Math.random() * 50, // Random initial position
-        y: Math.random() * 200 + 50,
+        width: type === 'form' ? 60 : type === 'list' ? 80 : 40,
+        x: Math.random() * 40,
+        y: Math.random() * 100 + 50,
         zIndex: Math.max(...app.sections.map(s => s.layout?.zIndex || 1), 0) + 1,
-        height: type === 'form' ? 300 : 150,
+        height: type === 'form' ? 300 : type === 'list' ? 400 : 150,
       },
     };
 
@@ -144,20 +156,20 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
   const activeSection = app.sections.find(section => section.id === activeId);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full bg-gray-50">
       {/* Left Sidebar - Toolbox */}
-      <div className="w-80 border-r bg-gray-50 p-4">
+      <div className="w-80 border-r bg-white shadow-sm">
         <SectionToolbox onAddSection={handleAddSection} />
       </div>
 
       {/* Main Canvas Area */}
-      <div className="flex-1 relative bg-white">
+      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-white shadow-sm hover:shadow-md transition-shadow"
           >
             <Eye className="w-4 h-4" />
             {showPreview ? 'Edit Mode' : 'Preview'}
@@ -174,11 +186,11 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
             onDragEnd={handleDragEnd}
           >
             <div className="h-full p-8 overflow-auto">
-              <div className="canvas-container relative min-h-[800px] bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="canvas-container relative min-h-[800px] bg-white rounded-xl border border-gray-200 shadow-sm">
                 {app.sections.length === 0 ? (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center text-gray-500">
-                      <div className="text-lg font-medium mb-2">Start Building Your App</div>
+                    <div className="text-center text-gray-400">
+                      <div className="text-xl font-medium mb-2">Start Building Your App</div>
                       <div className="text-sm">Drag sections from the toolbox to begin</div>
                     </div>
                   </div>
@@ -202,7 +214,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
 
             <DragOverlay>
               {activeSection && (
-                <div className="bg-white border rounded-lg p-4 shadow-lg opacity-90 pointer-events-none">
+                <div className="bg-white border rounded-lg p-4 shadow-xl opacity-90 pointer-events-none transform rotate-3">
                   <div className="font-medium">{activeSection.title}</div>
                   <div className="text-sm text-gray-500">{activeSection.type.toUpperCase()}</div>
                 </div>
@@ -214,7 +226,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
 
       {/* Right Sidebar - Properties Panel */}
       {selectedSection && !showPreview && (
-        <div className="w-80 border-l bg-gray-50">
+        <div className="w-80 border-l bg-white shadow-sm">
           <SectionPropertiesPanel
             section={selectedSection}
             onUpdate={handleUpdateSection}

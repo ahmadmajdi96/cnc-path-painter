@@ -26,6 +26,26 @@ export interface FormField {
   };
 }
 
+export interface ListItemTemplate {
+  image: { field: string; fallback: string };
+  title: { field: string; fallback: string };
+  subtitle: { field: string; fallback: string };
+  quantity: { field: string; fallback: string };
+  location: { field: string; fallback: string };
+}
+
+export interface ListItemConfig {
+  integrationId: string;
+  dataPath: string;
+  itemTemplate: ListItemTemplate;
+}
+
+export interface TriggerConfig {
+  type: 'form_submit' | 'item_delete' | 'custom_action';
+  targetId: string;
+  action: string;
+}
+
 export interface AppSection {
   id: string;
   type: 'form' | 'details' | 'card' | 'list' | 'confirmation' | 'text';
@@ -37,6 +57,11 @@ export interface AppSection {
     showBorder?: boolean;
     backgroundColor?: string;
     textAlign?: 'left' | 'center' | 'right';
+    listItems?: ListItemConfig;
+    trigger?: TriggerConfig;
+    confirmationText?: string;
+    confirmButtonText?: string;
+    cancelButtonText?: string;
   };
   layout?: {
     width: number; // percentage of container width
