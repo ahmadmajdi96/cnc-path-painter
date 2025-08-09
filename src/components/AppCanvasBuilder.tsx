@@ -12,12 +12,15 @@ import {
 } from '@dnd-kit/core';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, Eye } from 'lucide-react';
+import { Plus, Settings, Eye, Palette } from 'lucide-react';
 import { CustomApp, AppSection } from './AppBuilderControlSystem';
 import { DraggableSection } from './DraggableSection';
 import { SectionToolbox } from './SectionToolbox';
 import { SectionPropertiesPanel } from './SectionPropertiesPanel';
 import { AppCanvasPreview } from './AppCanvasPreview';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface AppCanvasBuilderProps {
   app: Omit<CustomApp, 'id' | 'createdAt' | 'updatedAt' | 'url'>;
@@ -32,6 +35,10 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [canvasSettings, setCanvasSettings] = useState({
+    backgroundColor: app.canvasSettings?.backgroundColor || '#ffffff',
+    borderRadius: app.canvasSettings?.borderRadius || 12,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,6 +93,15 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
     setIsDragging(false);
   };
 
+  const handleCanvasSettingsUpdate = (field: string, value: any) => {
+    const newSettings = { ...canvasSettings, [field]: value };
+    setCanvasSettings(newSettings);
+    onAppUpdate({
+      ...app,
+      canvasSettings: newSettings,
+    });
+  };
+
   const handleAddSection = (type: AppSection['type']) => {
     const newSection: AppSection = {
       id: Date.now().toString(),
@@ -98,17 +114,24 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         showBorder: true,
         backgroundColor: '#ffffff',
         textAlign: 'left',
+        dataSource: 'static',
         ...(type === 'list' && {
           listItems: {
             integrationId: '',
             dataPath: '',
+            dataSource: 'static',
+            staticData: [],
             itemTemplate: {
               image: { field: '', fallback: '/placeholder.svg' },
               title: { field: '', fallback: 'Item Title' },
               subtitle: { field: '', fallback: 'Item Description' },
               quantity: { field: '', fallback: '0' },
               location: { field: '', fallback: 'Location' }
-            }
+            },
+            viewType: 'list',
+            cardStyle: true,
+            showSearch: true,
+            showFilter: true
           }
         }),
         ...(type === 'confirmation' && {
@@ -158,13 +181,60 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
   return (
     <div className="flex h-full bg-gray-50">
       {/* Left Sidebar - Toolbox */}
-      <div className="w-80 border-r bg-white shadow-sm">
+      <div className="w-72 border-r bg-white shadow-sm">
         <SectionToolbox onAddSection={handleAddSection} />
       </div>
 
       {/* Main Canvas Area */}
       <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 bg-white shadow-sm hover:shadow-md transition-shadow"
+              >
+                <Palette className="w-4 h-4" />
+                Canvas Style
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <h4 className="font-medium">Canvas Settings</h4>
+                
+                <div className="space-y-2">
+                  <Label>Background Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={canvasSettings.backgroundColor}
+                      onChange={(e) => handleCanvasSettingsUpdate('backgroundColor', e.target.value)}
+                      className="w-16 h-10 p-1 border rounded"
+                    />
+                    <Input
+                      value={canvasSettings.backgroundColor}
+                      onChange={(e) => handleCanvasSettingsUpdate('backgroundColor', e.target.value)}
+                      placeholder="#ffffff"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Border Radius (px)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={canvasSettings.borderRadius}
+                    onChange={(e) => handleCanvasSettingsUpdate('borderRadius', parseInt(e.target.value))}
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button
             variant="outline"
             size="sm"
@@ -185,8 +255,14 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
           >
-            <div className="h-full p-8 overflow-auto">
-              <div className="canvas-container relative min-h-[800px] bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="h-full p-6 overflow-auto">
+              <div 
+                className="canvas-container relative min-h-[900px] min-w-[1200px] border border-gray-200 shadow-sm"
+                style={{
+                  backgroundColor: canvasSettings.backgroundColor,
+                  borderRadius: `${canvasSettings.borderRadius}px`,
+                }}
+              >
                 {app.sections.length === 0 ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center text-gray-400">

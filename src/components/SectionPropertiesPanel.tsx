@@ -158,12 +158,12 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
       {/* Properties Content */}
       <div className="flex-1 overflow-auto p-4">
         <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="styling">Styling</TabsTrigger>
             <TabsTrigger value="layout">Layout</TabsTrigger>
+            <TabsTrigger value="data">Data</TabsTrigger>
             {section.type === 'form' && <TabsTrigger value="fields">Fields</TabsTrigger>}
-            {section.type === 'list' && <TabsTrigger value="data">Data</TabsTrigger>}
             {section.type === 'confirmation' && <TabsTrigger value="actions">Actions</TabsTrigger>}
           </TabsList>
 
@@ -262,6 +262,11 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
             </div>
           </TabsContent>
 
+          {/* Data Tab (Available for all sections) */}
+          <TabsContent value="data" className="space-y-4">
+            <DataConfigPanel section={section} onUpdate={onUpdate} />
+          </TabsContent>
+
           {/* Fields Tab (Form sections only) */}
           {section.type === 'form' && (
             <TabsContent value="fields" className="space-y-4">
@@ -305,13 +310,6 @@ export const SectionPropertiesPanel: React.FC<SectionPropertiesPanelProps> = ({
                   </div>
                 )}
               </div>
-            </TabsContent>
-          )}
-
-          {/* Data Tab (List sections only) */}
-          {section.type === 'list' && (
-            <TabsContent value="data" className="space-y-4">
-              <DataConfigPanel section={section} onUpdate={onUpdate} />
             </TabsContent>
           )}
 

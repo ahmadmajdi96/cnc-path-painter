@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,6 +66,10 @@ export interface AppSection {
     fontSize?: 'sm' | 'base' | 'lg' | 'xl' | '2xl';
     fontWeight?: 'normal' | 'medium' | 'semibold' | 'bold';
     fontFamily?: string;
+    dataSource?: 'static' | 'integration';
+    staticData?: any[];
+    integrationId?: string;
+    dataPath?: string;
     listItems?: {
       integrationId?: string;
       dataPath?: string;
@@ -130,6 +133,10 @@ export interface CustomApp {
     backgroundColor: string;
     textColor: string;
   };
+  canvasSettings?: {
+    backgroundColor: string;
+    borderRadius: number;
+  };
 }
 
 export interface AppSettings {
@@ -176,6 +183,10 @@ export const AppBuilderControlSystem: React.FC = () => {
         items: [],
         backgroundColor: '#ffffff',
         textColor: '#000000',
+      },
+      canvasSettings: {
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
       },
     };
 
