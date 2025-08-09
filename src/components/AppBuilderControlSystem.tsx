@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { AppCanvasBuilder } from './AppCanvasBuilder';
 
 export interface FormField {
   id: string;
-  type: 'text' | 'email' | 'number' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'date' | 'file';
+  type: 'text' | 'email' | 'number' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'date' | 'file' | 'password';
   label: string;
   placeholder?: string;
   required: boolean;
@@ -22,12 +23,33 @@ export interface FormField {
     min?: number;
     max?: number;
     pattern?: string;
+    minLength?: number;
+    maxLength?: number;
   };
-  dataEntryType: 'manual' | 'barcode' | 'qr' | 'nfc' | 'integration';
+  dataEntryType: 'manual' | 'automated' | 'barcode' | 'qr' | 'nfc' | 'integration';
   integrationMapping?: {
     integrationId: string;
     fieldPath: string;
   };
+  integrationSource?: {
+    integrationId: string;
+    protocol: string;
+    dataPath: string;
+  };
+}
+
+export interface AppUser {
+  id: string;
+  username: string;
+  password: string;
+  createdAt: string;
+}
+
+export interface NavbarItem {
+  id: string;
+  label: string;
+  type: 'link' | 'button' | 'text';
+  url?: string;
 }
 
 export interface AppSection {
@@ -98,6 +120,16 @@ export interface CustomApp {
   createdAt: string;
   updatedAt: string;
   url: string;
+  status: 'draft' | 'published' | 'archived';
+  requiresAuth: boolean;
+  users?: AppUser[];
+  navbar?: {
+    enabled: boolean;
+    title: string;
+    items: NavbarItem[];
+    backgroundColor: string;
+    textColor: string;
+  };
 }
 
 export interface AppSettings {
@@ -135,6 +167,16 @@ export const AppBuilderControlSystem: React.FC = () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       url: `/app/${Date.now()}`,
+      status: 'draft',
+      requiresAuth: false,
+      users: [],
+      navbar: {
+        enabled: false,
+        title: '',
+        items: [],
+        backgroundColor: '#ffffff',
+        textColor: '#000000',
+      },
     };
 
     setApps([...apps, newApp]);
