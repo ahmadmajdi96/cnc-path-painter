@@ -1,5 +1,5 @@
 
-import { Network, Code, Settings, Zap, Globe, Shield, Bot, Layout } from "lucide-react";
+import { Network, Code, Settings, Zap, Globe, Shield, Bot, Layout, Server } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
 
 export interface SoftwareNavItem {
@@ -27,6 +27,12 @@ export const softwareNavItems: SoftwareNavItem[] = [
     to: "/software/app-builder",
     icon: Layout,
     page: "AppBuilder",
+  },
+  {
+    title: "Endpoint Management",
+    to: "/software/endpoints",
+    icon: Server,
+    page: "EndpointManagement",
   },
   {
     title: "API Management",
