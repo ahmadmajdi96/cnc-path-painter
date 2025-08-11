@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   DndContext,
@@ -179,14 +178,8 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
 
   const activeSection = app.sections.find(section => section.id === activeId);
 
-  // Calculate proper centering for the canvas
-  const leftSidebarWidth = 384; // w-96 = 384px
-  const rightSidebarWidth = selectedSection && !showPreview ? 420 : 0;
-  const totalSidebarWidth = leftSidebarWidth + rightSidebarWidth;
-  const availableWidth = `calc(100vw - ${totalSidebarWidth}px)`;
-
   return (
-    <div className="flex h-full bg-gray-50 min-w-max">
+    <div className="flex h-full bg-gray-50">
       {/* Left Sidebar - Toolbox */}
       <div className="w-96 border-r bg-white shadow-sm flex-shrink-0">
         <div className="p-6">
@@ -194,11 +187,8 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         </div>
       </div>
 
-      {/* Main Canvas Area */}
-      <div 
-        className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0"
-        style={{ width: availableWidth }}
-      >
+      {/* Main Canvas Area - Calculate proper centering */}
+      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0 flex items-center justify-center">
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
@@ -259,7 +249,9 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         </div>
 
         {showPreview ? (
-          <AppCanvasPreview app={{ ...app, id: 'preview', createdAt: '', updatedAt: '', url: '' }} />
+          <div className="w-full h-full">
+            <AppCanvasPreview app={{ ...app, id: 'preview', createdAt: '', updatedAt: '', url: '' }} />
+          </div>
         ) : (
           <DndContext
             sensors={sensors}
@@ -267,9 +259,9 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
           >
-            <div className="h-full p-6 overflow-auto flex justify-center">
+            <div className="h-full w-full p-6 overflow-auto flex items-center justify-center">
               <div 
-                className="canvas-container relative min-h-[900px] w-[1200px] border border-gray-200 shadow-sm"
+                className="canvas-container relative min-h-[900px] w-[1200px] border border-gray-200 shadow-sm mx-auto"
                 style={{
                   backgroundColor: canvasSettings.backgroundColor,
                   borderRadius: `${canvasSettings.borderRadius}px`,

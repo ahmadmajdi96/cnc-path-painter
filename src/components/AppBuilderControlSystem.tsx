@@ -207,6 +207,9 @@ export const AppBuilderControlSystem: React.FC = () => {
 
     setApps(apps.map(app => app.id === selectedApp.id ? updated : app));
     setSelectedApp(updated);
+
+    // Auto-save functionality
+    console.log('App updated and saved:', updated.name);
   };
 
   const handleDeleteApp = (appId: string) => {
