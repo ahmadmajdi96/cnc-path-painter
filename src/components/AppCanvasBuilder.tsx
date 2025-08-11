@@ -179,14 +179,16 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
   const activeSection = app.sections.find(section => section.id === activeId);
 
   return (
-    <div className="flex h-full bg-gray-50">
-      {/* Left Sidebar - Toolbox */}
-      <div className="w-72 border-r bg-white shadow-sm">
-        <SectionToolbox onAddSection={handleAddSection} />
+    <div className="flex h-full bg-gray-50 min-w-max">
+      {/* Left Sidebar - Toolbox - Increased width */}
+      <div className="w-96 border-r bg-white shadow-sm flex-shrink-0">
+        <div className="p-6">
+          <SectionToolbox onAddSection={handleAddSection} />
+        </div>
       </div>
 
       {/* Main Canvas Area */}
-      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0">
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
@@ -257,7 +259,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
           >
             <div className="h-full p-6 overflow-auto">
               <div 
-                className="canvas-container relative min-h-[900px] min-w-[1200px] border border-gray-200 shadow-sm"
+                className="canvas-container relative min-h-[900px] min-w-[1400px] border border-gray-200 shadow-sm mx-auto"
                 style={{
                   backgroundColor: canvasSettings.backgroundColor,
                   borderRadius: `${canvasSettings.borderRadius}px`,
@@ -300,9 +302,9 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         )}
       </div>
 
-      {/* Right Sidebar - Properties Panel */}
+      {/* Right Sidebar - Properties Panel - Increased width */}
       {selectedSection && !showPreview && (
-        <div className="w-80 border-l bg-white shadow-sm">
+        <div className="w-[420px] border-l bg-white shadow-sm flex-shrink-0">
           <SectionPropertiesPanel
             section={selectedSection}
             onUpdate={handleUpdateSection}
