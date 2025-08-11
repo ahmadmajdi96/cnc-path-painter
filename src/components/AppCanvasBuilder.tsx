@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   DndContext,
@@ -259,7 +260,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
           >
             <div className="h-full p-6 overflow-auto">
               <div 
-                className="canvas-container relative min-h-[900px] min-w-[1400px] border border-gray-200 shadow-sm mx-auto"
+                className="canvas-container relative min-h-[900px] min-w-[1200px] border border-gray-200 shadow-sm"
                 style={{
                   backgroundColor: canvasSettings.backgroundColor,
                   borderRadius: `${canvasSettings.borderRadius}px`,
