@@ -104,30 +104,50 @@ export const DraggableSection: React.FC<DraggableSectionProps> = ({
 
       let newWidth = startWidth;
       let newHeight = startHeight;
+      let hasChanged = false;
 
       if (direction.includes('right')) {
         const deltaX = e.clientX - startX;
-        newWidth = Math.max(20, Math.min(100, startWidth + (deltaX / canvasRect.width) * 100));
+        const newWidthCandidate = Math.max(20, Math.min(100, startWidth + (deltaX / canvasRect.width) * 100));
+        if (Math.abs(newWidthCandidate - newWidth) > 0.1) {
+          newWidth = newWidthCandidate;
+          hasChanged = true;
+        }
       }
 
       if (direction.includes('bottom')) {
         const deltaY = e.clientY - startY;
-        newHeight = Math.max(100, startHeight + deltaY);
+        const newHeightCandidate = Math.max(100, startHeight + deltaY);
+        if (Math.abs(newHeightCandidate - newHeight) > 1) {
+          newHeight = newHeightCandidate;
+          hasChanged = true;
+        }
       }
 
-      onUpdate({
-        ...section,
-        layout: {
-          ...section.layout!,
-          width: newWidth,
-          height: newHeight,
-        },
-      });
+      // Only update if there's a meaningful change
+      if (hasChanged) {
+        onUpdate({
+          ...section,
+          layout: {
+            ...section.layout!,
+            width: newWidth,
+            height: newHeight,
+          },
+        });
+      }
     };
 
     const handleMouseUp = () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      
+      // Force a final update to ensure the change is saved
+      onUpdate({
+        ...section,
+        layout: {
+          ...section.layout!,
+        },
+      });
     };
 
     document.addEventListener('mousemove', handleMouseMove);

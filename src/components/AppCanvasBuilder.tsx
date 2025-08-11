@@ -179,9 +179,15 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
 
   const activeSection = app.sections.find(section => section.id === activeId);
 
+  // Calculate proper centering for the canvas
+  const leftSidebarWidth = 384; // w-96 = 384px
+  const rightSidebarWidth = selectedSection && !showPreview ? 420 : 0;
+  const totalSidebarWidth = leftSidebarWidth + rightSidebarWidth;
+  const availableWidth = `calc(100vw - ${totalSidebarWidth}px)`;
+
   return (
     <div className="flex h-full bg-gray-50 min-w-max">
-      {/* Left Sidebar - Toolbox - Increased width */}
+      {/* Left Sidebar - Toolbox */}
       <div className="w-96 border-r bg-white shadow-sm flex-shrink-0">
         <div className="p-6">
           <SectionToolbox onAddSection={handleAddSection} />
@@ -189,7 +195,10 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
       </div>
 
       {/* Main Canvas Area */}
-      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0">
+      <div 
+        className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0"
+        style={{ width: availableWidth }}
+      >
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
@@ -258,9 +267,9 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
           >
-            <div className="h-full p-6 overflow-auto">
+            <div className="h-full p-6 overflow-auto flex justify-center">
               <div 
-                className="canvas-container relative min-h-[900px] min-w-[1200px] border border-gray-200 shadow-sm"
+                className="canvas-container relative min-h-[900px] w-[1200px] border border-gray-200 shadow-sm"
                 style={{
                   backgroundColor: canvasSettings.backgroundColor,
                   borderRadius: `${canvasSettings.borderRadius}px`,
@@ -303,7 +312,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         )}
       </div>
 
-      {/* Right Sidebar - Properties Panel - Increased width */}
+      {/* Right Sidebar - Properties Panel */}
       {selectedSection && !showPreview && (
         <div className="w-[420px] border-l bg-white shadow-sm flex-shrink-0">
           <SectionPropertiesPanel
