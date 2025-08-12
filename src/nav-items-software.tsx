@@ -1,5 +1,5 @@
 
-import { Network, Code, Settings, Zap, Globe, Shield, Bot, Layout, Server } from "lucide-react";
+import { Network, Code, Settings, Zap, Globe, Shield, Bot, Layout, Server, Cloud } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
 
 export interface SoftwareNavItem {
@@ -47,10 +47,16 @@ export const softwareNavItems: SoftwareNavItem[] = [
     page: "Protocols",
   },
   {
-    title: "Webhooks",
-    to: "/software/webhooks",
-    icon: Zap,
-    page: "Webhooks",
+    title: "Services",
+    to: "/software/services",
+    icon: Cloud,
+    page: "Services",
+  },
+  {
+    title: "Servers",
+    to: "/software/servers",
+    icon: Server,
+    page: "Servers",
   },
   {
     title: "External APIs",

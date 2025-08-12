@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,25 @@ export interface AppSection {
     staticData?: any[];
     integrationId?: string;
     dataPath?: string;
+    showConfirmation?: boolean;
+    confirmationMessage?: string;
+    showClearButton?: boolean;
+    submitButtonStyle?: {
+      backgroundColor?: string;
+      color?: string;
+      borderRadius?: string;
+      padding?: string;
+      fontSize?: string;
+      fontWeight?: string;
+    };
+    clearButtonStyle?: {
+      backgroundColor?: string;
+      color?: string;
+      borderRadius?: string;
+      padding?: string;
+      fontSize?: string;
+      fontWeight?: string;
+    };
     listItems?: {
       integrationId?: string;
       dataPath?: string;

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   DndContext,
@@ -115,6 +116,27 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         backgroundColor: '#ffffff',
         textAlign: 'left',
         dataSource: 'static',
+        ...(type === 'form' && {
+          showConfirmation: false,
+          confirmationMessage: 'Are you sure you want to submit this form?',
+          showClearButton: true,
+          submitButtonStyle: {
+            backgroundColor: '#3b82f6',
+            color: '#ffffff',
+            borderRadius: '6px',
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: '500'
+          },
+          clearButtonStyle: {
+            backgroundColor: '#6b7280',
+            color: '#ffffff',
+            borderRadius: '6px',
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: '500'
+          }
+        }),
         ...(type === 'list' && {
           listItems: {
             integrationId: '',
@@ -181,14 +203,14 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
   return (
     <div className="flex h-full bg-gray-50">
       {/* Left Sidebar - Toolbox */}
-      <div className="w-96 border-r bg-white shadow-sm flex-shrink-0">
-        <div className="p-6">
+      <div className="w-80 border-r bg-white shadow-sm flex-shrink-0">
+        <div className="p-4">
           <SectionToolbox onAddSection={handleAddSection} />
         </div>
       </div>
 
-      {/* Main Canvas Area - Calculate proper centering */}
-      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0 flex items-center justify-center">
+      {/* Main Canvas Area - Stretched to fill available space */}
+      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0">
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
@@ -249,7 +271,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         </div>
 
         {showPreview ? (
-          <div className="w-full h-full">
+          <div className="w-full h-full p-4">
             <AppCanvasPreview app={{ ...app, id: 'preview', createdAt: '', updatedAt: '', url: '' }} />
           </div>
         ) : (
@@ -259,9 +281,9 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
           >
-            <div className="h-full w-full p-6 overflow-auto flex items-center justify-center">
+            <div className="h-full w-full p-6 overflow-auto">
               <div 
-                className="canvas-container relative min-h-[900px] w-[1200px] border border-gray-200 shadow-sm mx-auto"
+                className="canvas-container relative min-h-[900px] w-full border border-gray-200 shadow-sm"
                 style={{
                   backgroundColor: canvasSettings.backgroundColor,
                   borderRadius: `${canvasSettings.borderRadius}px`,
@@ -306,7 +328,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
 
       {/* Right Sidebar - Properties Panel */}
       {selectedSection && !showPreview && (
-        <div className="w-[420px] border-l bg-white shadow-sm flex-shrink-0">
+        <div className="w-80 border-l bg-white shadow-sm flex-shrink-0">
           <SectionPropertiesPanel
             section={selectedSection}
             onUpdate={handleUpdateSection}
