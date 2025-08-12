@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Server, Globe, Shield, Database, Wifi, Trash2, Settings, Play, Stop } from 'lucide-react';
+import { Plus, Server, Globe, Shield, Database, Wifi, Trash2, Settings, Play, Square } from 'lucide-react';
 
 interface ServerConfig {
   id: string;
@@ -114,7 +113,7 @@ const ServersPage = () => {
     port: 8080,
     authentication: {
       enabled: false,
-      type: 'basic',
+      type: 'basic' as 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'certificate',
       config: {}
     },
     ssl: {
@@ -292,7 +291,7 @@ const ServersPage = () => {
                           value={newServer.authentication.type}
                           onValueChange={(value) => setNewServer({
                             ...newServer,
-                            authentication: { ...newServer.authentication, type: value as any }
+                            authentication: { ...newServer.authentication, type: value as 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'certificate' }
                           })}
                         >
                           <SelectTrigger>
@@ -408,7 +407,7 @@ const ServersPage = () => {
                       >
                         {server.status === 'running' ? (
                           <>
-                            <Stop className="w-4 h-4 mr-2" />
+                            <Square className="w-4 h-4 mr-2" />
                             Stop
                           </>
                         ) : (
