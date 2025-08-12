@@ -6,6 +6,8 @@ import { IntegrationControlSystem } from '@/components/IntegrationControlSystem'
 import { AutomationControlSystem } from '@/components/AutomationControlSystem';
 import AppBuilderPage from './AppBuilderPage';
 import EndpointManagement from './EndpointManagement';
+import ServicesPage from './ServicesPage';
+import ServersPage from './ServersPage';
 
 const SoftwarePortal = () => {
   return (
@@ -18,6 +20,8 @@ const SoftwarePortal = () => {
           <Route path="/automation" element={<AutomationControlSystem />} />
           <Route path="/app-builder" element={<AppBuilderPage />} />
           <Route path="/endpoints" element={<EndpointManagement />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/servers" element={<ServersPage />} />
           <Route path="*" element={
             <div className="text-center py-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Page Coming Soon</h2>

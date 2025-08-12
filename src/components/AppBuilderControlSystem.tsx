@@ -250,8 +250,8 @@ export const AppBuilderControlSystem: React.FC = () => {
 
   if (selectedApp) {
     return (
-      <div className="h-screen bg-gray-50">
-        <div className="border-b bg-white px-6 py-4">
+      <div className="h-screen bg-gray-50 flex flex-col">
+        <div className="border-b bg-white px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
@@ -278,10 +278,12 @@ export const AppBuilderControlSystem: React.FC = () => {
           </div>
         </div>
         
-        <AppCanvasBuilder
-          app={selectedApp}
-          onAppUpdate={handleUpdateApp}
-        />
+        <div className="flex-1 min-h-0">
+          <AppCanvasBuilder
+            app={selectedApp}
+            onAppUpdate={handleUpdateApp}
+          />
+        </div>
       </div>
     );
   }

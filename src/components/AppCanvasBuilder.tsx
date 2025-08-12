@@ -117,7 +117,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         textAlign: 'left',
         dataSource: 'static',
         ...(type === 'form' && {
-          showConfirmation: false,
+          showConfirmation: true,
           confirmationMessage: 'Are you sure you want to submit this form?',
           showClearButton: true,
           submitButtonStyle: {
@@ -201,16 +201,16 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
   const activeSection = app.sections.find(section => section.id === activeId);
 
   return (
-    <div className="flex h-full bg-gray-50">
-      {/* Left Sidebar - Toolbox */}
+    <div className="flex h-screen bg-gray-50">
+      {/* Left Sidebar - Fixed width */}
       <div className="w-80 border-r bg-white shadow-sm flex-shrink-0">
         <div className="p-4">
           <SectionToolbox onAddSection={handleAddSection} />
         </div>
       </div>
 
-      {/* Main Canvas Area - Stretched to fill available space */}
-      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0">
+      {/* Main Canvas Area - Flexible width that stretches */}
+      <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 min-w-0 overflow-hidden">
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
@@ -326,7 +326,7 @@ export const AppCanvasBuilder: React.FC<AppCanvasBuilderProps> = ({
         )}
       </div>
 
-      {/* Right Sidebar - Properties Panel */}
+      {/* Right Sidebar - Fixed width when visible */}
       {selectedSection && !showPreview && (
         <div className="w-80 border-l bg-white shadow-sm flex-shrink-0">
           <SectionPropertiesPanel
