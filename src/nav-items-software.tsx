@@ -35,18 +35,6 @@ export const softwareNavItems: SoftwareNavItem[] = [
     page: "EndpointManagement",
   },
   {
-    title: "API Management",
-    to: "/software/api-management",
-    icon: Code,
-    page: "APIManagement",
-  },
-  {
-    title: "Protocol Config",
-    to: "/software/protocols",
-    icon: Settings,
-    page: "Protocols",
-  },
-  {
     title: "Services",
     to: "/software/services",
     icon: Cloud,
@@ -63,11 +51,5 @@ export const softwareNavItems: SoftwareNavItem[] = [
     to: "/software/external-apis",
     icon: Globe,
     page: "ExternalAPIs",
-  },
-  {
-    title: "Security",
-    to: "/software/security",
-    icon: Shield,
-    page: "Security",
   },
 ];

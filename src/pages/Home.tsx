@@ -1,91 +1,79 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Zap, Code, Network, HardDrive, Cpu } from 'lucide-react';
+import { Wrench, Monitor, Brain } from 'lucide-react';
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Control System Portal</h1>
-          <p className="text-xl text-gray-600">Choose your control environment</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Industrial Control Portal
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Comprehensive control and monitoring system for hardware, software, and AI services
+          </p>
         </div>
-        
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <HardDrive className="w-8 h-8 text-blue-600" />
-                <CardTitle className="text-2xl">Industrial Hardware Portal</CardTitle>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {/* Hardware Portal */}
+          <Card className="hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Wrench className="w-8 h-8 text-blue-600" />
               </div>
-              <CardDescription className="text-base">
-                Control and monitor your industrial hardware systems including CNC machines, 
-                lasers, 3D printers, robotic arms, vision systems, and conveyor belts.
-              </CardDescription>
+              <CardTitle className="text-2xl">Hardware Portal</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Settings className="w-4 h-4" />
-                  CNC Control
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Zap className="w-4 h-4" />
-                  Laser Systems
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Cpu className="w-4 h-4" />
-                  3D Printing
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Network className="w-4 h-4" />
-                  Automation
-                </div>
-              </div>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-6">
+                Control industrial machines, robotic arms, vision systems, and manufacturing equipment
+              </p>
               <Link to="/hardware">
-                <Button className="w-full" size="lg">
-                  Enter Hardware Portal
+                <Button className="w-full">
+                  Access Hardware Portal
                 </Button>
               </Link>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <Code className="w-8 h-8 text-green-600" />
-                <CardTitle className="text-2xl">Software Portal</CardTitle>
+          {/* Software Portal */}
+          <Card className="hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <Monitor className="w-8 h-8 text-green-600" />
               </div>
-              <CardDescription className="text-base">
-                Manage software integrations, API connections, data flows, and 
-                communication protocols between different systems and platforms.
-              </CardDescription>
+              <CardTitle className="text-2xl">Software Portal</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Network className="w-4 h-4" />
-                  Integrations
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Code className="w-4 h-4" />
-                  API Management
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Settings className="w-4 h-4" />
-                  Protocols
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Zap className="w-4 h-4" />
-                  Data Flow
-                </div>
-              </div>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-6">
+                Manage integrations, automation, app building, and software services
+              </p>
               <Link to="/software">
-                <Button className="w-full" size="lg" variant="outline">
-                  Enter Software Portal
+                <Button className="w-full">
+                  Access Software Portal
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* AI Portal */}
+          <Card className="hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                <Brain className="w-8 h-8 text-purple-600" />
+              </div>
+              <CardTitle className="text-2xl">AI Portal</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-6">
+                Computer vision, NLP, chat bots, and AI-powered analysis services
+              </p>
+              <Link to="/ai">
+                <Button className="w-full">
+                  Access AI Portal
                 </Button>
               </Link>
             </CardContent>

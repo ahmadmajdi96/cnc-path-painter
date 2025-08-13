@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import HardwarePortal from "./pages/HardwarePortal";
 import SoftwarePortal from "./pages/SoftwarePortal";
+import AIPortal from "./pages/AIPortal";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +18,7 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/hardware/*" element={<HardwarePortal />} />
           <Route path="/software/*" element={<SoftwarePortal />} />
+          <Route path="/ai/*" element={<AIPortal />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
