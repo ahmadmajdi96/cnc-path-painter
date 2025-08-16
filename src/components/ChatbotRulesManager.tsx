@@ -34,9 +34,9 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    condition_type: 'keyword' as const,
+    condition_type: 'keyword' as 'keyword' | 'intent' | 'sentiment' | 'time' | 'user_property',
     condition_value: '',
-    action_type: 'response' as const,
+    action_type: 'response' as 'response' | 'redirect' | 'escalate' | 'collect_info',
     action_value: '',
     priority: 1,
     is_active: true
@@ -240,7 +240,9 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
                       <Label>Condition Type *</Label>
                       <Select
                         value={formData.condition_type}
-                        onValueChange={(value: any) => setFormData({ ...formData, condition_type: value })}
+                        onValueChange={(value: 'keyword' | 'intent' | 'sentiment' | 'time' | 'user_property') => 
+                          setFormData({ ...formData, condition_type: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -262,7 +264,9 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
                       <Label>Action Type *</Label>
                       <Select
                         value={formData.action_type}
-                        onValueChange={(value: any) => setFormData({ ...formData, action_type: value })}
+                        onValueChange={(value: 'response' | 'redirect' | 'escalate' | 'collect_info') => 
+                          setFormData({ ...formData, action_type: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
