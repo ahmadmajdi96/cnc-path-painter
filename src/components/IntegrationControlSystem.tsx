@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IntegrationList } from './IntegrationList';
@@ -6,6 +7,7 @@ import { AddIntegrationDialog } from './AddIntegrationDialog';
 import { EditIntegrationDialog } from './EditIntegrationDialog';
 import { IntegrationTestPanel } from './IntegrationTestPanel';
 import { IntegrationLiveDataPanel } from './IntegrationLiveDataPanel';
+import { IntegrationStatusCards } from './IntegrationStatusCards';
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, Activity } from 'lucide-react';
 
@@ -341,6 +343,8 @@ export const IntegrationControlSystem = () => {
           </Button>
         </div>
       </div>
+
+      <IntegrationStatusCards integrations={integrations} />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">

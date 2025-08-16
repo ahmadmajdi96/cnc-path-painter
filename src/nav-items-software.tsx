@@ -46,10 +46,4 @@ export const softwareNavItems: SoftwareNavItem[] = [
     icon: Server,
     page: "Servers",
   },
-  {
-    title: "External APIs",
-    to: "/software/external-apis",
-    icon: Globe,
-    page: "ExternalAPIs",
-  },
 ];
