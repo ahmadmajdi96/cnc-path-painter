@@ -2,10 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MessageSquare, Plus, Settings, Play, Pause, Edit, Trash2, Brain, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,26 +15,11 @@ interface Chatbot {
   id: string;
   name: string;
   description: string;
-  welcome_message: string;
-  model_provider: string;
+  model_type: string;
   model_name: string;
-  custom_endpoint?: string;
-  connection_type: 'http' | 'websocket';
   status: 'active' | 'inactive' | 'training';
-  conversations_count: number;
-  accuracy_rate: number;
-  last_active: string;
   created_at: string;
 }
-
-const AI_PROVIDERS = [
-  { id: 'openai', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'] },
-  { id: 'anthropic', name: 'Anthropic', models: ['claude-3-sonnet', 'claude-3-haiku'] },
-  { id: 'google', name: 'Google AI', models: ['gemini-pro', 'gemini-pro-vision'] },
-  { id: 'cohere', name: 'Cohere', models: ['command', 'command-light'] },
-  { id: 'huggingface', name: 'Hugging Face', models: ['custom-model'] },
-  { id: 'custom', name: 'Custom Model', models: ['custom-endpoint'] }
-];
 
 const ChatBotsPage = () => {
   const [bots, setBots] = useState<Chatbot[]>([]);
@@ -53,7 +35,8 @@ const ChatBotsPage = () => {
 
   const fetchChatbots = async () => {
     try {
-      const { data, error } = await supabase
+      // Use type assertion to work around TypeScript issues until types are regenerated
+      const { data, error } = await (supabase as any)
         .from('chatbots')
         .select('*')
         .order('created_at', { ascending: false });
@@ -76,12 +59,9 @@ const ChatBotsPage = () => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('chatbots')
-        .update({ 
-          status: newStatus,
-          last_active: newStatus === 'active' ? new Date().toISOString() : undefined
-        })
+        .update({ status: newStatus })
         .eq('id', botId);
 
       if (error) throw error;
@@ -103,7 +83,7 @@ const ChatBotsPage = () => {
 
   const deleteChatbot = async (botId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('chatbots')
         .delete()
         .eq('id', botId);
@@ -130,8 +110,6 @@ const ChatBotsPage = () => {
       openai: 'bg-green-100 text-green-800',
       anthropic: 'bg-blue-100 text-blue-800',
       google: 'bg-yellow-100 text-yellow-800',
-      cohere: 'bg-purple-100 text-purple-800',
-      huggingface: 'bg-orange-100 text-orange-800',
       custom: 'bg-gray-100 text-gray-800'
     };
     return colors[provider as keyof typeof colors] || 'bg-gray-100 text-gray-800';
@@ -182,8 +160,8 @@ const ChatBotsPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={getProviderBadgeColor(selectedBot.model_provider)}>
-                      {selectedBot.model_provider}
+                    <Badge className={getProviderBadgeColor(selectedBot.model_type)}>
+                      {selectedBot.model_type}
                     </Badge>
                     <Badge variant={selectedBot.status === 'active' ? 'default' : 'secondary'}>
                       {selectedBot.status}
@@ -224,42 +202,60 @@ const ChatBotsPage = () => {
                   <CardContent className="space-y-4">
                     <div>
                       <label className="text-sm font-medium">Model Provider</label>
-                      <p className="text-sm text-gray-600">{selectedBot.model_provider}</p>
+                      <p className="text-sm text-gray-600">{selectedBot.model_type}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Model</label>
                       <p className="text-sm text-gray-600">{selectedBot.model_name}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Connection Type</label>
-                      <p className="text-sm text-gray-600">{selectedBot.connection_type}</p>
+                      <label className="text-sm font-medium">Status</label>
+                      <p className="text-sm text-gray-600">{selectedBot.status}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Welcome Message</label>
-                      <p className="text-sm text-gray-600">{selectedBot.welcome_message}</p>
+                      <label className="text-sm font-medium">Created</label>
+                      <p className="text-sm text-gray-600">
+                        {new Date(selectedBot.created_at).toLocaleString()}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Performance Metrics</CardTitle>
+                    <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Total Conversations</label>
-                      <p className="text-2xl font-bold text-blue-600">{selectedBot.conversations_count}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Accuracy Rate</label>
-                      <p className="text-2xl font-bold text-green-600">{selectedBot.accuracy_rate}%</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Last Active</label>
-                      <p className="text-sm text-gray-600">
-                        {selectedBot.last_active ? new Date(selectedBot.last_active).toLocaleString() : 'Never'}
-                      </p>
-                    </div>
+                    <Button 
+                      className="w-full"
+                      variant={selectedBot.status === 'active' ? 'outline' : 'default'}
+                      onClick={() => toggleBotStatus(selectedBot.id, selectedBot.status)}
+                    >
+                      {selectedBot.status === 'active' ? (
+                        <>
+                          <Pause className="w-4 h-4 mr-2" />
+                          Deactivate Bot
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 mr-2" />
+                          Activate Bot
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-red-600 hover:text-red-700"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this chatbot?')) {
+                          deleteChatbot(selectedBot.id);
+                          setSelectedBot(null);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Bot
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
@@ -289,25 +285,14 @@ const ChatBotsPage = () => {
                         <Badge variant={bot.status === 'active' ? 'default' : 'secondary'}>
                           {bot.status}
                         </Badge>
-                        <Badge className={getProviderBadgeColor(bot.model_provider)}>
-                          {bot.model_provider}
+                        <Badge className={getProviderBadgeColor(bot.model_type)}>
+                          {bot.model_type}
                         </Badge>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Conversations</span>
-                          <div className="font-medium">{bot.conversations_count}</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Accuracy</span>
-                          <div className="font-medium">{bot.accuracy_rate}%</div>
-                        </div>
-                      </div>
-                      
                       <div className="text-sm text-gray-500">
                         Model: {bot.model_name}
                       </div>
@@ -342,7 +327,11 @@ const ChatBotsPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="text-red-600 hover:text-red-700"
-                          onClick={() => deleteChatbot(bot.id)}
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this chatbot?')) {
+                              deleteChatbot(bot.id);
+                            }
+                          }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -364,56 +353,6 @@ const ChatBotsPage = () => {
                 </Button>
               </div>
             )}
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Total Conversations</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-blue-600">
-                    {bots.reduce((sum, bot) => sum + bot.conversations_count, 0)}
-                  </div>
-                  <p className="text-sm text-gray-500">All time</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Active Bots</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-600">
-                    {bots.filter(bot => bot.status === 'active').length}
-                  </div>
-                  <p className="text-sm text-gray-500">Currently running</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Avg Accuracy</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-purple-600">
-                    {bots.length > 0 ? Math.round(bots.reduce((sum, bot) => sum + bot.accuracy_rate, 0) / bots.length) : 0}%
-                  </div>
-                  <p className="text-sm text-gray-500">Across all bots</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>AI Providers</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-orange-600">
-                    {new Set(bots.map(bot => bot.model_provider)).size}
-                  </div>
-                  <p className="text-sm text-gray-500">In use</p>
-                </CardContent>
-              </Card>
-            </div>
           </>
         )}
 

@@ -15,10 +15,10 @@ import { Label } from '@/components/ui/label';
 interface Rule {
   id: string;
   name: string;
-  condition_type: 'keyword' | 'intent' | 'regex' | 'fallback';
-  condition_value: string;
+  condition_type: 'keyword' | 'intent' | 'sentiment' | 'time' | 'user_property';
+  condition_value: any;
   action_type: 'response' | 'redirect' | 'escalate' | 'collect_info';
-  action_value: string;
+  action_value: any;
   priority: number;
   is_active: boolean;
 }
@@ -49,7 +49,8 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
 
   const fetchRules = async () => {
     try {
-      const { data, error } = await supabase
+      // Use type assertion to work around TypeScript issues until types are regenerated
+      const { data, error } = await (supabase as any)
         .from('chatbot_rules')
         .select('*')
         .eq('chatbot_id', chatbotId)
@@ -75,11 +76,17 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
     try {
       const ruleData = {
         chatbot_id: chatbotId,
-        ...formData
+        name: formData.name,
+        condition_type: formData.condition_type,
+        condition_value: formData.condition_value,
+        action_type: formData.action_type,
+        action_value: formData.action_value,
+        priority: formData.priority,
+        is_active: formData.is_active
       };
 
       if (editingRule) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('chatbot_rules')
           .update(ruleData)
           .eq('id', editingRule.id);
@@ -87,7 +94,7 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
         if (error) throw error;
         toast({ title: "Success", description: "Rule updated successfully" });
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('chatbot_rules')
           .insert([ruleData]);
         
@@ -126,9 +133,9 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
     setFormData({
       name: rule.name,
       condition_type: rule.condition_type,
-      condition_value: rule.condition_value,
+      condition_value: typeof rule.condition_value === 'string' ? rule.condition_value : JSON.stringify(rule.condition_value),
       action_type: rule.action_type,
-      action_value: rule.action_value,
+      action_value: typeof rule.action_value === 'string' ? rule.action_value : JSON.stringify(rule.action_value),
       priority: rule.priority,
       is_active: rule.is_active
     });
@@ -137,7 +144,7 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
 
   const handleDelete = async (ruleId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('chatbot_rules')
         .delete()
         .eq('id', ruleId);
@@ -158,7 +165,7 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
 
   const updatePriority = async (ruleId: string, newPriority: number) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('chatbot_rules')
         .update({ priority: newPriority })
         .eq('id', ruleId);
@@ -179,8 +186,9 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
     switch (type) {
       case 'keyword': return 'Triggers when specific keywords are detected';
       case 'intent': return 'Triggers based on user intent classification';
-      case 'regex': return 'Triggers when text matches regular expression';
-      case 'fallback': return 'Triggers when no other rules match';
+      case 'sentiment': return 'Triggers based on message sentiment';
+      case 'time': return 'Triggers at specific times or durations';
+      case 'user_property': return 'Triggers based on user properties';
       default: return '';
     }
   };
@@ -240,8 +248,9 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
                         <SelectContent>
                           <SelectItem value="keyword">Keyword Match</SelectItem>
                           <SelectItem value="intent">Intent Detection</SelectItem>
-                          <SelectItem value="regex">Regular Expression</SelectItem>
-                          <SelectItem value="fallback">Fallback</SelectItem>
+                          <SelectItem value="sentiment">Sentiment Analysis</SelectItem>
+                          <SelectItem value="time">Time-based</SelectItem>
+                          <SelectItem value="user_property">User Property</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">
@@ -279,9 +288,10 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
                       onChange={(e) => setFormData({ ...formData, condition_value: e.target.value })}
                       placeholder={
                         formData.condition_type === 'keyword' ? 'price, cost, pricing' :
-                        formData.condition_type === 'regex' ? '\\d+\\s*(dollar|USD)' :
                         formData.condition_type === 'intent' ? 'ask_about_pricing' :
-                        'default'
+                        formData.condition_type === 'sentiment' ? 'positive' :
+                        formData.condition_type === 'time' ? '09:00-17:00' :
+                        'user_type:premium'
                       }
                       required
                     />
@@ -363,14 +373,14 @@ export const ChatbotRulesManager: React.FC<ChatbotRulesManagerProps> = ({ chatbo
                           <span className="font-medium text-gray-600">Condition:</span>
                           <p className="text-gray-800">
                             <Badge variant="secondary" className="mr-2">{rule.condition_type}</Badge>
-                            {rule.condition_value}
+                            {typeof rule.condition_value === 'string' ? rule.condition_value : JSON.stringify(rule.condition_value)}
                           </p>
                         </div>
                         <div>
                           <span className="font-medium text-gray-600">Action:</span>
                           <p className="text-gray-800">
                             <Badge variant="secondary" className="mr-2">{rule.action_type}</Badge>
-                            {rule.action_value}
+                            {typeof rule.action_value === 'string' ? rule.action_value : JSON.stringify(rule.action_value)}
                           </p>
                         </div>
                       </div>

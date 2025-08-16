@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -157,6 +157,201 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chatbot_conversations: {
+        Row: {
+          bot_response: string
+          chatbot_id: string
+          confidence_score: number | null
+          created_at: string
+          feedback_rating: number | null
+          id: string
+          response_time_ms: number | null
+          session_id: string
+          user_message: string
+        }
+        Insert: {
+          bot_response: string
+          chatbot_id: string
+          confidence_score?: number | null
+          created_at?: string
+          feedback_rating?: number | null
+          id?: string
+          response_time_ms?: number | null
+          session_id: string
+          user_message: string
+        }
+        Update: {
+          bot_response?: string
+          chatbot_id?: string
+          confidence_score?: number | null
+          created_at?: string
+          feedback_rating?: number | null
+          id?: string
+          response_time_ms?: number | null
+          session_id?: string
+          user_message?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_conversations_chatbot_id_fkey"
+            columns: ["chatbot_id"]
+            isOneToOne: false
+            referencedRelation: "chatbots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatbot_qa_pairs: {
+        Row: {
+          answer: string
+          chatbot_id: string
+          confidence_threshold: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          keywords: string[] | null
+          question: string
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          answer: string
+          chatbot_id: string
+          confidence_threshold?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          question: string
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          answer?: string
+          chatbot_id?: string
+          confidence_threshold?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          question?: string
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_qa_pairs_chatbot_id_fkey"
+            columns: ["chatbot_id"]
+            isOneToOne: false
+            referencedRelation: "chatbots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatbot_rules: {
+        Row: {
+          action_type: string
+          action_value: Json
+          chatbot_id: string
+          condition_type: string
+          condition_value: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          priority: number | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          action_value: Json
+          chatbot_id: string
+          condition_type: string
+          condition_value: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          priority?: number | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          action_value?: Json
+          chatbot_id?: string
+          condition_type?: string
+          condition_value?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          priority?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_rules_chatbot_id_fkey"
+            columns: ["chatbot_id"]
+            isOneToOne: false
+            referencedRelation: "chatbots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatbots: {
+        Row: {
+          api_key: string | null
+          connection_type: string | null
+          created_at: string
+          description: string | null
+          endpoint_url: string | null
+          id: string
+          max_tokens: number | null
+          model_name: string
+          model_type: string
+          name: string
+          status: string
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          connection_type?: string | null
+          created_at?: string
+          description?: string | null
+          endpoint_url?: string | null
+          id?: string
+          max_tokens?: number | null
+          model_name: string
+          model_type: string
+          name: string
+          status?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          connection_type?: string | null
+          created_at?: string
+          description?: string | null
+          endpoint_url?: string | null
+          id?: string
+          max_tokens?: number | null
+          model_name?: string
+          model_type?: string
+          name?: string
+          status?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       cnc_machines: {
         Row: {

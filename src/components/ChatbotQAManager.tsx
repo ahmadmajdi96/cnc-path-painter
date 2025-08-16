@@ -47,7 +47,8 @@ export const ChatbotQAManager: React.FC<ChatbotQAManagerProps> = ({ chatbotId })
 
   const fetchQAPairs = async () => {
     try {
-      const { data, error } = await supabase
+      // Use type assertion to work around TypeScript issues until types are regenerated
+      const { data, error } = await (supabase as any)
         .from('chatbot_qa_pairs')
         .select('*')
         .eq('chatbot_id', chatbotId)
@@ -82,7 +83,7 @@ export const ChatbotQAManager: React.FC<ChatbotQAManagerProps> = ({ chatbotId })
       };
 
       if (editingPair) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('chatbot_qa_pairs')
           .update(qaPairData)
           .eq('id', editingPair.id);
@@ -90,7 +91,7 @@ export const ChatbotQAManager: React.FC<ChatbotQAManagerProps> = ({ chatbotId })
         if (error) throw error;
         toast({ title: "Success", description: "Q&A pair updated successfully" });
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('chatbot_qa_pairs')
           .insert([qaPairData]);
         
@@ -136,7 +137,7 @@ export const ChatbotQAManager: React.FC<ChatbotQAManagerProps> = ({ chatbotId })
 
   const handleDelete = async (pairId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('chatbot_qa_pairs')
         .delete()
         .eq('id', pairId);
@@ -157,7 +158,7 @@ export const ChatbotQAManager: React.FC<ChatbotQAManagerProps> = ({ chatbotId })
 
   const toggleActive = async (pair: QAPair) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('chatbot_qa_pairs')
         .update({ is_active: !pair.is_active })
         .eq('id', pair.id);
@@ -358,7 +359,7 @@ export const ChatbotQAManager: React.FC<ChatbotQAManagerProps> = ({ chatbotId })
             {filteredPairs.length === 0 && (
               <div className="text-center py-8">
                 <div className="text-gray-400 mb-2">No Q&A pairs found</div>
-                <Button onClick={resetForm} onClick={() => setIsDialogOpen(true)}>
+                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Your First Q&A Pair
                 </Button>

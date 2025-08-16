@@ -20,8 +20,7 @@ const AI_PROVIDERS = [
       { id: 'gpt-4o', name: 'GPT-4O', description: 'Most capable model' },
       { id: 'gpt-4o-mini', name: 'GPT-4O Mini', description: 'Fast and efficient' },
       { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Cost effective' }
-    ],
-    apiKeyName: 'OPENAI_API_KEY'
+    ]
   },
   { 
     id: 'anthropic', 
@@ -29,8 +28,7 @@ const AI_PROVIDERS = [
     models: [
       { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced performance' },
       { id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast responses' }
-    ],
-    apiKeyName: 'ANTHROPIC_API_KEY'
+    ]
   },
   { 
     id: 'google', 
@@ -38,33 +36,14 @@ const AI_PROVIDERS = [
     models: [
       { id: 'gemini-pro', name: 'Gemini Pro', description: 'Advanced reasoning' },
       { id: 'gemini-pro-vision', name: 'Gemini Pro Vision', description: 'Multimodal capabilities' }
-    ],
-    apiKeyName: 'GOOGLE_AI_API_KEY'
-  },
-  { 
-    id: 'cohere', 
-    name: 'Cohere', 
-    models: [
-      { id: 'command', name: 'Command', description: 'General purpose' },
-      { id: 'command-light', name: 'Command Light', description: 'Lightweight' }
-    ],
-    apiKeyName: 'COHERE_API_KEY'
-  },
-  { 
-    id: 'huggingface', 
-    name: 'Hugging Face', 
-    models: [
-      { id: 'custom-model', name: 'Custom Model', description: 'Use any HF model' }
-    ],
-    apiKeyName: 'HUGGINGFACE_API_KEY'
+    ]
   },
   { 
     id: 'custom', 
     name: 'Custom Model', 
     models: [
       { id: 'custom-endpoint', name: 'Custom Endpoint', description: 'Your own API' }
-    ],
-    apiKeyName: 'CUSTOM_API_KEY'
+    ]
   }
 ];
 
@@ -82,25 +61,22 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    welcome_message: 'Hello! How can I help you today?',
-    model_provider: '',
+    model_type: '',
     model_name: '',
-    custom_endpoint: '',
-    custom_headers: '{}',
+    endpoint_url: '',
     connection_type: 'http' as 'http' | 'websocket',
-    api_key_name: '',
+    system_prompt: '',
     temperature: 0.7,
-    max_tokens: 150
+    max_tokens: 1000
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const selectedProvider = AI_PROVIDERS.find(p => p.id === formData.model_provider);
-  const selectedModel = selectedProvider?.models.find(m => m.id === formData.model_name);
+  const selectedProvider = AI_PROVIDERS.find(p => p.id === formData.model_type);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.model_provider || !formData.model_name) {
+    if (!formData.name || !formData.model_type || !formData.model_name) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -111,15 +87,10 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
 
     setLoading(true);
     try {
-      const chatbotData = {
-        ...formData,
-        custom_headers: formData.custom_headers ? JSON.parse(formData.custom_headers) : {},
-        api_key_name: selectedProvider?.apiKeyName || formData.api_key_name
-      };
-
-      const { error } = await supabase
+      // Use type assertion to work around TypeScript issues until types are regenerated
+      const { error } = await (supabase as any)
         .from('chatbots')
-        .insert([chatbotData]);
+        .insert([formData]);
 
       if (error) throw error;
 
@@ -135,15 +106,13 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
       setFormData({
         name: '',
         description: '',
-        welcome_message: 'Hello! How can I help you today?',
-        model_provider: '',
+        model_type: '',
         model_name: '',
-        custom_endpoint: '',
-        custom_headers: '{}',
+        endpoint_url: '',
         connection_type: 'http',
-        api_key_name: '',
+        system_prompt: '',
         temperature: 0.7,
-        max_tokens: 150
+        max_tokens: 1000
       });
     } catch (error) {
       console.error('Error creating chatbot:', error);
@@ -194,11 +163,12 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
                 </div>
 
                 <div>
-                  <Label htmlFor="welcome_message">Welcome Message</Label>
+                  <Label htmlFor="system_prompt">System Prompt</Label>
                   <Textarea
-                    id="welcome_message"
-                    value={formData.welcome_message}
-                    onChange={(e) => setFormData({ ...formData, welcome_message: e.target.value })}
+                    id="system_prompt"
+                    value={formData.system_prompt}
+                    onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
+                    placeholder="You are a helpful customer support assistant..."
                     rows={3}
                   />
                 </div>
@@ -213,12 +183,11 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
                 <div>
                   <Label>AI Provider *</Label>
                   <Select
-                    value={formData.model_provider}
+                    value={formData.model_type}
                     onValueChange={(value) => setFormData({ 
                       ...formData, 
-                      model_provider: value, 
-                      model_name: '',
-                      api_key_name: AI_PROVIDERS.find(p => p.id === value)?.apiKeyName || ''
+                      model_type: value, 
+                      model_name: ''
                     })}
                   >
                     <SelectTrigger>
@@ -284,40 +253,19 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
             </Card>
           </div>
 
-          {(formData.model_provider === 'custom' || formData.model_provider === 'huggingface') && (
+          {formData.model_type === 'custom' && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Custom Configuration</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="custom_endpoint">Custom Endpoint URL</Label>
+                  <Label htmlFor="endpoint_url">Custom Endpoint URL</Label>
                   <Input
-                    id="custom_endpoint"
-                    value={formData.custom_endpoint}
-                    onChange={(e) => setFormData({ ...formData, custom_endpoint: e.target.value })}
+                    id="endpoint_url"
+                    value={formData.endpoint_url}
+                    onChange={(e) => setFormData({ ...formData, endpoint_url: e.target.value })}
                     placeholder="https://api.your-model.com/v1/chat"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="custom_headers">Custom Headers (JSON)</Label>
-                  <Textarea
-                    id="custom_headers"
-                    value={formData.custom_headers}
-                    onChange={(e) => setFormData({ ...formData, custom_headers: e.target.value })}
-                    placeholder='{"Authorization": "Bearer your-token", "Content-Type": "application/json"}'
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="api_key_name">API Key Environment Variable Name</Label>
-                  <Input
-                    id="api_key_name"
-                    value={formData.api_key_name}
-                    onChange={(e) => setFormData({ ...formData, api_key_name: e.target.value })}
-                    placeholder="CUSTOM_API_KEY"
                   />
                 </div>
               </CardContent>
@@ -361,15 +309,6 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
               </div>
             </CardContent>
           </Card>
-
-          {selectedProvider && (
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-700">
-                <strong>API Key Required:</strong> Make sure to set the <code>{selectedProvider.apiKeyName}</code> 
-                environment variable in your Supabase Edge Function secrets for this chatbot to work.
-              </p>
-            </div>
-          )}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

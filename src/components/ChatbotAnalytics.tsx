@@ -32,7 +32,8 @@ export const ChatbotAnalytics: React.FC<ChatbotAnalyticsProps> = ({ chatbotId })
 
   const fetchAnalytics = async () => {
     try {
-      const { data, error } = await supabase
+      // Use type assertion to work around TypeScript issues until types are regenerated
+      const { data, error } = await (supabase as any)
         .from('chatbot_conversations')
         .select('*')
         .eq('chatbot_id', chatbotId)
