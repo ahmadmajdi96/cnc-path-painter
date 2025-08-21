@@ -1,26 +1,26 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Settings, Server, Zap, Code, GitBranch } from 'lucide-react';
+import { ArrowLeft, Workflow, PlayCircle, Settings, List } from 'lucide-react';
 
-export const SoftwareNavigation = () => {
+export const WorkflowsNavigation = () => {
   const location = useLocation();
   
   const navItems = [
-    { path: '/software/services', label: 'Services', icon: Settings },
-    { path: '/software/servers', label: 'Servers', icon: Server },
-    { path: '/software/automation', label: 'Automation', icon: Zap },
-    { path: '/software/app-builder', label: 'App Builder', icon: Code },
-    { path: '/software/workflows', label: 'Workflows', icon: GitBranch },
+    { path: '/software/workflows/', label: 'All Workflows', icon: List },
+    { path: '/software/workflows/designer', label: 'Designer', icon: Workflow },
+    { path: '/software/workflows/executions', label: 'Executions', icon: PlayCircle },
   ];
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/">
+          <Link to="/software">
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              Back to Portals
+              <ArrowLeft className="w-4 h-4" />
+              Back to Software Portal
             </Button>
           </Link>
           
@@ -29,7 +29,8 @@ export const SoftwareNavigation = () => {
           <div className="flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname.startsWith(item.path);
+              const isActive = location.pathname === item.path || 
+                             (item.path === '/software/workflows/designer' && location.pathname.includes('/designer'));
               
               return (
                 <Link key={item.path} to={item.path}>
@@ -49,7 +50,7 @@ export const SoftwareNavigation = () => {
         </div>
         
         <div className="text-sm text-gray-600">
-          Industrial Software Portal
+          Workflows Portal
         </div>
       </div>
     </nav>

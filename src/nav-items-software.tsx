@@ -1,49 +1,42 @@
-
-import { Network, Code, Settings, Zap, Globe, Shield, Bot, Layout, Server, Cloud } from "lucide-react";
+import { Settings, Server, Zap, Code, GitBranch } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
 
-export interface SoftwareNavItem {
+export interface NavItem {
   title: string;
   to: string;
   icon: LucideIcon;
   page: string;
 }
 
-export const softwareNavItems: SoftwareNavItem[] = [
-  {
-    title: "Integrations",
-    to: "/software/integrations",
-    icon: Network,
-    page: "Integrations",
-  },
-  {
-    title: "Automation",
-    to: "/software/automation",
-    icon: Bot,
-    page: "Automation",
-  },
-  {
-    title: "App Builder",
-    to: "/software/app-builder",
-    icon: Layout,
-    page: "AppBuilder",
-  },
-  {
-    title: "Endpoint Management",
-    to: "/software/endpoints",
-    icon: Server,
-    page: "EndpointManagement",
-  },
+export const softwareNavItems: NavItem[] = [
   {
     title: "Services",
     to: "/software/services",
-    icon: Cloud,
-    page: "Services",
+    icon: Settings,
+    page: "ServicesPage",
   },
   {
     title: "Servers",
     to: "/software/servers",
     icon: Server,
-    page: "Servers",
+    page: "ServersPage",
+  },
+  {
+    title: "Automation",
+    to: "/software/automation",
+    icon: Zap,
+    page: "AutomationPage",
+  },
+  {
+    title: "App Builder",
+    to: "/software/app-builder",
+    icon: Code,
+    page: "AppBuilderPage",
+  },
+  {
+    title: "Workflows",
+    to: "/software/workflows",
+    icon: GitBranch,
+    page: "WorkflowsPortal",
   },
 ];
