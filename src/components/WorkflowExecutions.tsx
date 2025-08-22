@@ -8,9 +8,10 @@ import { Search, Play, Square, Clock, CheckCircle, XCircle, AlertCircle } from '
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { WorkflowExecution } from '@/types/workflow';
 
 export const WorkflowExecutions = () => {
-  const [executions, setExecutions] = useState<any[]>([]);
+  const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
@@ -18,7 +19,7 @@ export const WorkflowExecutions = () => {
   const fetchExecutions = async () => {
     try {
       const { data, error } = await supabase
-        .from('workflow_executions')
+        .from('workflow_executions' as any)
         .select(`
           *,
           workflows (
@@ -30,7 +31,6 @@ export const WorkflowExecutions = () => {
 
       if (error) {
         console.log('Error fetching executions:', error);
-        // Continue with empty array for now
         setExecutions([]);
       } else {
         setExecutions(data || []);
@@ -100,7 +100,7 @@ export const WorkflowExecutions = () => {
   };
 
   const filteredExecutions = executions.filter(execution =>
-    execution.workflows?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    execution.workflow?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     execution.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -151,7 +151,7 @@ export const WorkflowExecutions = () => {
                   <div className="flex items-center gap-3 mb-2">
                     {getStatusIcon(execution.status)}
                     <h3 className="text-lg font-semibold">
-                      {execution.workflows?.name || 'Unknown Workflow'}
+                      {execution.workflow?.name || 'Unknown Workflow'}
                     </h3>
                     <Badge className={getStatusColor(execution.status)}>
                       {execution.status}
@@ -159,7 +159,7 @@ export const WorkflowExecutions = () => {
                   </div>
                   
                   <p className="text-sm text-gray-600 mb-3">
-                    {execution.workflows?.description || 'No description'}
+                    {execution.workflow?.description || 'No description'}
                   </p>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

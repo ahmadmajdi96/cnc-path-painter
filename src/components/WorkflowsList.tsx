@@ -9,9 +9,10 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateWorkflowDialog } from './CreateWorkflowDialog';
 import { useToast } from '@/hooks/use-toast';
+import { Workflow } from '@/types/workflow';
 
 export const WorkflowsList = () => {
-  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -20,7 +21,7 @@ export const WorkflowsList = () => {
   const fetchWorkflows = async () => {
     try {
       const { data, error } = await supabase
-        .from('workflows')
+        .from('workflows' as any)
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -42,11 +43,11 @@ export const WorkflowsList = () => {
     fetchWorkflows();
   }, []);
 
-  const toggleWorkflowStatus = async (workflow: any) => {
+  const toggleWorkflowStatus = async (workflow: Workflow) => {
     try {
       const newStatus = workflow.status === 'active' ? 'paused' : 'active';
       const { error } = await supabase
-        .from('workflows')
+        .from('workflows' as any)
         .update({ status: newStatus })
         .eq('id', workflow.id);
 
@@ -75,7 +76,7 @@ export const WorkflowsList = () => {
 
     try {
       const { error } = await supabase
-        .from('workflows')
+        .from('workflows' as any)
         .delete()
         .eq('id', workflowId);
 

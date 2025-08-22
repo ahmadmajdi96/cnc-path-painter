@@ -1,11 +1,12 @@
+
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { SoftwareNavigation } from '@/components/SoftwareNavigation';
-import { ServicesPage } from './ServicesPage';
-import { ServersPage } from './ServersPage';
-import { AutomationPage } from './AutomationPage';
-import { AppBuilderPage } from './AppBuilderPage';
-import { NotFound } from './NotFound';
+import ServicesPage from './ServicesPage';
+import ServersPage from './ServersPage';
+import AutomationPage from './AutomationPage';
+import AppBuilderPage from './AppBuilderPage';
+import NotFound from './NotFound';
 import WorkflowsPortal from './WorkflowsPortal';
 
 const SoftwarePortal = () => {

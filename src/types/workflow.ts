@@ -49,4 +49,8 @@ export interface WorkflowExecution {
   error_message?: string;
   execution_data: any;
   duration_ms?: number;
+  workflow?: {
+    name: string;
+    description?: string;
+  };
 }
