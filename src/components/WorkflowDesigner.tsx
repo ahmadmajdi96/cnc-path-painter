@@ -58,7 +58,7 @@ export const WorkflowDesigner = () => {
         return;
       }
       
-      // Map the database workflow to our Workflow type
+      // Map the database workflow to our Workflow type with proper defaults
       if (workflowData) {
         const mappedWorkflow: Workflow = {
           id: workflowData.id,
@@ -196,7 +196,7 @@ export const WorkflowDesigner = () => {
           >
             <Controls />
             <MiniMap />
-            <Background variant="cross" gap={12} size={1} />
+            <Background variant="dots" gap={12} size={1} />
           </ReactFlow>
         </div>
       </div>
