@@ -14,7 +14,7 @@ const WorkflowsPortal = () => {
         <Route path="/" element={<WorkflowsList />} />
         <Route path="/designer/:workflowId?" element={<WorkflowDesigner />} />
         <Route path="/executions" element={<WorkflowExecutions />} />
-        <Route path="*" element={<Navigate to="/software/workflows" replace />} />
+        <Route path="*" element={<Navigate to="/workflows" replace />} />
       </Routes>
     </div>
   );

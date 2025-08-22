@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Settings, Server, Zap, Code, GitBranch } from 'lucide-react';
+import { Settings, Server, Zap, Code } from 'lucide-react';
 
 export const SoftwareNavigation = () => {
   const location = useLocation();
@@ -11,7 +12,6 @@ export const SoftwareNavigation = () => {
     { path: '/software/servers', label: 'Servers', icon: Server },
     { path: '/software/automation', label: 'Automation', icon: Zap },
     { path: '/software/app-builder', label: 'App Builder', icon: Code },
-    { path: '/software/workflows', label: 'Workflows', icon: GitBranch },
   ];
 
   return (

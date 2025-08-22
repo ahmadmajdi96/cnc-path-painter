@@ -8,19 +8,19 @@ export const WorkflowsNavigation = () => {
   const location = useLocation();
   
   const navItems = [
-    { path: '/software/workflows/', label: 'All Workflows', icon: List },
-    { path: '/software/workflows/designer', label: 'Designer', icon: Workflow },
-    { path: '/software/workflows/executions', label: 'Executions', icon: PlayCircle },
+    { path: '/workflows/', label: 'All Workflows', icon: List },
+    { path: '/workflows/designer', label: 'Designer', icon: Workflow },
+    { path: '/workflows/executions', label: 'Executions', icon: PlayCircle },
   ];
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/software">
+          <Link to="/">
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Back to Software Portal
+              Back to Portals
             </Button>
           </Link>
           
@@ -30,7 +30,7 @@ export const WorkflowsNavigation = () => {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path || 
-                             (item.path === '/software/workflows/designer' && location.pathname.includes('/designer'));
+                             (item.path === '/workflows/designer' && location.pathname.includes('/designer'));
               
               return (
                 <Link key={item.path} to={item.path}>

@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Wrench, Monitor, Brain } from 'lucide-react';
+import { Wrench, Monitor, Brain, GitBranch } from 'lucide-react';
 
 const Home = () => {
   return (
@@ -14,11 +14,11 @@ const Home = () => {
             Industrial Control Portal
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Comprehensive control and monitoring system for hardware, software, and AI services
+            Comprehensive control and monitoring system for hardware, software, AI services, and workflows
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
           {/* Hardware Portal */}
           <Card className="hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="text-center">
@@ -74,6 +74,26 @@ const Home = () => {
               <Link to="/ai">
                 <Button className="w-full">
                   Access AI Portal
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Workflows Portal */}
+          <Card className="hover:shadow-xl transition-shadow duration-300">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                <GitBranch className="w-8 h-8 text-orange-600" />
+              </div>
+              <CardTitle className="text-2xl">Workflows Portal</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-6">
+                Design, execute, and monitor automated workflows and business processes
+              </p>
+              <Link to="/workflows">
+                <Button className="w-full">
+                  Access Workflows Portal
                 </Button>
               </Link>
             </CardContent>
