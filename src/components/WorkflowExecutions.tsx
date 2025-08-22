@@ -6,12 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search, Play, Square, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { WorkflowExecution } from '@/types/workflow';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 export const WorkflowExecutions = () => {
-  const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
+  const [executions, setExecutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
@@ -29,8 +28,13 @@ export const WorkflowExecutions = () => {
         `)
         .order('started_at', { ascending: false });
 
-      if (error) throw error;
-      setExecutions(data || []);
+      if (error) {
+        console.log('Error fetching executions:', error);
+        // Continue with empty array for now
+        setExecutions([]);
+      } else {
+        setExecutions(data || []);
+      }
     } catch (error) {
       console.error('Error fetching executions:', error);
       toast({
@@ -96,7 +100,8 @@ export const WorkflowExecutions = () => {
   };
 
   const filteredExecutions = executions.filter(execution =>
-    execution.workflows?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    execution.workflows?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    execution.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {

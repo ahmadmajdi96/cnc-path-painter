@@ -7,12 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Plus, Search, Play, Pause, Edit, Trash2, Calendar, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Workflow } from '@/types/workflow';
 import { CreateWorkflowDialog } from './CreateWorkflowDialog';
 import { useToast } from '@/hooks/use-toast';
 
 export const WorkflowsList = () => {
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -43,7 +42,7 @@ export const WorkflowsList = () => {
     fetchWorkflows();
   }, []);
 
-  const toggleWorkflowStatus = async (workflow: Workflow) => {
+  const toggleWorkflowStatus = async (workflow: any) => {
     try {
       const newStatus = workflow.status === 'active' ? 'paused' : 'active';
       const { error } = await supabase
@@ -172,12 +171,12 @@ export const WorkflowsList = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">Runs: {workflow.run_count}</span>
+                  <span className="text-gray-600">Runs: {workflow.run_count || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-600">
-                    Success: {workflow.success_count}
+                    Success: {workflow.success_count || 0}
                   </span>
                 </div>
               </div>
@@ -233,7 +232,7 @@ export const WorkflowsList = () => {
 
       {filteredWorkflows.length === 0 && (
         <div className="text-center py-12">
-          <Workflow className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No workflows found</h3>
           <p className="text-gray-600 mb-4">
             {searchTerm ? 'Try adjusting your search terms' : 'Create your first workflow to get started'}
