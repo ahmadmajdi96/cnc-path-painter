@@ -21,12 +21,33 @@ export const WorkflowsList = () => {
   const fetchWorkflows = async () => {
     try {
       const { data, error } = await supabase
-        .from('workflows' as any)
+        .from('workflows')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setWorkflows(data || []);
+      if (error) {
+        console.error('Error fetching workflows:', error);
+        setWorkflows([]);
+        return;
+      }
+
+      // Map the database workflows to our Workflow type
+      const mappedWorkflows: Workflow[] = (data || []).map((dbWorkflow: any) => ({
+        id: dbWorkflow.id,
+        name: dbWorkflow.name,
+        description: dbWorkflow.description || '',
+        status: dbWorkflow.is_active ? 'active' : 'draft',
+        trigger_type: 'manual',
+        trigger_config: {},
+        created_at: dbWorkflow.created_at,
+        updated_at: dbWorkflow.updated_at,
+        run_count: 0,
+        success_count: 0,
+        error_count: 0,
+        is_active: dbWorkflow.is_active
+      }));
+
+      setWorkflows(mappedWorkflows);
     } catch (error) {
       console.error('Error fetching workflows:', error);
       toast({
@@ -34,6 +55,7 @@ export const WorkflowsList = () => {
         description: "Failed to load workflows",
         variant: "destructive",
       });
+      setWorkflows([]);
     } finally {
       setLoading(false);
     }
@@ -45,16 +67,18 @@ export const WorkflowsList = () => {
 
   const toggleWorkflowStatus = async (workflow: Workflow) => {
     try {
-      const newStatus = workflow.status === 'active' ? 'paused' : 'active';
+      const newStatus = workflow.status === 'active' ? 'draft' : 'active';
+      const newIsActive = newStatus === 'active';
+      
       const { error } = await supabase
-        .from('workflows' as any)
-        .update({ status: newStatus })
+        .from('workflows')
+        .update({ is_active: newIsActive })
         .eq('id', workflow.id);
 
       if (error) throw error;
       
       setWorkflows(prev => 
-        prev.map(w => w.id === workflow.id ? { ...w, status: newStatus } : w)
+        prev.map(w => w.id === workflow.id ? { ...w, status: newStatus, is_active: newIsActive } : w)
       );
       
       toast({
@@ -76,7 +100,7 @@ export const WorkflowsList = () => {
 
     try {
       const { error } = await supabase
-        .from('workflows' as any)
+        .from('workflows')
         .delete()
         .eq('id', workflowId);
 

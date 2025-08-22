@@ -18,23 +18,25 @@ export const WorkflowExecutions = () => {
 
   const fetchExecutions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workflow_executions' as any)
-        .select(`
-          *,
-          workflows (
-            name,
-            description
-          )
-        `)
-        .order('started_at', { ascending: false });
-
-      if (error) {
-        console.log('Error fetching executions:', error);
-        setExecutions([]);
-      } else {
-        setExecutions(data || []);
-      }
+      // For now, we'll use mock data since the workflow_executions table doesn't exist yet
+      // This will be replaced with actual Supabase queries once the schema is implemented
+      const mockExecutions: WorkflowExecution[] = [
+        {
+          id: '1',
+          workflow_id: 'workflow-1',
+          status: 'completed',
+          started_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          execution_data: {},
+          duration_ms: 5000,
+          workflow: {
+            name: 'Sample Production Workflow',
+            description: 'A sample workflow for demonstration'
+          }
+        }
+      ];
+      
+      setExecutions(mockExecutions);
     } catch (error) {
       console.error('Error fetching executions:', error);
       toast({
@@ -42,6 +44,7 @@ export const WorkflowExecutions = () => {
         description: "Failed to load workflow executions",
         variant: "destructive",
       });
+      setExecutions([]);
     } finally {
       setLoading(false);
     }
@@ -49,22 +52,6 @@ export const WorkflowExecutions = () => {
 
   useEffect(() => {
     fetchExecutions();
-    
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel('workflow_executions')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'workflow_executions' 
-      }, () => {
-        fetchExecutions();
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   const getStatusIcon = (status: string) => {
