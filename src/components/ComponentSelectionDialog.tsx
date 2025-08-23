@@ -28,19 +28,19 @@ interface Component {
   name: string;
   model?: string;
   manufacturer?: string;
-  status: string;
+  status?: string;
   type: string;
   ip_address?: string;
   endpoint_url?: string;
 }
 
 const componentTypeMapping = {
-  cnc: { table: 'cnc_machines', icon: Wrench, label: 'CNC Machines' },
-  laser: { table: 'laser_machines', icon: Zap, label: 'Laser Systems' },
-  printer3d: { table: 'printer_3d', icon: Printer, label: '3D Printers' },
-  robotic_arm: { table: 'robotic_arms', icon: Bot, label: 'Robotic Arms' },
-  conveyor: { table: 'conveyor_belts', icon: Truck, label: 'Conveyor Belts' },
-  vision_system: { table: 'hardware', icon: Eye, label: 'Vision Systems' },
+  cnc: { table: 'cnc_machines' as const, icon: Wrench, label: 'CNC Machines' },
+  laser: { table: 'laser_machines' as const, icon: Zap, label: 'Laser Systems' },
+  printer3d: { table: 'printer_3d' as const, icon: Printer, label: '3D Printers' },
+  robotic_arm: { table: 'robotic_arms' as const, icon: Bot, label: 'Robotic Arms' },
+  conveyor: { table: 'conveyor_belts' as const, icon: Truck, label: 'Conveyor Belts' },
+  vision_system: { table: 'hardware' as const, icon: Eye, label: 'Vision Systems' },
 };
 
 export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> = ({
@@ -77,10 +77,32 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from(componentConfig.table)
-        .select('*')
-        .order('name');
+      let data;
+      let error;
+
+      // Use type assertion to handle the dynamic table selection
+      switch (componentConfig.table) {
+        case 'cnc_machines':
+          ({ data, error } = await supabase.from('cnc_machines').select('*').order('name'));
+          break;
+        case 'laser_machines':
+          ({ data, error } = await supabase.from('laser_machines').select('*').order('name'));
+          break;
+        case 'printer_3d':
+          ({ data, error } = await supabase.from('printer_3d').select('*').order('name'));
+          break;
+        case 'robotic_arms':
+          ({ data, error } = await supabase.from('robotic_arms').select('*').order('name'));
+          break;
+        case 'conveyor_belts':
+          ({ data, error } = await supabase.from('conveyor_belts').select('*').order('name'));
+          break;
+        case 'hardware':
+          ({ data, error } = await supabase.from('hardware').select('*').eq('type', 'vision_system').order('name'));
+          break;
+        default:
+          return;
+      }
 
       if (error) {
         console.error('Error fetching components:', error);
@@ -92,9 +114,15 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
         return;
       }
 
-      const mappedComponents = (data || []).map(item => ({
-        ...item,
+      const mappedComponents: Component[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        model: item.model || undefined,
+        manufacturer: item.manufacturer || undefined,
+        status: item.status || 'unknown',
         type: componentType,
+        ip_address: item.ip_address || undefined,
+        endpoint_url: item.endpoint_url || undefined,
       }));
 
       setComponents(mappedComponents);

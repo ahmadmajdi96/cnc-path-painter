@@ -93,7 +93,9 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
           <div className="flex items-center gap-1">
             <ComponentIcon className="w-4 h-4 text-gray-500" />
             {data.existingComponentId && (
-              <Link className="w-3 h-3 text-blue-500" title="Connected to existing component" />
+              <div className="w-3 h-3 text-blue-500">
+                <Link className="w-3 h-3" />
+              </div>
             )}
           </div>
         </div>
