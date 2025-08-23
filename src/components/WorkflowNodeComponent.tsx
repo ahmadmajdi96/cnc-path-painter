@@ -18,7 +18,8 @@ import {
   MessageSquare,
   Cog,
   Database,
-  User
+  User,
+  Link
 } from 'lucide-react';
 
 interface WorkflowNodeComponentProps {
@@ -28,10 +29,12 @@ interface WorkflowNodeComponentProps {
     componentType: string;
     config?: any;
     description?: string;
+    existingComponentId?: string;
   };
+  selected?: boolean;
 }
 
-export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ data }) => {
+export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ data, selected }) => {
   const getNodeIcon = () => {
     switch (data.nodeType) {
       case 'trigger': return Circle;
@@ -61,6 +64,10 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
   };
 
   const getNodeColor = () => {
+    if (selected) {
+      return 'border-blue-500 bg-blue-50 shadow-md';
+    }
+    
     switch (data.nodeType) {
       case 'trigger': return 'border-green-300 bg-green-50';
       case 'action': return 'border-blue-300 bg-blue-50';
@@ -81,25 +88,46 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <NodeIcon className="w-4 h-4 text-gray-600" />
-            <span className="font-medium text-sm">{data.label}</span>
+            <span className="font-medium text-sm truncate">{data.label}</span>
           </div>
-          <ComponentIcon className="w-4 h-4 text-gray-500" />
+          <div className="flex items-center gap-1">
+            <ComponentIcon className="w-4 h-4 text-gray-500" />
+            {data.existingComponentId && (
+              <Link className="w-3 h-3 text-blue-500" title="Connected to existing component" />
+            )}
+          </div>
         </div>
         
         <div className="space-y-2">
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             <Badge variant="outline" className="text-xs">
               {data.nodeType}
             </Badge>
             <Badge variant="outline" className="text-xs">
               {data.componentType}
             </Badge>
+            {data.existingComponentId && (
+              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                Linked
+              </Badge>
+            )}
           </div>
           
           {data.description && (
             <p className="text-xs text-gray-600 line-clamp-2">
               {data.description}
             </p>
+          )}
+
+          {data.config && data.config.status && (
+            <div className="flex items-center gap-1">
+              <div className={`w-2 h-2 rounded-full ${
+                data.config.status === 'active' || data.config.status === 'idle' 
+                  ? 'bg-green-500' 
+                  : 'bg-gray-400'
+              }`} />
+              <span className="text-xs text-gray-500">{data.config.status}</span>
+            </div>
           )}
         </div>
       </CardContent>

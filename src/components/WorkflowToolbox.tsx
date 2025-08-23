@@ -18,7 +18,8 @@ import {
   GitBranch,
   Circle,
   RotateCcw,
-  Square
+  Square,
+  Link
 } from 'lucide-react';
 
 interface WorkflowToolboxProps {
@@ -91,20 +92,34 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
           {componentTypes.map((component) => {
             const Icon = component.icon;
             return (
-              <div
-                key={component.id}
-                className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => onAddNode('action', component.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4 text-gray-600" />
-                    <span className="font-medium text-sm">{component.label}</span>
+              <div key={component.id} className="space-y-1">
+                <div
+                  className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => onAddNode('action', component.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4 text-gray-600" />
+                      <span className="font-medium text-sm">{component.label}</span>
+                    </div>
+                    <Badge className={`text-xs ${component.color} border-0`}>
+                      New
+                    </Badge>
                   </div>
-                  <Badge className={`text-xs ${component.color} border-0`}>
-                    {component.id}
-                  </Badge>
                 </div>
+                
+                {/* Add existing component option for hardware types */}
+                {['cnc', 'laser', 'printer3d', 'robotic_arm', 'conveyor', 'vision_system'].includes(component.id) && (
+                  <div
+                    className="p-2 ml-6 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => onAddNode('action', 'existing')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Link className="w-3 h-3 text-gray-500" />
+                      <span className="text-xs text-gray-600">Use Existing {component.label}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -144,6 +159,17 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
             <Circle className="w-4 h-4 mr-2" />
             Add End Node
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Instructions */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-3">
+          <div className="text-xs space-y-1 text-blue-800">
+            <p><strong>Delete:</strong> Select nodes and press Delete key</p>
+            <p><strong>Multi-select:</strong> Hold Shift and click nodes</p>
+            <p><strong>Connect:</strong> Drag from output to input handles</p>
+          </div>
         </CardContent>
       </Card>
     </div>

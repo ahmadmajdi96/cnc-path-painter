@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -18,11 +17,12 @@ import '@xyflow/react/dist/style.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Save, Play, Settings, Plus } from 'lucide-react';
+import { Save, Play, Settings, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { WorkflowToolbox } from './WorkflowToolbox';
 import { WorkflowNodeComponent } from './WorkflowNodeComponent';
+import { ComponentSelectionDialog } from './ComponentSelectionDialog';
 import { Workflow, WorkflowNode, WorkflowConnection } from '@/types/workflow';
 
 const nodeTypes = {
@@ -34,8 +34,11 @@ export const WorkflowDesigner = () => {
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showComponentDialog, setShowComponentDialog] = useState(false);
+  const [pendingNodeType, setPendingNodeType] = useState<{ nodeType: string; componentType: string } | null>(null);
   const { toast } = useToast();
 
   const fetchWorkflowData = async () => {
@@ -101,6 +104,25 @@ export const WorkflowDesigner = () => {
     [setEdges]
   );
 
+  const onSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
+    setSelectedNodes(selectedNodes.map(node => node.id));
+  }, []);
+
+  const deleteSelectedNodes = useCallback(() => {
+    if (selectedNodes.length === 0) return;
+
+    setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)));
+    setEdges((eds) => eds.filter((edge) => 
+      !selectedNodes.includes(edge.source) && !selectedNodes.includes(edge.target)
+    ));
+    setSelectedNodes([]);
+    
+    toast({
+      title: "Success",
+      description: `Deleted ${selectedNodes.length} node(s)`,
+    });
+  }, [selectedNodes, setNodes, setEdges, toast]);
+
   const saveWorkflow = async () => {
     if (!workflowId || workflowId === 'new') return;
 
@@ -124,21 +146,56 @@ export const WorkflowDesigner = () => {
     }
   };
 
-  const addNode = (nodeType: string, componentType: string) => {
+  const handleAddNodeRequest = (nodeType: string, componentType: string) => {
+    if (componentType === 'existing') {
+      setPendingNodeType({ nodeType, componentType });
+      setShowComponentDialog(true);
+    } else {
+      addNode(nodeType, componentType);
+    }
+  };
+
+  const addNode = (nodeType: string, componentType: string, existingComponent?: any) => {
     const newNode: Node = {
       id: `node_${Date.now()}`,
       type: 'workflowNode',
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
       data: {
-        label: `${componentType.toUpperCase()} ${nodeType}`,
+        label: existingComponent 
+          ? `${existingComponent.name || existingComponent.model}` 
+          : `${componentType.toUpperCase()} ${nodeType}`,
         nodeType,
-        componentType,
-        config: {},
-        description: `New ${componentType} ${nodeType} node`,
+        componentType: existingComponent ? existingComponent.type || componentType : componentType,
+        config: existingComponent || {},
+        description: existingComponent 
+          ? `Connected to ${existingComponent.name || existingComponent.model}`
+          : `New ${componentType} ${nodeType} node`,
+        existingComponentId: existingComponent?.id,
       },
     };
     setNodes((nds) => nds.concat(newNode));
   };
+
+  const handleComponentSelected = (component: any) => {
+    if (pendingNodeType) {
+      addNode(pendingNodeType.nodeType, pendingNodeType.componentType, component);
+      setPendingNodeType(null);
+    }
+    setShowComponentDialog(false);
+  };
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedNodes.length > 0) {
+        event.preventDefault();
+        deleteSelectedNodes();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodes, deleteSelectedNodes]);
 
   if (loading) {
     return (
@@ -171,6 +228,16 @@ export const WorkflowDesigner = () => {
                 {workflow.status}
               </Badge>
             )}
+            {selectedNodes.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={deleteSelectedNodes}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete ({selectedNodes.length})
+              </Button>
+            )}
             <Button variant="outline" onClick={saveWorkflow} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Saving...' : 'Save'}
@@ -190,9 +257,12 @@ export const WorkflowDesigner = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onSelectionChange={onSelectionChange}
             nodeTypes={nodeTypes}
             fitView
             className="bg-gray-50"
+            multiSelectionKeyCode="Shift"
+            deleteKeyCode="Delete"
           >
             <Controls />
             <MiniMap />
@@ -203,8 +273,16 @@ export const WorkflowDesigner = () => {
 
       {/* Toolbox Sidebar */}
       <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
-        <WorkflowToolbox onAddNode={addNode} />
+        <WorkflowToolbox onAddNode={handleAddNodeRequest} />
       </div>
+
+      {/* Component Selection Dialog */}
+      <ComponentSelectionDialog
+        open={showComponentDialog}
+        onOpenChange={setShowComponentDialog}
+        onComponentSelected={handleComponentSelected}
+        componentType={pendingNodeType?.componentType || ''}
+      />
     </div>
   );
 };
