@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,12 +107,18 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     console.log('Submitting model with type:', modelType);
     console.log('Form data:', formData);
     
+    // Ensure we're using the exact model type expected by the database
     const modelData = {
-      ...formData,
-      model_type: modelType,
-      description: description,
+      name: formData.name,
+      model_name: formData.model_name,
+      model_type: modelType, // Use the modelType prop directly
+      api_key: formData.api_key || null,
+      endpoint_url: formData.endpoint_url || null,
+      system_prompt: formData.system_prompt || null,
       temperature: Number(formData.temperature),
-      max_tokens: Number(formData.max_tokens)
+      max_tokens: Number(formData.max_tokens),
+      status: formData.status,
+      description: description
     };
 
     console.log('Final model data to submit:', modelData);
