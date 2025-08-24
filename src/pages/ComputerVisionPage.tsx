@@ -3,11 +3,47 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Eye, Upload, Settings, Play, Image } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
+import { useToast } from '@/hooks/use-toast';
 
 const ComputerVisionPage = () => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [customPrompt, setCustomPrompt] = useState('');
+  const { processWithModel, isProcessing, result } = useAIModelProcessor();
+  const { toast } = useToast();
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setImageUrl(url);
+    }
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!imageUrl) {
+      toast({
+        title: "No image uploaded",
+        description: "Please upload an image first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await processWithModel(selectedModel?.id, 'computer_vision', {
+        image: imageUrl,
+        prompt: customPrompt || 'Analyze this image for objects, scenes, and activities. Provide detailed descriptions.'
+      });
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -27,28 +63,58 @@ const ComputerVisionPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
-                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Upload image for computer vision analysis</p>
-                <div className="flex gap-2 justify-center">
-                  <Button disabled={!selectedModel}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Image
-                  </Button>
-                  <Button variant="outline" disabled={!selectedModel}>
+              <div className="space-y-4">
+                {imageUrl ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <img src={imageUrl} alt="Uploaded" className="w-full h-48 object-cover" />
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-4">Upload image for computer vision analysis</p>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload">
+                    <Button asChild>
+                      <span>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Image
+                      </span>
+                    </Button>
+                  </label>
+                  <Button 
+                    onClick={handleAnalyzeImage}
+                    disabled={!selectedModel || !imageUrl || isProcessing}
+                  >
                     <Play className="w-4 h-4 mr-2" />
-                    Live Feed
+                    {isProcessing ? 'Analyzing...' : 'Analyze'}
                   </Button>
                 </div>
+
+                <Textarea
+                  placeholder="Optional: Add custom analysis prompt..."
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  rows={3}
+                />
               </div>
               
               {selectedModel ? (
-                <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                   <p className="text-sm font-medium text-blue-900">Selected Model:</p>
                   <p className="text-sm text-blue-700">{selectedModel.name}</p>
                 </div>
               ) : (
-                <div className="p-3 bg-orange-50 rounded-lg">
+                <div className="mt-4 p-3 bg-orange-50 rounded-lg">
                   <p className="text-sm text-orange-700">Please select a computer vision model to start analyzing images</p>
                 </div>
               )}
@@ -61,22 +127,36 @@ const ComputerVisionPage = () => {
               <CardTitle>Analysis Results</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {[
-                  { object: 'Person', confidence: '95.7%', bbox: '[120, 45, 280, 340]' },
-                  { object: 'Car', confidence: '89.2%', bbox: '[45, 180, 200, 280]' },
-                  { object: 'Traffic Light', confidence: '78.5%', bbox: '[320, 20, 350, 80]' },
-                  { object: 'Building', confidence: '92.1%', bbox: '[0, 0, 400, 150]' },
-                ].map((detection, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{detection.object}</p>
-                      <p className="text-sm text-gray-500">Bounding box: {detection.bbox}</p>
-                    </div>
-                    <Badge variant="default">{detection.confidence}</Badge>
+              {isProcessing ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2">Processing image...</span>
+                </div>
+              ) : result ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <h4 className="font-medium text-green-900 mb-2">Analysis Complete</h4>
+                    <p className="text-sm text-green-800">{result.result}</p>
                   </div>
-                ))}
-              </div>
+                  {result.confidence && (
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <span className="font-medium">Confidence Score</span>
+                      <Badge variant="default">{(result.confidence * 100).toFixed(1)}%</Badge>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="font-medium">Processing Time</span>
+                    <span className="text-sm text-gray-600">
+                      {result.processing_time ? `${Date.now() - result.processing_time}ms` : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Eye className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p>Upload an image and click "Analyze" to see results</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

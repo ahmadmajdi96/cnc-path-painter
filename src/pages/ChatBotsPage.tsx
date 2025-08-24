@@ -3,11 +3,86 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Bot, Settings, Users, TrendingUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MessageSquare, Bot, Settings, Users, TrendingUp, Send } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
 
 const ChatBotsPage = () => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: 'Hello! How can I help you today?',
+      timestamp: new Date()
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const { processWithModel, isProcessing } = useAIModelProcessor();
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: inputMessage,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    const messageToSend = inputMessage;
+    setInputMessage('');
+
+    if (selectedModel) {
+      try {
+        const result = await processWithModel(selectedModel.id, 'chatbot', {
+          text: messageToSend,
+          task: 'chat'
+        });
+
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: result.result || 'Sorry, I could not process your message.',
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+      } catch (error) {
+        const errorMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'Sorry, I encountered an error processing your message.',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } else {
+      const fallbackMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Please select an AI model first to enable chat functionality.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -27,24 +102,52 @@ const ChatBotsPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="border rounded-lg p-4 min-h-[300px] bg-gray-50">
-                <div className="space-y-3">
-                  <div className="flex">
-                    <div className="bg-blue-500 text-white rounded-lg p-2 max-w-xs">
-                      Hello! How can I help you today?
+              <div className="border rounded-lg bg-gray-50 min-h-[400px] max-h-[400px] overflow-y-auto mb-4">
+                <div className="p-4 space-y-3">
+                  {messages.map((message) => (
+                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                        message.role === 'user' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-white border shadow-sm'
+                      }`}>
+                        <p className="text-sm">{message.content}</p>
+                        <p className={`text-xs mt-1 ${
+                          message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {message.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <div className="bg-gray-200 rounded-lg p-2 max-w-xs">
-                      I need help with my order
+                  ))}
+                  {isProcessing && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border shadow-sm px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex">
-                    <div className="bg-blue-500 text-white rounded-lg p-2 max-w-xs">
-                      I'd be happy to help with your order. Could you please provide your order number?
-                    </div>
-                  </div>
+                  )}
                 </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type your message..."
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  disabled={isProcessing}
+                />
+                <Button 
+                  onClick={handleSendMessage}
+                  disabled={isProcessing || !inputMessage.trim()}
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
               </div>
               
               {selectedModel ? (
@@ -88,7 +191,7 @@ const ChatBotsPage = () => {
                     <MessageSquare className="w-4 h-4 text-purple-600" />
                     <span className="font-medium">Messages Today</span>
                   </div>
-                  <span className="font-medium">1,247</span>
+                  <span className="font-medium">{messages.length}</span>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 border rounded-lg">

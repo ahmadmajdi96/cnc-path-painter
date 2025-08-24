@@ -3,11 +3,69 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { FileText, Upload, Copy, Download, Image } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
+import { useToast } from '@/hooks/use-toast';
 
 const OCRPage = () => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const { processWithModel, isProcessing, result } = useAIModelProcessor();
+  const { toast } = useToast();
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setImageUrl(url);
+    }
+  };
+
+  const handleExtractText = async () => {
+    if (!imageUrl) {
+      toast({
+        title: "No document uploaded",
+        description: "Please upload a document or image first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await processWithModel(selectedModel?.id, 'ocr', {
+        image: imageUrl,
+        prompt: 'Extract all text from this image accurately, maintaining structure and formatting.'
+      });
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
+
+  const handleCopyText = () => {
+    if (result?.extracted_text) {
+      navigator.clipboard.writeText(result.extracted_text);
+      toast({
+        title: "Text copied",
+        description: "Extracted text has been copied to clipboard"
+      });
+    }
+  };
+
+  const handleDownloadText = () => {
+    if (result?.extracted_text) {
+      const blob = new Blob([result.extracted_text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'extracted-text.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -27,22 +85,51 @@ const OCRPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
-                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Upload document or image for text extraction</p>
-                <Button disabled={!selectedModel}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Document
-                </Button>
+              <div className="space-y-4">
+                {imageUrl ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <img src={imageUrl} alt="Document" className="w-full h-48 object-cover" />
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-4">Upload document or image for text extraction</p>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="document-upload"
+                  />
+                  <label htmlFor="document-upload">
+                    <Button asChild>
+                      <span>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Document
+                      </span>
+                    </Button>
+                  </label>
+                  <Button 
+                    onClick={handleExtractText}
+                    disabled={!selectedModel || !imageUrl || isProcessing}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    {isProcessing ? 'Extracting...' : 'Extract Text'}
+                  </Button>
+                </div>
               </div>
               
               {selectedModel ? (
-                <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                   <p className="text-sm font-medium text-blue-900">Selected OCR Model:</p>
                   <p className="text-sm text-blue-700">{selectedModel.name}</p>
                 </div>
               ) : (
-                <div className="p-3 bg-orange-50 rounded-lg">
+                <div className="mt-4 p-3 bg-orange-50 rounded-lg">
                   <p className="text-sm text-orange-700">Please select an OCR model to start extracting text</p>
                 </div>
               )}
@@ -55,11 +142,11 @@ const OCRPage = () => {
               <CardTitle className="flex items-center justify-between">
                 Extracted Text
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={handleCopyText} disabled={!result?.extracted_text}>
                     <Copy className="w-4 h-4 mr-2" />
                     Copy
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={handleDownloadText} disabled={!result?.extracted_text}>
                     <Download className="w-4 h-4 mr-2" />
                     Export
                   </Button>
@@ -67,21 +154,29 @@ const OCRPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-50 p-4 rounded-lg min-h-[200px] font-mono text-sm">
-                <p className="text-gray-500 mb-2">Sample extracted text will appear here...</p>
-                <div className="space-y-2">
-                  <p>Invoice #: INV-2024-001</p>
-                  <p>Date: March 15, 2024</p>
-                  <p>Amount: $1,250.00</p>
-                  <p>Customer: Acme Corporation</p>
-                  <p>Description: Professional services</p>
+              {isProcessing ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2">Extracting text...</span>
                 </div>
-              </div>
-              
-              <div className="mt-4 flex items-center justify-between text-sm">
-                <span className="text-gray-600">Confidence: 96.8%</span>
-                <Badge variant="default">Processing Complete</Badge>
-              </div>
+              ) : result ? (
+                <div>
+                  <div className="bg-gray-50 p-4 rounded-lg min-h-[200px] font-mono text-sm mb-4">
+                    <pre className="whitespace-pre-wrap">{result.extracted_text || result.result}</pre>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    {result.confidence && (
+                      <span className="text-gray-600">Confidence: {(result.confidence * 100).toFixed(1)}%</span>
+                    )}
+                    <Badge variant="default">Processing Complete</Badge>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg min-h-[200px] font-mono text-sm flex items-center justify-center">
+                  <p className="text-gray-500">Upload a document and click "Extract Text" to see results</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
