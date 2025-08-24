@@ -1,0 +1,421 @@
+
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Edit, Trash2, Settings, Brain } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface AIModel {
+  id: string;
+  name: string;
+  model_type: string;
+  model_name: string;
+  api_key?: string;
+  endpoint_url?: string;
+  system_prompt?: string;
+  temperature: number;
+  max_tokens: number;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
+interface AIModelManagerProps {
+  modelType: string;
+  title: string;
+  description: string;
+  onModelSelect?: (model: AIModel) => void;
+  selectedModelId?: string;
+}
+
+export const AIModelManager: React.FC<AIModelManagerProps> = ({
+  modelType,
+  title,
+  description,
+  onModelSelect,
+  selectedModelId
+}) => {
+  const { toast } = useToast();
+  const [models, setModels] = useState<AIModel[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingModel, setEditingModel] = useState<AIModel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    name: '',
+    model_name: '',
+    api_key: '',
+    endpoint_url: '',
+    system_prompt: '',
+    temperature: 0.7,
+    max_tokens: 1000,
+    status: 'active' as const
+  });
+
+  useEffect(() => {
+    loadModels();
+  }, [modelType]);
+
+  const loadModels = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('chatbots')
+        .select('*')
+        .eq('model_type', modelType)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading models:', error);
+        toast({
+          title: "Error loading models",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setModels(data || []);
+    } catch (error) {
+      console.error('Error loading models:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const modelData = {
+      ...formData,
+      model_type: modelType,
+      description: description
+    };
+
+    try {
+      if (editingModel) {
+        const { error } = await supabase
+          .from('chatbots')
+          .update(modelData)
+          .eq('id', editingModel.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Model updated",
+          description: "AI model has been updated successfully"
+        });
+      } else {
+        const { error } = await supabase
+          .from('chatbots')
+          .insert([modelData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Model created",
+          description: "New AI model has been created successfully"
+        });
+      }
+
+      setIsAddDialogOpen(false);
+      setEditingModel(null);
+      resetForm();
+      loadModels();
+    } catch (error) {
+      console.error('Error saving model:', error);
+      toast({
+        title: "Error saving model",
+        description: error instanceof Error ? error.message : "Failed to save model",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEdit = (model: AIModel) => {
+    setFormData({
+      name: model.name,
+      model_name: model.model_name,
+      api_key: model.api_key || '',
+      endpoint_url: model.endpoint_url || '',
+      system_prompt: model.system_prompt || '',
+      temperature: model.temperature,
+      max_tokens: model.max_tokens,
+      status: model.status
+    });
+    setEditingModel(model);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this model?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('chatbots')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Model deleted",
+        description: "AI model has been deleted successfully"
+      });
+      
+      loadModels();
+    } catch (error) {
+      console.error('Error deleting model:', error);
+      toast({
+        title: "Error deleting model",
+        description: error instanceof Error ? error.message : "Failed to delete model",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      model_name: '',
+      api_key: '',
+      endpoint_url: '',
+      system_prompt: '',
+      temperature: 0.7,
+      max_tokens: 1000,
+      status: 'active'
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Brain className="w-5 h-5" />
+            {title} Models
+          </span>
+          <Button 
+            size="sm" 
+            onClick={() => {
+              resetForm();
+              setIsAddDialogOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Model
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-center py-4">Loading models...</div>
+        ) : models.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Brain className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p>No {title.toLowerCase()} models configured</p>
+            <Button 
+              className="mt-2" 
+              variant="outline" 
+              onClick={() => {
+                resetForm();
+                setIsAddDialogOpen(true);
+              }}
+            >
+              Create your first model
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {models.map((model) => (
+              <div 
+                key={model.id} 
+                className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                  selectedModelId === model.id ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
+                } ${onModelSelect ? 'cursor-pointer' : ''}`}
+                onClick={() => onModelSelect?.(model)}
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{model.name}</p>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      model.status === 'active' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {model.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500">{model.model_name}</p>
+                  {model.endpoint_url && (
+                    <p className="text-xs text-gray-400">{model.endpoint_url}</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(model);
+                  }}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(model.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add/Edit Dialog */}
+        <Dialog open={isAddDialogOpen || !!editingModel} onOpenChange={(open) => {
+          if (!open) {
+            setIsAddDialogOpen(false);
+            setEditingModel(null);
+            resetForm();
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingModel ? 'Edit' : 'Add'} {title} Model
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Model Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="My AI Model"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="model_name">AI Model</Label>
+                  <Select 
+                    value={formData.model_name}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, model_name: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select AI model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-4">GPT-4</SelectItem>
+                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                      <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                      <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+                      <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                      <SelectItem value="llama-2">Llama 2</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="api_key">API Key</Label>
+                <Input
+                  id="api_key"
+                  type="password"
+                  value={formData.api_key}
+                  onChange={(e) => setFormData(prev => ({ ...prev, api_key: e.target.value }))}
+                  placeholder="Enter API key"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="endpoint_url">Endpoint URL (Optional)</Label>
+                <Input
+                  id="endpoint_url"
+                  value={formData.endpoint_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, endpoint_url: e.target.value }))}
+                  placeholder="https://api.openai.com/v1/chat/completions"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="system_prompt">System Prompt</Label>
+                <Input
+                  id="system_prompt"
+                  value={formData.system_prompt}
+                  onChange={(e) => setFormData(prev => ({ ...prev, system_prompt: e.target.value }))}
+                  placeholder="You are a helpful AI assistant for..."
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="temperature">Temperature</Label>
+                  <Input
+                    id="temperature"
+                    type="number"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value={formData.temperature}
+                    onChange={(e) => setFormData(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="max_tokens">Max Tokens</Label>
+                  <Input
+                    id="max_tokens"
+                    type="number"
+                    min="1"
+                    max="8192"
+                    value={formData.max_tokens}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_tokens: parseInt(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select 
+                    value={formData.status}
+                    onValueChange={(value: 'active' | 'inactive') => setFormData(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAddDialogOpen(false);
+                    setEditingModel(null);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingModel ? 'Update' : 'Create'} Model
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+};

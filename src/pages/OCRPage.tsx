@@ -2,114 +2,141 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Upload, Download, Copy, Settings } from 'lucide-react';
+import { FileText, Upload, Copy, Download, Image } from 'lucide-react';
+import { AIModelManager } from '@/components/AIModelManager';
 
 const OCRPage = () => {
-  const [extractedText, setExtractedText] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Optical Character Recognition</h1>
-          <p className="text-gray-600">Extract and digitize text from images and documents</p>
+          <p className="text-gray-600">Extract and digitize text from images and documents with AI-powered OCR</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Upload Area */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="w-5 h-5" />
-                Upload Document
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Drag and drop your image or document here</p>
-                <Button>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choose File
-                </Button>
-              </div>
-              
-              <div className="mt-4 flex gap-2">
-                <Button variant="outline" className="flex-1">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configure OCR
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Results Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* OCR Processing Area */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                Extracted Text
-                <Badge variant="secondary" className="ml-auto">
-                  Confidence: 98.5%
-                </Badge>
+                Text Recognition
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea
-                value={extractedText}
-                onChange={(e) => setExtractedText(e.target.value)}
-                placeholder="Extracted text will appear here..."
-                className="min-h-[300px] mb-4"
-              />
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
+                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Upload document or image for text extraction</p>
+                <Button disabled={!selectedModel}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Document
+                </Button>
+              </div>
               
-              <div className="flex gap-2">
-                <Button size="sm">
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy Text
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
+              {selectedModel ? (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">Selected OCR Model:</p>
+                  <p className="text-sm text-blue-700">{selectedModel.name}</p>
+                </div>
+              ) : (
+                <div className="p-3 bg-orange-50 rounded-lg">
+                  <p className="text-sm text-orange-700">Please select an OCR model to start extracting text</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Extracted Text Results */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Extracted Text
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline">
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 p-4 rounded-lg min-h-[200px] font-mono text-sm">
+                <p className="text-gray-500 mb-2">Sample extracted text will appear here...</p>
+                <div className="space-y-2">
+                  <p>Invoice #: INV-2024-001</p>
+                  <p>Date: March 15, 2024</p>
+                  <p>Amount: $1,250.00</p>
+                  <p>Customer: Acme Corporation</p>
+                  <p>Description: Professional services</p>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <span className="text-gray-600">Confidence: 96.8%</span>
+                <Badge variant="default">Processing Complete</Badge>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Processing History */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Recent OCR Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { id: 1, filename: 'invoice_2024_001.pdf', status: 'completed', confidence: '98.5%', date: '2 hours ago' },
-                { id: 2, filename: 'contract_scan.jpg', status: 'completed', confidence: '96.2%', date: '4 hours ago' },
-                { id: 3, filename: 'receipt_image.png', status: 'processing', confidence: '-', date: 'Just now' },
-              ].map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium">{task.filename}</p>
-                      <p className="text-sm text-gray-500">{task.date}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm">Confidence: {task.confidence}</span>
-                    <Badge variant={task.status === 'completed' ? 'default' : 'secondary'}>
-                      {task.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* AI Model Manager */}
+        <AIModelManager
+          modelType="ocr"
+          title="OCR"
+          description="AI models for optical character recognition and text extraction"
+          onModelSelect={setSelectedModel}
+          selectedModelId={selectedModel?.id}
+        />
+
+        {/* OCR Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recognition Rate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">98.5%</div>
+              <p className="text-sm text-gray-500">Character accuracy</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents Today</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-600">456</div>
+              <p className="text-sm text-gray-500">Processed documents</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Languages</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-purple-600">12</div>
+              <p className="text-sm text-gray-500">Supported languages</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Processing Speed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-600">1.2s</div>
+              <p className="text-sm text-gray-500">Average per page</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

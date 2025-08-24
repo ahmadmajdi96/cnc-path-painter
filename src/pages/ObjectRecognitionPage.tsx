@@ -1,20 +1,23 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Upload, Settings, Play } from 'lucide-react';
+import { Camera, Upload, Settings, Play, Image } from 'lucide-react';
+import { AIModelManager } from '@/components/AIModelManager';
 
 const ObjectRecognitionPage = () => {
+  const [selectedModel, setSelectedModel] = useState<any>(null);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Object Recognition</h1>
-          <p className="text-gray-600">Classify and identify objects in images with high accuracy</p>
+          <p className="text-gray-600">Classify and identify objects in images with high accuracy using AI models</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Recognition Area */}
           <Card>
             <CardHeader>
@@ -25,24 +28,30 @@ const ObjectRecognitionPage = () => {
             </CardHeader>
             <CardContent>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
-                <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4">Upload image for object recognition</p>
                 <div className="flex gap-2 justify-center">
-                  <Button>
+                  <Button disabled={!selectedModel}>
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Image
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" disabled={!selectedModel}>
                     <Play className="w-4 h-4 mr-2" />
                     Live Feed
                   </Button>
                 </div>
               </div>
               
-              <Button variant="outline" className="w-full">
-                <Settings className="w-4 h-4 mr-2" />
-                Model Settings
-              </Button>
+              {selectedModel ? (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">Selected Model:</p>
+                  <p className="text-sm text-blue-700">{selectedModel.name}</p>
+                </div>
+              ) : (
+                <div className="p-3 bg-orange-50 rounded-lg">
+                  <p className="text-sm text-orange-700">Please select an object recognition model to start</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -71,6 +80,15 @@ const ObjectRecognitionPage = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Model Manager */}
+        <AIModelManager
+          modelType="object_recognition"
+          title="Object Recognition"
+          description="AI models for object classification and identification"
+          onModelSelect={setSelectedModel}
+          selectedModelId={selectedModel?.id}
+        />
 
         {/* Model Performance */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">

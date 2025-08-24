@@ -1,20 +1,23 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Scan, Upload, Camera, Settings, Search } from 'lucide-react';
+import { AIModelManager } from '@/components/AIModelManager';
 
 const PlateRecognitionPage = () => {
+  const [selectedModel, setSelectedModel] = useState<any>(null);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">License Plate Recognition</h1>
-          <p className="text-gray-600">Automatic number plate recognition (ANPR) for vehicles</p>
+          <p className="text-gray-600">Automatic number plate recognition (ANPR) for vehicles using AI models</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Recognition Area */}
           <Card>
             <CardHeader>
@@ -28,19 +31,30 @@ const PlateRecognitionPage = () => {
                 <Scan className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4">Upload vehicle image or start live monitoring</p>
                 <div className="flex gap-2 justify-center">
-                  <Button>
+                  <Button disabled={!selectedModel}>
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Image
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" disabled={!selectedModel}>
                     <Camera className="w-4 h-4 mr-2" />
                     Live Feed
                   </Button>
                 </div>
               </div>
               
+              {selectedModel ? (
+                <div className="p-3 bg-blue-50 rounded-lg mb-4">
+                  <p className="text-sm font-medium text-blue-900">Selected ANPR Model:</p>
+                  <p className="text-sm text-blue-700">{selectedModel.name}</p>
+                </div>
+              ) : (
+                <div className="p-3 bg-orange-50 rounded-lg mb-4">
+                  <p className="text-sm text-orange-700">Please select a plate recognition model to start</p>
+                </div>
+              )}
+              
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={!selectedModel}>
                   <Search className="w-4 h-4 mr-2" />
                   Search Plate
                 </Button>
@@ -77,6 +91,15 @@ const PlateRecognitionPage = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Model Manager */}
+        <AIModelManager
+          modelType="plate_recognition"
+          title="Plate Recognition"
+          description="AI models for automatic number plate recognition (ANPR)"
+          onModelSelect={setSelectedModel}
+          selectedModelId={selectedModel?.id}
+        />
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
