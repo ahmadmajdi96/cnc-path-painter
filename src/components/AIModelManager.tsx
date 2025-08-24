@@ -53,7 +53,7 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     system_prompt: '',
     temperature: 0.7,
     max_tokens: 1000,
-    status: 'active' as const
+    status: 'active' as 'active' | 'inactive'
   });
 
   useEffect(() => {
@@ -79,7 +79,13 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
         return;
       }
 
-      setModels(data || []);
+      // Type cast the data to ensure proper typing
+      const typedModels: AIModel[] = (data || []).map(item => ({
+        ...item,
+        status: (item.status === 'active' || item.status === 'inactive') ? item.status : 'active'
+      }));
+
+      setModels(typedModels);
     } catch (error) {
       console.error('Error loading models:', error);
     } finally {
