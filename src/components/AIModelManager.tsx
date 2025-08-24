@@ -63,6 +63,8 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
   const loadModels = async () => {
     setLoading(true);
     try {
+      console.log('Loading models for type:', modelType);
+      
       const { data, error } = await supabase
         .from('chatbots')
         .select('*')
@@ -79,6 +81,8 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
         return;
       }
 
+      console.log('Loaded models:', data);
+
       // Type cast the data to ensure proper typing
       const typedModels: AIModel[] = (data || []).map(item => ({
         ...item,
@@ -88,6 +92,11 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
       setModels(typedModels);
     } catch (error) {
       console.error('Error loading models:', error);
+      toast({
+        title: "Error loading models", 
+        description: "Failed to load models",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -96,31 +105,48 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Submitting model with type:', modelType);
+    console.log('Form data:', formData);
+    
     const modelData = {
       ...formData,
       model_type: modelType,
-      description: description
+      description: description,
+      temperature: Number(formData.temperature),
+      max_tokens: Number(formData.max_tokens)
     };
+
+    console.log('Final model data to submit:', modelData);
 
     try {
       if (editingModel) {
+        console.log('Updating existing model:', editingModel.id);
         const { error } = await supabase
           .from('chatbots')
           .update(modelData)
           .eq('id', editingModel.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
 
         toast({
           title: "Model updated",
           description: "AI model has been updated successfully"
         });
       } else {
-        const { error } = await supabase
+        console.log('Creating new model with data:', modelData);
+        const { error, data } = await supabase
           .from('chatbots')
           .insert([modelData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
+
+        console.log('Model created successfully:', data);
 
         toast({
           title: "Model created",
@@ -143,6 +169,7 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
   };
 
   const handleEdit = (model: AIModel) => {
+    console.log('Editing model:', model);
     setFormData({
       name: model.name,
       model_name: model.model_name,
@@ -160,12 +187,16 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     if (!confirm('Are you sure you want to delete this model?')) return;
 
     try {
+      console.log('Deleting model:', id);
       const { error } = await supabase
         .from('chatbots')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
       toast({
         title: "Model deleted",
