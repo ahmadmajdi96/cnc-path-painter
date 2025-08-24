@@ -1,11 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Camera, AlertTriangle, CheckCircle, Settings, Play } from 'lucide-react';
+import { AIModelManager } from '@/components/AIModelManager';
 
 const QualityControlPage = () => {
+  const [selectedModel, setSelectedModel] = useState<any>(null);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -27,13 +30,24 @@ const QualityControlPage = () => {
               <div className="bg-gray-100 rounded-lg p-8 text-center">
                 <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4">Camera feed will appear here</p>
-                <Button>
+                <Button disabled={!selectedModel}>
                   <Play className="w-4 h-4 mr-2" />
                   Start Inspection
                 </Button>
               </div>
               
               <div className="space-y-4">
+                {selectedModel ? (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm font-medium text-blue-900">Selected Model:</p>
+                    <p className="text-sm text-blue-700">{selectedModel.name}</p>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-orange-50 rounded-lg">
+                    <p className="text-sm text-orange-700">Please select a quality control model to start inspection</p>
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <span>Pass Rate</span>
                   <Badge variant="default">96.2%</Badge>
@@ -55,8 +69,17 @@ const QualityControlPage = () => {
           </CardContent>
         </Card>
 
+        {/* AI Model Manager */}
+        <AIModelManager
+          modelType="quality_control"
+          title="Quality Control"
+          description="AI models for visual inspection and defect detection"
+          onModelSelect={setSelectedModel}
+          selectedModelId={selectedModel?.id}
+        />
+
         {/* Recent Inspections */}
-        <Card>
+        <Card className="mt-6">
           <CardHeader>
             <CardTitle>Recent Inspections</CardTitle>
           </CardHeader>

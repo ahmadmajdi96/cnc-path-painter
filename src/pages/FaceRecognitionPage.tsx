@@ -1,20 +1,23 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Upload, Camera, Shield, Settings, UserPlus } from 'lucide-react';
+import { Users, Upload, Settings, Play, Image, UserCheck } from 'lucide-react';
+import { AIModelManager } from '@/components/AIModelManager';
 
 const FaceRecognitionPage = () => {
+  const [selectedModel, setSelectedModel] = useState<any>(null);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Face Recognition</h1>
-          <p className="text-gray-600">Identify and verify faces with advanced biometric analysis</p>
+          <p className="text-gray-600">Identify and verify faces with advanced AI recognition technology</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Recognition Area */}
           <Card>
             <CardHeader>
@@ -25,62 +28,57 @@ const FaceRecognitionPage = () => {
             </CardHeader>
             <CardContent>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Upload image or start live recognition</p>
+                <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Upload image for face recognition</p>
                 <div className="flex gap-2 justify-center">
-                  <Button>
+                  <Button disabled={!selectedModel}>
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Photo
+                    Upload Image
                   </Button>
-                  <Button variant="outline">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Live Camera
+                  <Button variant="outline" disabled={!selectedModel}>
+                    <Play className="w-4 h-4 mr-2" />
+                    Live Recognition
                   </Button>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add Person
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
-              </div>
+              {selectedModel ? (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">Selected Model:</p>
+                  <p className="text-sm text-blue-700">{selectedModel.name}</p>
+                </div>
+              ) : (
+                <div className="p-3 bg-orange-50 rounded-lg">
+                  <p className="text-sm text-orange-700">Please select a face recognition model to start</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Recognition Results */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Recognition Results
-              </CardTitle>
+              <CardTitle>Recognition Results</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {[
-                  { name: 'John Smith', confidence: '99.2%', lastSeen: '2 minutes ago', status: 'verified' },
-                  { name: 'Unknown Person', confidence: '0%', lastSeen: 'Just now', status: 'unrecognized' },
-                  { name: 'Sarah Johnson', confidence: '97.8%', lastSeen: '5 minutes ago', status: 'verified' },
-                  { name: 'Mike Davis', confidence: '94.5%', lastSeen: '8 minutes ago', status: 'verified' },
-                ].map((person, index) => (
+                  { name: 'John Smith', confidence: '98.5%', status: 'verified', id: 'EMP001' },
+                  { name: 'Sarah Johnson', confidence: '96.2%', status: 'verified', id: 'EMP002' },
+                  { name: 'Unknown Person', confidence: '45.1%', status: 'unverified', id: 'N/A' },
+                  { name: 'Mike Davis', confidence: '94.7%', status: 'verified', id: 'EMP003' },
+                ].map((recognition, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{person.name}</p>
-                      <p className="text-sm text-gray-500">{person.lastSeen}</p>
+                    <div className="flex items-center gap-3">
+                      <UserCheck className={`w-5 h-5 ${recognition.status === 'verified' ? 'text-green-600' : 'text-red-600'}`} />
+                      <div>
+                        <p className="font-medium">{recognition.name}</p>
+                        <p className="text-sm text-gray-500">ID: {recognition.id}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={person.status === 'verified' ? 'default' : 'secondary'}>
-                        {person.confidence}
-                      </Badge>
-                      <Badge variant={person.status === 'verified' ? 'default' : 'destructive'}>
-                        {person.status}
-                      </Badge>
-                    </div>
+                    <Badge variant={recognition.status === 'verified' ? 'default' : 'destructive'}>
+                      {recognition.confidence}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -88,45 +86,57 @@ const FaceRecognitionPage = () => {
           </Card>
         </div>
 
-        {/* Database Management */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Face Database</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">247</div>
-                <p className="text-sm text-gray-500">Registered Faces</p>
-              </div>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-green-600">99.3%</div>
-                <p className="text-sm text-gray-500">Recognition Rate</p>
-              </div>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">1,543</div>
-                <p className="text-sm text-gray-500">Today's Recognitions</p>
-              </div>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">0.2s</div>
-                <p className="text-sm text-gray-500">Avg Response Time</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Register New Face
-              </Button>
-              <Button variant="outline">
-                Export Database
-              </Button>
-              <Button variant="outline">
-                Import Faces
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* AI Model Manager */}
+        <AIModelManager
+          modelType="face_recognition"
+          title="Face Recognition"
+          description="AI models for face detection and recognition"
+          onModelSelect={setSelectedModel}
+          selectedModelId={selectedModel?.id}
+        />
+
+        {/* Model Performance */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recognition Rate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">98.1%</div>
+              <p className="text-sm text-gray-500">Overall accuracy</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Faces Processed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-600">1,892</div>
+              <p className="text-sm text-gray-500">Today</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Database Size</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-purple-600">2,341</div>
+              <p className="text-sm text-gray-500">Registered faces</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Processing Speed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-600">0.1s</div>
+              <p className="text-sm text-gray-500">Average per face</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
