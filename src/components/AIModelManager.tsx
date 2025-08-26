@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,13 +105,15 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Submitting model with type:', modelType);
+    console.log('=== DEBUG: Model Creation ===');
+    console.log('Original modelType prop:', modelType);
     console.log('Form data:', formData);
     
     // Validate model type before submission
     const validModelTypes = ['chatbot', 'nlp', 'computer_vision', 'face_recognition', 'object_detection', 'object_recognition', 'plate_recognition', 'quality_control', 'ocr'];
     
     if (!validModelTypes.includes(modelType)) {
+      console.error('Invalid model type detected:', modelType);
       toast({
         title: "Invalid model type",
         description: `Model type "${modelType}" is not supported. Valid types are: ${validModelTypes.join(', ')}`,
@@ -134,6 +137,7 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     };
 
     console.log('Final model data to submit:', modelData);
+    console.log('Specifically model_type value:', modelData.model_type, 'Type:', typeof modelData.model_type);
 
     try {
       if (editingModel) {
@@ -161,6 +165,7 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
 
         if (error) {
           console.error('Insert error:', error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
           throw error;
         }
 
