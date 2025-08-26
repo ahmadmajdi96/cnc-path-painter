@@ -107,11 +107,23 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     console.log('Submitting model with type:', modelType);
     console.log('Form data:', formData);
     
+    // Validate model type before submission
+    const validModelTypes = ['chatbot', 'nlp', 'computer_vision', 'face_recognition', 'object_detection', 'object_recognition', 'plate_recognition', 'quality_control', 'ocr'];
+    
+    if (!validModelTypes.includes(modelType)) {
+      toast({
+        title: "Invalid model type",
+        description: `Model type "${modelType}" is not supported. Valid types are: ${validModelTypes.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Ensure we're using the exact model type expected by the database
     const modelData = {
       name: formData.name,
       model_name: formData.model_name,
-      model_type: modelType, // Use the modelType prop directly
+      model_type: modelType, // Use the modelType prop directly without any transformation
       api_key: formData.api_key || null,
       endpoint_url: formData.endpoint_url || null,
       system_prompt: formData.system_prompt || null,
@@ -144,7 +156,8 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
         console.log('Creating new model with data:', modelData);
         const { error, data } = await supabase
           .from('chatbots')
-          .insert([modelData]);
+          .insert([modelData])
+          .select();
 
         if (error) {
           console.error('Insert error:', error);
