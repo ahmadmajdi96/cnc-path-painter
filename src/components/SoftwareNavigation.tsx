@@ -2,18 +2,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Settings, Server, Zap, Code } from 'lucide-react';
+import { softwareNavItems } from '@/nav-items-software';
 
 export const SoftwareNavigation = () => {
   const location = useLocation();
   
-  const navItems = [
-    { path: '/software/services', label: 'Services', icon: Settings },
-    { path: '/software/servers', label: 'Servers', icon: Server },
-    { path: '/software/automation', label: 'Automation', icon: Zap },
-    { path: '/software/app-builder', label: 'App Builder', icon: Code },
-  ];
-
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -27,12 +20,12 @@ export const SoftwareNavigation = () => {
           <div className="h-6 w-px bg-gray-300" />
           
           <div className="flex items-center space-x-1">
-            {navItems.map((item) => {
+            {softwareNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname.startsWith(item.path);
+              const isActive = location.pathname.startsWith(item.to);
               
               return (
-                <Link key={item.path} to={item.path}>
+                <Link key={item.to} to={item.to}>
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     className={`flex items-center gap-2 ${
@@ -40,7 +33,7 @@ export const SoftwareNavigation = () => {
                     }`}
                   >
                     <Icon className="w-4 h-4" />
-                    {item.label}
+                    {item.title}
                   </Button>
                 </Link>
               );
