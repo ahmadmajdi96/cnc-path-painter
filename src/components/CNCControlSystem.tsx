@@ -7,7 +7,7 @@ import { ControlPanel } from './ControlPanel';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
-
+import { MainNavigation } from './MainNavigation';
 
 export const CNCControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -38,6 +38,7 @@ export const CNCControlSystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <MainNavigation />
       
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
