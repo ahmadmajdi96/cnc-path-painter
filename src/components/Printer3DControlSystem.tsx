@@ -7,7 +7,6 @@ import { Printer3DControlPanel } from './Printer3DControlPanel';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
-import { MainNavigation } from './MainNavigation';
 
 export const Printer3DControlSystem = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -22,8 +21,6 @@ export const Printer3DControlSystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainNavigation />
-      
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">

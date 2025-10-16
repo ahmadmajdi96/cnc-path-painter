@@ -13,6 +13,7 @@ interface VisionSystem {
   endpoint: string;
   cameraType: string;
   resolution: string;
+  communicationType: 'low-latency' | 'http' | 'ftp' | 's3';
   status: 'online' | 'offline';
 }
 
@@ -32,7 +33,8 @@ export const AddVisionSystemDialog = ({
     name: '',
     endpoint: '',
     cameraType: '',
-    resolution: ''
+    resolution: '',
+    communicationType: 'low-latency' as 'low-latency' | 'http' | 'ftp' | 's3'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,7 +54,8 @@ export const AddVisionSystemDialog = ({
       name: '',
       endpoint: '',
       cameraType: '',
-      resolution: ''
+      resolution: '',
+      communicationType: 'low-latency'
     });
     
     toast({
@@ -114,6 +117,25 @@ export const AddVisionSystemDialog = ({
                 <SelectItem value="2592x1944">2592x1944 (5MP)</SelectItem>
                 <SelectItem value="4096x3072">4096x3072 (12MP)</SelectItem>
                 <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="communication-type">Communication Type</Label>
+            <Select 
+              value={formData.communicationType}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, communicationType: value as any }))}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select communication type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low-latency">Low Latency</SelectItem>
+                <SelectItem value="http">HTTP</SelectItem>
+                <SelectItem value="ftp">FTP</SelectItem>
+                <SelectItem value="s3">S3</SelectItem>
               </SelectContent>
             </Select>
           </div>

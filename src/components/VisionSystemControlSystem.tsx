@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { StatusCards } from './StatusCards';
 import { VisionSystemList } from './VisionSystemList';
 import { VisionSystemViewer } from './VisionSystemViewer';
@@ -10,7 +11,6 @@ import { ImageGallery } from './ImageGallery';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddVisionSystemDialog } from './AddVisionSystemDialog';
-import { MainNavigation } from './MainNavigation';
 
 interface VisionSystem {
   id: string;
@@ -18,6 +18,7 @@ interface VisionSystem {
   endpoint: string;
   cameraType: string;
   resolution: string;
+  communicationType: 'low-latency' | 'http' | 'ftp' | 's3';
   status: 'online' | 'offline';
 }
 
@@ -60,6 +61,7 @@ export const VisionSystemControlSystem = () => {
       endpoint: 'http://192.168.1.100:8080',
       cameraType: 'Industrial CCD',
       resolution: '1920x1080',
+      communicationType: 'low-latency',
       status: 'online'
     },
     {
@@ -68,6 +70,7 @@ export const VisionSystemControlSystem = () => {
       endpoint: 'http://192.168.1.101:8080',
       cameraType: 'CMOS Sensor',
       resolution: '2592x1944',
+      communicationType: 'http',
       status: 'online'
     }
   ]);
@@ -205,15 +208,12 @@ export const VisionSystemControlSystem = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MainNavigation />
-      
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-background">
+      <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Vision System Control</h1>
-            <p className="text-gray-600">Industrial image processing and vision analysis</p>
+            <h1 className="text-2xl font-bold">Vision System Control</h1>
+            <p className="text-muted-foreground">Industrial image processing and vision analysis</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
@@ -223,68 +223,59 @@ export const VisionSystemControlSystem = () => {
             Add Vision System
           </Button>
         </div>
-      </div>
 
-      {/* Status Cards */}
-      <div className="px-6 py-4">
         <StatusCards machineType="cnc" />
-      </div>
 
-      {/* Main Content */}
-      <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Vision System Section */}
-        <div className="w-96 flex-shrink-0 space-y-6">
-          {/* Combined Search and Filters */}
-          <VisionSystemFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
-            typeFilter={typeFilter}
-            onTypeChange={setTypeFilter}
-          />
-          
-          {/* Vision Systems List */}
-          <VisionSystemList 
-            selectedSystem={selectedSystem}
-            onSystemSelect={setSelectedSystem}
-            visionSystems={filteredVisionSystems}
-            onAddSystem={handleAddVisionSystem}
-            onEditSystem={handleEditVisionSystem}
-            onDeleteSystem={handleDeleteVisionSystem}
-            allVisionSystems={visionSystems}
-          />
-        </div>
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)] rounded-lg border">
+          {/* Left Panel - Vision System List */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <VisionSystemFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                typeFilter={typeFilter}
+                onTypeChange={setTypeFilter}
+              />
+              
+              <VisionSystemList 
+                selectedSystem={selectedSystem}
+                onSystemSelect={setSelectedSystem}
+                visionSystems={filteredVisionSystems}
+                onAddSystem={handleAddVisionSystem}
+                onEditSystem={handleEditVisionSystem}
+                onDeleteSystem={handleDeleteVisionSystem}
+                allVisionSystems={visionSystems}
+              />
+            </div>
+          </ResizablePanel>
 
-        {/* Center - Image Viewer */}
-        <div className="flex-1 min-w-0 space-y-6">
-          <VisionSystemViewer 
-            selectedSystemId={selectedSystem}
-            selectedEndpoint={selectedEndpoint}
-            currentImage={currentImage}
-            processedImage={processedImage}
-            onEndpointSelect={setSelectedEndpoint}
-            onImageReceived={setCurrentImage}
-            onImageProcessed={setProcessedImage}
-            imageFilters={imageFilters}
-            visionSystems={visionSystems}
-            savedImages={savedImages}
-            onClearView={handleClearView}
-          />
+          <ResizableHandle withHandle />
 
-          {/* Gallery and Endpoints under Image Viewer */}
-          <div className="grid grid-cols-1 gap-6">
-            {/* Saved Images Gallery */}
-            <div className="w-full">
+          {/* Center Panel - Image Viewer */}
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <VisionSystemViewer 
+                selectedSystemId={selectedSystem}
+                selectedEndpoint={selectedEndpoint}
+                currentImage={currentImage}
+                processedImage={processedImage}
+                onEndpointSelect={setSelectedEndpoint}
+                onImageReceived={setCurrentImage}
+                onImageProcessed={setProcessedImage}
+                imageFilters={imageFilters}
+                visionSystems={visionSystems}
+                savedImages={savedImages}
+                onClearView={handleClearView}
+              />
+
               <ImageGallery
                 savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
                 onDeleteImage={handleDeleteImage}
                 onDownloadImage={handleDownloadImage}
               />
-            </div>
-            
-            {/* Endpoints Management - Now under saved images */}
-            <div className="w-full">
+              
               <VisionEndpointManager
                 selectedSystemId={selectedSystem}
                 endpoints={endpoints}
@@ -295,21 +286,25 @@ export const VisionSystemControlSystem = () => {
                 onDeleteEndpoint={handleDeleteEndpoint}
               />
             </div>
-          </div>
-        </div>
+          </ResizablePanel>
 
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-96 flex-shrink-0">
-          <VisionControlPanel 
-            selectedSystemId={selectedSystem}
-            selectedEndpoint={selectedEndpoint}
-            currentImage={processedImage || currentImage}
-            onFiltersChange={setImageFilters}
-            onImageProcessed={setProcessedImage}
-            savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
-            onSaveImage={handleSaveImage}
-          />
-        </div>
+          <ResizableHandle withHandle />
+
+          {/* Right Panel - Control Panel */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 overflow-y-auto">
+              <VisionControlPanel 
+                selectedSystemId={selectedSystem}
+                selectedEndpoint={selectedEndpoint}
+                currentImage={processedImage || currentImage}
+                onFiltersChange={setImageFilters}
+                onImageProcessed={setProcessedImage}
+                savedImages={savedImages.filter(img => img.systemId === selectedSystem)}
+                onSaveImage={handleSaveImage}
+              />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       <AddVisionSystemDialog 
