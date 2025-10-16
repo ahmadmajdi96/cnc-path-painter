@@ -21,13 +21,12 @@ export const RoboticArmsControlSystem = () => {
   }, [selectedMachine]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-background">
+      <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Robotic Arms Control System</h1>
-            <p className="text-gray-600">Monitor and control industrial robotic arms</p>
+            <h1 className="text-2xl font-bold">Robotic Arms Control System</h1>
+            <p className="text-muted-foreground">Monitor and control industrial robotic arms</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
@@ -37,19 +36,13 @@ export const RoboticArmsControlSystem = () => {
             Add Robotic Arm
           </Button>
         </div>
-      </div>
 
-      {/* Status Cards */}
-      <div className="px-6 py-4">
         <StatusCards machineType="robotic_arms" />
-      </div>
 
-      {/* Main Content */}
-      <div className="px-6 pb-6">
-        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-200px)]">
-          {/* Left Sidebar - Machine List */}
-          <ResizablePanel defaultSize={25} minSize={20}>
-            <div className="pr-4">
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)] rounded-lg border">
+          {/* Left Panel - Machine List */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 overflow-y-auto">
               <MachineList 
                 selectedMachine={selectedMachine}
                 onMachineSelect={setSelectedMachine}
@@ -60,9 +53,9 @@ export const RoboticArmsControlSystem = () => {
 
           <ResizableHandle withHandle />
 
-          {/* Center - 3D Visualization and Endpoint Manager */}
-          <ResizablePanel defaultSize={50} minSize={35}>
-            <div className="px-4">
+          {/* Center Panel - 3D Visualization and Endpoint Manager */}
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
               <RoboticArmVisualization 
                 selectedMachineId={selectedMachine}
                 selectedEndpoint={selectedEndpoint}
@@ -74,9 +67,9 @@ export const RoboticArmsControlSystem = () => {
 
           <ResizableHandle withHandle />
 
-          {/* Right Sidebar - Control Panel */}
-          <ResizablePanel defaultSize={25} minSize={20}>
-            <div className="pl-4">
+          {/* Right Panel - Control Panel */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 overflow-y-auto">
               <RoboticArmControlPanel 
                 selectedMachineId={selectedMachine}
                 onParametersChange={setRoboticArmParams}
