@@ -5,6 +5,7 @@ import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { RoboticArmVisualization } from './RoboticArmVisualization';
 import { RoboticArmControlPanel } from './RoboticArmControlPanel';
+import { RoboticArmFilters } from './RoboticArmFilters';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddRoboticArmDialog } from './AddRoboticArmDialog';
@@ -14,6 +15,11 @@ export const RoboticArmsControlSystem = () => {
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [roboticArmParams, setRoboticArmParams] = useState({});
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [manufacturerFilter, setManufacturerFilter] = useState('');
 
   // Clear endpoint when machine changes
   useEffect(() => {
@@ -42,11 +48,26 @@ export const RoboticArmsControlSystem = () => {
         <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)] rounded-lg border">
           {/* Left Panel - Machine List */}
           <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
-            <div className="h-full p-4 overflow-y-auto">
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <RoboticArmFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                manufacturerFilter={manufacturerFilter}
+                onManufacturerChange={setManufacturerFilter}
+              />
+              
               <MachineList 
                 selectedMachine={selectedMachine}
                 onMachineSelect={setSelectedMachine}
                 machineType="robotic_arms"
+                externalFilters={{
+                  searchTerm,
+                  status: statusFilter,
+                  manufacturer: manufacturerFilter
+                }}
+                hideFilters={true}
               />
             </div>
           </ResizablePanel>

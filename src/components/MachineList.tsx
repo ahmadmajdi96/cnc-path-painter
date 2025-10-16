@@ -13,6 +13,12 @@ interface MachineListProps {
   selectedMachine: string;
   onMachineSelect: (id: string) => void;
   machineType: 'cnc' | 'laser' | '3d_printer' | 'robotic_arms';
+  externalFilters?: {
+    searchTerm?: string;
+    status?: string;
+    manufacturer?: string;
+  };
+  hideFilters?: boolean;
 }
 
 interface Machine {
@@ -26,7 +32,13 @@ interface Machine {
   updated_at?: string;
 }
 
-export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: MachineListProps) => {
+export const MachineList = ({ 
+  selectedMachine, 
+  onMachineSelect, 
+  machineType,
+  externalFilters,
+  hideFilters = false
+}: MachineListProps) => {
   const [showFilters, setShowFilters] = useState(false);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
   const [filters, setFilters] = useState({
@@ -37,8 +49,15 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Use external filters if provided, otherwise use internal filters
+  const activeFilters = externalFilters ? {
+    status: externalFilters.status === 'all' ? '' : externalFilters.status || '',
+    manufacturer: externalFilters.manufacturer || '',
+    model: externalFilters.searchTerm || ''
+  } : filters;
+
   const { data: machines = [], isLoading } = useQuery({
-    queryKey: [machineType, filters],
+    queryKey: [machineType, activeFilters],
     queryFn: async () => {
       console.log('Fetching machines for type:', machineType);
       let query: any;
@@ -57,14 +76,14 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
         throw new Error('Invalid machine type');
       }
       
-      if (filters.status) {
-        query = query.eq('status', filters.status);
+      if (activeFilters.status) {
+        query = query.eq('status', activeFilters.status);
       }
-      if (filters.manufacturer) {
-        query = query.ilike('manufacturer', `%${filters.manufacturer}%`);
+      if (activeFilters.manufacturer) {
+        query = query.ilike('manufacturer', `%${activeFilters.manufacturer}%`);
       }
-      if (filters.model) {
-        query = query.ilike('model', `%${filters.model}%`);
+      if (activeFilters.model) {
+        query = query.or(`name.ilike.%${activeFilters.model}%,model.ilike.%${activeFilters.model}%`);
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -180,17 +199,19 @@ export const MachineList = ({ selectedMachine, onMachineSelect, machineType }: M
     <Card className="p-4 bg-white border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">{getMachineTypeLabel()}</h3>
-        <Button
-          onClick={() => setShowFilters(!showFilters)}
-          variant="outline"
-          size="sm"
-        >
-          <Filter className="w-4 h-4 mr-2" />
-          Filters
-        </Button>
+        {!hideFilters && (
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outline"
+            size="sm"
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Filters
+          </Button>
+        )}
       </div>
 
-      {showFilters && (
+      {!hideFilters && showFilters && (
         <div className="mb-4 p-3 bg-gray-50 rounded border">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
