@@ -196,117 +196,88 @@ export const MachineList = ({
   }
 
   return (
-    <Card className="p-4 bg-white border border-gray-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">{getMachineTypeLabel()}</h3>
-        {!hideFilters && (
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant="outline"
-            size="sm"
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            Filters
-          </Button>
-        )}
+    <Card>
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">{getMachineTypeLabel()}</h3>
+          {!hideFilters && (
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant="outline"
+              size="sm"
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+            </Button>
+          )}
+        </div>
       </div>
 
       {!hideFilters && showFilters && (
         <div className="mb-4 p-3 bg-gray-50 rounded border">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full p-2 border rounded"
-              >
-                <option value="">All</option>
-                <option value="idle">Idle</option>
-                <option value="running">Running</option>
-                <option value="error">Error</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Manufacturer</label>
-              <input
-                type="text"
-                value={filters.manufacturer}
-                onChange={(e) => setFilters(prev => ({ ...prev, manufacturer: e.target.value }))}
-                className="w-full p-2 border rounded"
-                placeholder="Filter by manufacturer"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Model</label>
-              <input
-                type="text"
-                value={filters.model}
-                onChange={(e) => setFilters(prev => ({ ...prev, model: e.target.value }))}
-                className="w-full p-2 border rounded"
-                placeholder="Filter by model"
-              />
-            </div>
-          </div>
+...
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="p-4 space-y-2">
         {machines.map((machine) => (
           <div
             key={machine.id}
-            className={`p-3 border rounded cursor-pointer transition-colors ${
+            className={`p-4 rounded-lg border cursor-pointer transition-all ${
               selectedMachine === machine.id
                 ? 'border-purple-500 bg-purple-50'
-                : 'border-gray-200 hover:bg-gray-50'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
             onClick={() => onMachineSelect(machine.id)}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium text-sm">{machine.name}</h4>
-                  <Badge className={getStatusColor(machine.status)}>
-                    {machine.status}
-                  </Badge>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold text-gray-900">{machine.name}</h4>
+              <div className="flex items-center gap-2">
+                <Badge className={getStatusColor(machine.status)}>
+                  {machine.status}
+                </Badge>
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    onClick={() => setEditingMachine(machine)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteMachine(machine)}
+                    size="sm"
+                    variant="outline"
+                    disabled={deleteMachineMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                <p className="text-xs text-gray-500">{machine.model}</p>
-                {machine.manufacturer && (
-                  <p className="text-xs text-gray-400">{machine.manufacturer}</p>
-                )}
-                {machine.endpoint_url && (
-                  <p className="text-xs text-blue-600 mt-1">Endpoint configured</p>
-                )}
               </div>
-              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  onClick={() => setEditingMachine(machine)}
-                  size="sm"
-                  variant="ghost"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-                <Button
-                  onClick={() => handleDeleteMachine(machine)}
-                  size="sm"
-                  variant="ghost"
-                  disabled={deleteMachineMutation.isPending}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+            </div>
+            
+            <div className="space-y-1 text-sm text-gray-600">
+              <div>Model: {machine.model}</div>
+              {machine.manufacturer && (
+                <div>Manufacturer: {machine.manufacturer}</div>
+              )}
+              {machine.endpoint_url && (
+                <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded mt-2">
+                  {machine.endpoint_url}
+                </div>
+              )}
             </div>
           </div>
         ))}
-      </div>
 
-      {machines.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <p>No machines found</p>
-          <p className="text-sm">Add a machine to get started</p>
-        </div>
-      )}
+        {machines.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <Settings className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No machines found</p>
+            <p className="text-sm">Add a machine to get started</p>
+          </div>
+        )}
+      </div>
 
       {editingMachine && (
         <EditMachineDialog
