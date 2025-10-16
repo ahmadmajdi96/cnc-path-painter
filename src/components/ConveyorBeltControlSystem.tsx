@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { MainNavigation } from '@/components/MainNavigation';
 import { StatusCards } from '@/components/StatusCards';
 import { ConveyorBeltList } from '@/components/ConveyorBeltList';
 import { ConveyorBeltFilters } from '@/components/ConveyorBeltFilters';
@@ -253,8 +252,6 @@ export const ConveyorBeltControlSystem = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <MainNavigation />
-      
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
