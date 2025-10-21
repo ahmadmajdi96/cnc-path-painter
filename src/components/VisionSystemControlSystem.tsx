@@ -230,7 +230,7 @@ export const VisionSystemControlSystem = () => {
           </Button>
         </div>
 
-        <StatusCards machineType="cnc" />
+        <StatusCards machineType="vision_systems" />
 
         <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)] rounded-lg border">
           {/* Left Panel - Vision System List */}

@@ -2079,6 +2079,48 @@ export type Database = {
           },
         ]
       }
+      vision_systems: {
+        Row: {
+          camera_type: string
+          communication_type: string | null
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: string | null
+          name: string
+          port: number | null
+          resolution: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          camera_type: string
+          communication_type?: string | null
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          name: string
+          port?: number | null
+          resolution: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          camera_type?: string
+          communication_type?: string | null
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          name?: string
+          port?: number | null
+          resolution?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workflow_steps: {
         Row: {
           created_at: string
