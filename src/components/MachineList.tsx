@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Edit2, Trash2, Plus, Filter } from 'lucide-react';
+import { Settings, Edit2, Trash2, Wrench, Zap, Printer, Bot } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -160,15 +160,15 @@ export const MachineList = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'running':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500';
       case 'idle':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-500';
       case 'error':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500';
       case 'maintenance':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500';
     }
   };
 
@@ -187,6 +187,21 @@ export const MachineList = ({
     }
   };
 
+  const getMachineIcon = (type: string) => {
+    switch (type) {
+      case 'cnc':
+        return Wrench;
+      case 'laser':
+        return Zap;
+      case '3d_printer':
+        return Printer;
+      case 'robotic_arms':
+        return Bot;
+      default:
+        return Settings;
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="p-4 bg-white border border-gray-200">
@@ -197,87 +212,83 @@ export const MachineList = ({
 
   return (
     <Card>
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{getMachineTypeLabel()}</h3>
-          {!hideFilters && (
-            <Button
-              onClick={() => setShowFilters(!showFilters)}
-              variant="outline"
-              size="sm"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
-          )}
-        </div>
-      </div>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            {getMachineTypeLabel()}
+          </span>
+        </CardTitle>
+      </CardHeader>
 
-      {!hideFilters && showFilters && (
-        <div className="mb-4 p-3 bg-gray-50 rounded border">
-...
-        </div>
-      )}
-
-      <div className="p-4 space-y-2">
-        {machines.map((machine) => (
-          <div
-            key={machine.id}
-            className={`p-4 rounded-lg border cursor-pointer transition-all ${
-              selectedMachine === machine.id
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            }`}
-            onClick={() => onMachineSelect(machine.id)}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-semibold text-gray-900">{machine.name}</h4>
-              <div className="flex items-center gap-2">
-                <Badge className={getStatusColor(machine.status)}>
-                  {machine.status}
-                </Badge>
-                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    onClick={() => setEditingMachine(machine)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={() => handleDeleteMachine(machine)}
-                    size="sm"
-                    variant="outline"
-                    disabled={deleteMachineMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+      <CardContent>
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {machines.map((machine) => {
+            const MachineIcon = getMachineIcon(machineType);
+            return (
+              <div
+                key={machine.id}
+                className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                  selectedMachine === machine.id
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onClick={() => onMachineSelect(machine.id)}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <MachineIcon className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <h4 className="font-medium">{machine.name}</h4>
+                      <p className="text-sm text-muted-foreground">{machine.model}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`${getStatusColor(machine.status)} text-white`}>
+                      {machine.status}
+                    </Badge>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        onClick={() => setEditingMachine(machine)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteMachine(machine)}
+                        size="sm"
+                        variant="outline"
+                        disabled={deleteMachineMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  {machine.manufacturer && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Manufacturer:</span>
+                      <span>{machine.manufacturer}</span>
+                    </div>
+                  )}
+                  {machine.endpoint_url && (
+                    <div className="font-mono text-xs bg-muted px-2 py-1 rounded">
+                      {machine.endpoint_url}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-            
-            <div className="space-y-1 text-sm text-gray-600">
-              <div>Model: {machine.model}</div>
-              {machine.manufacturer && (
-                <div>Manufacturer: {machine.manufacturer}</div>
-              )}
-              {machine.endpoint_url && (
-                <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded mt-2">
-                  {machine.endpoint_url}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+            );
+          })}
 
-        {machines.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Settings className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>No machines found</p>
-            <p className="text-sm">Add a machine to get started</p>
-          </div>
-        )}
-      </div>
+          {machines.length === 0 && (
+            <p className="text-muted-foreground text-center py-8">No machines found</p>
+          )}
+        </div>
+      </CardContent>
 
       {editingMachine && (
         <EditMachineDialog

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Camera, Wifi, WifiOff, Edit, Trash2, Plus } from 'lucide-react';
+import { Eye, Camera, Edit, Trash2, Plus } from 'lucide-react';
 
 interface VisionSystem {
   id: string;
@@ -96,26 +96,27 @@ export const VisionSystemList = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {visionSystems.map((system) => (
               <div
                 key={system.id}
-                className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                className={`p-4 border rounded-lg cursor-pointer transition-all ${
                   selectedSystem === system.id
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
                 }`}
                 onClick={() => onSystemSelect(system.id)}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{system.name}</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <Camera className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <h4 className="font-medium">{system.name}</h4>
+                      <p className="text-sm text-muted-foreground">{system.cameraType}</p>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
-                    {system.status === 'online' ? (
-                      <Wifi className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <WifiOff className="w-4 h-4 text-red-500" />
-                    )}
-                    <Badge variant={system.status === 'online' ? 'default' : 'destructive'}>
+                    <Badge variant="outline" className={system.status === 'online' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
                       {system.status}
                     </Badge>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -129,13 +130,12 @@ export const VisionSystemList = ({
                   </div>
                 </div>
                 
-                <div className="space-y-1 text-sm text-gray-600">
+                <div className="grid grid-cols-1 gap-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <Camera className="w-3 h-3" />
-                    <span>{system.cameraType}</span>
+                    <span className="text-muted-foreground">Resolution:</span>
+                    <span>{system.resolution}</span>
                   </div>
-                  <div>Resolution: {system.resolution}</div>
-                  <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                  <div className="font-mono text-xs bg-muted px-2 py-1 rounded">
                     {system.endpoint}
                   </div>
                 </div>
@@ -143,11 +143,7 @@ export const VisionSystemList = ({
             ))}
             
             {visionSystems.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <Camera className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No vision systems available</p>
-                <p className="text-sm">Add a vision system to get started</p>
-              </div>
+              <p className="text-muted-foreground text-center py-8">No vision systems found</p>
             )}
           </div>
         </CardContent>
