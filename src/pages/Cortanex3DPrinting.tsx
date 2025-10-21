@@ -2,8 +2,9 @@ import { CortanexNavigation } from '@/components/CortanexNavigation';
 import { CortanexFooter } from '@/components/CortanexFooter';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Printer, Layers, Box, Clock, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Printer, Layers, Box, Clock, ArrowRight, Settings } from 'lucide-react';
 import printerFeature from '@/assets/3d-printer-feature.jpg';
+import printerInterface from '@/assets/3d-printer-interface.jpg';
 
 const Cortanex3DPrinting = () => {
   const features = [
@@ -125,11 +126,64 @@ const Cortanex3DPrinting = () => {
         </div>
       </section>
 
+      {/* Interface Section */}
+      <section className="py-20 bg-white/80 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">
+              Smart <span className="text-emerald-600">Print Management</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Monitor layer-by-layer progress with comprehensive temperature and material tracking
+            </p>
+          </div>
+
+          <Card className="overflow-hidden hover:shadow-2xl transition-all">
+            <img 
+              src={printerInterface} 
+              alt="3D Printer Control Interface" 
+              className="w-full"
+            />
+            <div className="p-8 bg-gradient-to-br from-white to-emerald-50/30">
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <Layers className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">Layer Visualization</h4>
+                    <p className="text-sm text-gray-600">Real-time layer preview and progress tracking</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <Settings className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">Temperature Control</h4>
+                    <p className="text-sm text-gray-600">Precise monitoring of nozzle and bed temperatures</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">Print Queue</h4>
+                    <p className="text-sm text-gray-600">Manage multiple prints with automated scheduling</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </section>
+
       <section className="py-20 bg-gradient-to-r from-emerald-600 to-sky-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-6">Start Your 3D Printing Journey</h2>
+          <h2 className="text-4xl font-bold mb-6">Build the Future</h2>
           <p className="text-xl mb-8">
-            Experience the future of additive manufacturing with CORTANEX 4.0
+            Deploy advanced additive manufacturing with CORTANEX 4.0
           </p>
           <Button size="lg" className="bg-white text-emerald-600 hover:bg-gray-100">
             Request Demo
