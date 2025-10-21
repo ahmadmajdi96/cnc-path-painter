@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ interface MachineListProps {
     manufacturer?: string;
   };
   hideFilters?: boolean;
+  onMachinesLoaded?: (machines: Machine[]) => void;
 }
 
 interface Machine {
@@ -37,7 +38,8 @@ export const MachineList = ({
   onMachineSelect, 
   machineType,
   externalFilters,
-  hideFilters = false
+  hideFilters = false,
+  onMachinesLoaded
 }: MachineListProps) => {
   const [showFilters, setShowFilters] = useState(false);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
@@ -95,6 +97,13 @@ export const MachineList = ({
       return data as Machine[];
     }
   });
+
+  // Call onMachinesLoaded when machines are loaded
+  useEffect(() => {
+    if (machines.length > 0 && onMachinesLoaded) {
+      onMachinesLoaded(machines);
+    }
+  }, [machines, onMachinesLoaded]);
 
   const deleteMachineMutation = useMutation({
     mutationFn: async (id: string) => {

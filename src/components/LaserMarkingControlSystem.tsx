@@ -67,6 +67,11 @@ export const LaserMarkingControlSystem = () => {
                   manufacturer: manufacturerFilter
                 }}
                 hideFilters={true}
+                onMachinesLoaded={(machines) => {
+                  if (machines.length > 0 && !selectedMachine) {
+                    setSelectedMachine(machines[0].id);
+                  }
+                }}
               />
             </div>
           </ResizablePanel>

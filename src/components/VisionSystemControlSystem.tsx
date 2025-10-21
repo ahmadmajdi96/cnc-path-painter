@@ -125,6 +125,13 @@ export const VisionSystemControlSystem = () => {
     setProcessedImage(null);
   }, [selectedSystem]);
 
+  // Auto-select first system if none selected
+  useEffect(() => {
+    if (filteredVisionSystems.length > 0 && !selectedSystem) {
+      setSelectedSystem(filteredVisionSystems[0].id);
+    }
+  }, [filteredVisionSystems, selectedSystem]);
+
   // Set default endpoint when system is selected
   useEffect(() => {
     if (selectedSystem && !selectedEndpoint) {
