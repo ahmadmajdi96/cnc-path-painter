@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { Printer3DVisualization } from './Printer3DVisualization';
 import { Printer3DControlPanel } from './Printer3DControlPanel';
+import { Printer3DFilters } from './Printer3DFilters';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
@@ -13,6 +15,11 @@ export const Printer3DControlSystem = () => {
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [printerParams, setPrinterParams] = useState({});
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [manufacturerFilter, setManufacturerFilter] = useState('');
 
   // Clear endpoint when machine changes
   useEffect(() => {
@@ -20,58 +27,77 @@ export const Printer3DControlSystem = () => {
   }, [selectedMachine]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-background">
+      <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">3D Printer Control System</h1>
-            <p className="text-gray-600">Monitor and control 3D printing operations</p>
+            <h1 className="text-2xl font-bold">3D Printer Control System</h1>
+            <p className="text-muted-foreground">Monitor and control 3D printing operations</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add 3D Printer
           </Button>
         </div>
-      </div>
 
-      {/* Status Cards */}
-      <div className="px-6 py-4">
         <StatusCards machineType="3d_printer" />
-      </div>
 
-      {/* Main Content */}
-      <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Machine List */}
-        <div className="w-80 flex-shrink-0">
-          <MachineList 
-            selectedMachine={selectedMachine}
-            onMachineSelect={setSelectedMachine}
-            machineType="3d_printer"
-          />
-        </div>
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)] rounded-lg border">
+          {/* Left Panel - Machine List */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <Printer3DFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                manufacturerFilter={manufacturerFilter}
+                onManufacturerChange={setManufacturerFilter}
+              />
+              
+              <MachineList 
+                selectedMachine={selectedMachine}
+                onMachineSelect={setSelectedMachine}
+                machineType="3d_printer"
+                externalFilters={{
+                  searchTerm,
+                  status: statusFilter,
+                  manufacturer: manufacturerFilter
+                }}
+                hideFilters={true}
+              />
+            </div>
+          </ResizablePanel>
 
-        {/* Center - 3D Visualization and Endpoint Manager */}
-        <div className="flex-1 min-w-0 space-y-6">
-          <Printer3DVisualization 
-            selectedMachineId={selectedMachine}
-            selectedEndpoint={selectedEndpoint}
-            printerParams={printerParams}
-            onEndpointSelect={setSelectedEndpoint}
-          />
-        </div>
+          <ResizableHandle withHandle />
 
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-96 flex-shrink-0">
-          <Printer3DControlPanel 
-            selectedMachineId={selectedMachine}
-            onParametersChange={setPrinterParams}
-            selectedEndpoint={selectedEndpoint}
-          />
-        </div>
+          {/* Center Panel - 3D Visualization and Endpoint Manager */}
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <Printer3DVisualization 
+                selectedMachineId={selectedMachine}
+                selectedEndpoint={selectedEndpoint}
+                printerParams={printerParams}
+                onEndpointSelect={setSelectedEndpoint}
+              />
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* Right Panel - Control Panel */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 overflow-y-auto">
+              <Printer3DControlPanel 
+                selectedMachineId={selectedMachine}
+                onParametersChange={setPrinterParams}
+                selectedEndpoint={selectedEndpoint}
+              />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       <AddMachineDialog 

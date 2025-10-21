@@ -17,12 +17,6 @@ export const navItems: NavItem[] = [
     page: "Index",
   },
   {
-    title: "Laser Control",
-    to: "/laser-control",
-    icon: Zap,
-    page: "LaserControl",
-  },
-  {
     title: "Laser Marking",
     to: "/laser-marking",
     icon: Target,

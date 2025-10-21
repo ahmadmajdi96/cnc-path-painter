@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { CNCVisualization } from './CNCVisualization';
 import { ControlPanel } from './ControlPanel';
+import { CNCFilters } from './CNCFilters';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
@@ -13,22 +15,11 @@ export const CNCControlSystem = () => {
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [cncParams, setCncParams] = useState({});
-
-  // Persist endpoint selection across page reloads
-  useEffect(() => {
-    const savedEndpoint = localStorage.getItem(`cnc-endpoint-${selectedMachine}`);
-    if (savedEndpoint && selectedMachine) {
-      setSelectedEndpoint(savedEndpoint);
-    }
-  }, [selectedMachine]);
-
-  // Save endpoint selection to localStorage
-  const handleEndpointSelect = (endpoint: string) => {
-    setSelectedEndpoint(endpoint);
-    if (selectedMachine && endpoint) {
-      localStorage.setItem(`cnc-endpoint-${selectedMachine}`, endpoint);
-    }
-  };
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [manufacturerFilter, setManufacturerFilter] = useState('');
 
   // Clear endpoint when machine changes
   useEffect(() => {
@@ -36,58 +27,77 @@ export const CNCControlSystem = () => {
   }, [selectedMachine]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-background">
+      <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">CNC Control System</h1>
-            <p className="text-gray-600">Monitor and control CNC machining operations</p>
+            <h1 className="text-2xl font-bold">CNC Control System</h1>
+            <p className="text-muted-foreground">Monitor and control CNC machining operations</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add CNC Machine
           </Button>
         </div>
-      </div>
 
-      {/* Status Cards */}
-      <div className="px-6 py-4">
         <StatusCards machineType="cnc" />
-      </div>
 
-      {/* Main Content */}
-      <div className="px-6 pb-6 flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Machine List */}
-        <div className="w-full lg:w-80 flex-shrink-0">
-          <MachineList 
-            selectedMachine={selectedMachine}
-            onMachineSelect={setSelectedMachine}
-            machineType="cnc"
-          />
-        </div>
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)] rounded-lg border">
+          {/* Left Panel - Machine List */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <CNCFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                manufacturerFilter={manufacturerFilter}
+                onManufacturerChange={setManufacturerFilter}
+              />
+              
+              <MachineList 
+                selectedMachine={selectedMachine}
+                onMachineSelect={setSelectedMachine}
+                machineType="cnc"
+                externalFilters={{
+                  searchTerm,
+                  status: statusFilter,
+                  manufacturer: manufacturerFilter
+                }}
+                hideFilters={true}
+              />
+            </div>
+          </ResizablePanel>
 
-        {/* Center - 2D Visualization and Endpoint Manager */}
-        <div className="flex-1 min-w-0 space-y-6 overflow-hidden">
-          <CNCVisualization 
-            selectedMachineId={selectedMachine}
-            selectedEndpoint={selectedEndpoint}
-            cncParams={cncParams}
-            onEndpointSelect={handleEndpointSelect}
-          />
-        </div>
+          <ResizableHandle withHandle />
 
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-full lg:w-96 flex-shrink-0">
-          <ControlPanel 
-            selectedMachineId={selectedMachine}
-            onParametersChange={setCncParams}
-            selectedEndpoint={selectedEndpoint}
-          />
-        </div>
+          {/* Center Panel - 2D Visualization and Endpoint Manager */}
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <CNCVisualization 
+                selectedMachineId={selectedMachine}
+                selectedEndpoint={selectedEndpoint}
+                cncParams={cncParams}
+                onEndpointSelect={setSelectedEndpoint}
+              />
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* Right Panel - Control Panel */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 overflow-y-auto">
+              <ControlPanel 
+                selectedMachineId={selectedMachine}
+                onParametersChange={setCncParams}
+                selectedEndpoint={selectedEndpoint}
+              />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       <AddMachineDialog 

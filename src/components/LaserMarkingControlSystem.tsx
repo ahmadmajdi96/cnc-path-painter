@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { StatusCards } from './StatusCards';
 import { MachineList } from './MachineList';
 import { CNCVisualization } from './CNCVisualization';
 import { LaserControlPanel } from './LaserControlPanel';
+import { LaserMarkingFilters } from './LaserMarkingFilters';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
@@ -13,6 +15,11 @@ export const LaserMarkingControlSystem = () => {
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
   const [laserParams, setLaserParams] = useState({});
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [manufacturerFilter, setManufacturerFilter] = useState('');
 
   // Clear endpoint when machine changes
   useEffect(() => {
@@ -20,59 +27,78 @@ export const LaserMarkingControlSystem = () => {
   }, [selectedMachine]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen bg-background">
+      <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Laser Marking Control</h1>
-            <p className="text-gray-600">Monitor and control laser marking operations</p>
+            <h1 className="text-2xl font-bold">Laser Marking Control</h1>
+            <p className="text-muted-foreground">Monitor and control laser marking operations</p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Laser Machine
           </Button>
         </div>
-      </div>
 
-      {/* Status Cards */}
-      <div className="px-6 py-4">
         <StatusCards machineType="laser" />
-      </div>
 
-      {/* Main Content */}
-      <div className="px-6 pb-6 flex gap-6 min-h-[calc(100vh-200px)]">
-        {/* Left Sidebar - Machine List */}
-        <div className="w-80 flex-shrink-0">
-          <MachineList 
-            selectedMachine={selectedMachine}
-            onMachineSelect={setSelectedMachine}
-            machineType="laser"
-          />
-        </div>
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-280px)] rounded-lg border">
+          {/* Left Panel - Machine List */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <LaserMarkingFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                manufacturerFilter={manufacturerFilter}
+                onManufacturerChange={setManufacturerFilter}
+              />
+              
+              <MachineList 
+                selectedMachine={selectedMachine}
+                onMachineSelect={setSelectedMachine}
+                machineType="laser"
+                externalFilters={{
+                  searchTerm,
+                  status: statusFilter,
+                  manufacturer: manufacturerFilter
+                }}
+                hideFilters={true}
+              />
+            </div>
+          </ResizablePanel>
 
-        {/* Center - 2D Visualization and Endpoint Manager */}
-        <div className="flex-1 min-w-0 space-y-6">
-          <CNCVisualization 
-            selectedMachineId={selectedMachine}
-            selectedEndpoint={selectedEndpoint}
-            cncParams={laserParams}
-            onEndpointSelect={setSelectedEndpoint}
-            machineType="laser"
-          />
-        </div>
+          <ResizableHandle withHandle />
 
-        {/* Right Sidebar - Control Panel */}
-        <div className="w-96 flex-shrink-0">
-          <LaserControlPanel 
-            selectedMachineId={selectedMachine}
-            onParametersChange={setLaserParams}
-            selectedEndpoint={selectedEndpoint}
-          />
-        </div>
+          {/* Center Panel - 2D Visualization and Endpoint Manager */}
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-4 space-y-4 overflow-y-auto">
+              <CNCVisualization 
+                selectedMachineId={selectedMachine}
+                selectedEndpoint={selectedEndpoint}
+                cncParams={laserParams}
+                onEndpointSelect={setSelectedEndpoint}
+                machineType="laser"
+              />
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* Right Panel - Control Panel */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 overflow-y-auto">
+              <LaserControlPanel 
+                selectedMachineId={selectedMachine}
+                onParametersChange={setLaserParams}
+                selectedEndpoint={selectedEndpoint}
+              />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       <AddMachineDialog 

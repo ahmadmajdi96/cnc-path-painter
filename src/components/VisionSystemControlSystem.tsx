@@ -217,7 +217,6 @@ export const VisionSystemControlSystem = () => {
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Vision System

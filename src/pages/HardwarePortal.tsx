@@ -3,7 +3,6 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { MainNavigation } from '@/components/MainNavigation';
 import Index from './Index';
-import LaserControl from './LaserControl';
 import LaserMarking from './LaserMarking';
 import Printer3D from './Printer3D';
 import RoboticArms from './RoboticArms';
@@ -17,7 +16,6 @@ const HardwarePortal = () => {
       <MainNavigation />
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/laser-control" element={<LaserControl />} />
         <Route path="/laser-marking" element={<LaserMarking />} />
         <Route path="/3d-printer" element={<Printer3D />} />
         <Route path="/robotic-arms" element={<RoboticArms />} />
