@@ -9,7 +9,6 @@ export const MainNavigation = () => {
   
   const navItems = [
     { path: '/hardware/', label: 'CNC Control', icon: Wrench },
-    { path: '/hardware/laser-control', label: 'Laser Control', icon: Zap },
     { path: '/hardware/laser-marking', label: 'Laser Marking', icon: Target },
     { path: '/hardware/3d-printer', label: '3D Printer', icon: Box },
     { path: '/hardware/robotic-arms', label: 'Robotic Arms', icon: Bot },
