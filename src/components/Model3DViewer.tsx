@@ -711,7 +711,7 @@ export const Model3DViewer = ({
   };
 
   return <div className="space-y-4">
-      <Card className="p-4 py-[59px]">
+      <Card className="p-4">
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-3">3D Model Viewer</h3>
           <div className="flex gap-2 flex-wrap">
