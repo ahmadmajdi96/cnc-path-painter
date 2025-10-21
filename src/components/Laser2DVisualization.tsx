@@ -456,9 +456,9 @@ export const Laser2DVisualization: React.FC<Laser2DVisualizationProps> = ({
 
       <canvas
         ref={canvasRef}
-        width={900}
-        height={700}
-        className="border border-gray-300 cursor-crosshair bg-gray-50"
+        width={800}
+        height={600}
+        className="w-full border border-gray-300 cursor-crosshair bg-gray-50"
         onClick={handleCanvasClick}
         onWheel={handleWheel}
       />
