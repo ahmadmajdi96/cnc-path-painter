@@ -712,9 +712,9 @@ export const Model3DViewer = ({
 
   return <div className="space-y-4">
       <Card className="p-4 py-[59px]">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">3D Model Viewer</h3>
-          <div className="flex gap-2">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-3">3D Model Viewer</h3>
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" disabled={isUploading}>
               <Upload className="w-4 h-4 mr-2" />
               {isUploading ? "Uploading..." : "Upload Model"}

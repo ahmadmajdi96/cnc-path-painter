@@ -422,9 +422,9 @@ export const RoboticArm3DViewer = ({
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Robotic Arm - 3D Visualization</h3>
-          <div className="flex gap-2">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-3">Robotic Arm - 3D Visualization</h3>
+          <div className="flex gap-2 flex-wrap">
             <Button 
               onClick={handlePositionModeToggle} 
               size="sm" 

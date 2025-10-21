@@ -178,64 +178,62 @@ export const VisionSystemViewer = ({
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Camera className="w-5 h-5" />
-              <span>Image Viewer - {selectedSystem?.name}</span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={viewMode === 'original' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('original')}
-                >
-                  Original
-                </Button>
-                <Button
-                  variant={viewMode === 'processed' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('processed')}
-                  disabled={!processedImage}
-                >
-                  Processed
-                </Button>
-                <Button
-                  variant={viewMode === 'split' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('split')}
-                  disabled={!processedImage}
-                >
-                  Split View
-                </Button>
-              </div>
-              
-              <div className="flex items-center gap-2 ml-4">
-                <Button size="sm" variant="outline" onClick={() => setShowGallery(true)} disabled={systemImages.length === 0}>
-                  <FolderOpen className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleClearView}>
-                  <X className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setZoom(Math.max(25, zoom - 25))}>
-                  <ZoomOut className="w-4 h-4" />
-                </Button>
-                <span className="text-sm text-gray-600 w-12 text-center">{zoom}%</span>
-                <Button size="sm" variant="outline" onClick={() => setZoom(Math.min(400, zoom + 25))}>
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setRotation((rotation + 90) % 360)}>
-                  <RotateCw className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={downloadImage} disabled={!currentImage}>
-                  <Download className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+          <CardTitle className="flex items-center gap-2">
+            <Camera className="w-5 h-5" />
+            <span>Image Viewer - {selectedSystem?.name}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'original' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('original')}
+              >
+                Original
+              </Button>
+              <Button
+                variant={viewMode === 'processed' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('processed')}
+                disabled={!processedImage}
+              >
+                Processed
+              </Button>
+              <Button
+                variant={viewMode === 'split' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('split')}
+                disabled={!processedImage}
+              >
+                Split View
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShowGallery(true)} disabled={systemImages.length === 0}>
+                <FolderOpen className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleClearView}>
+                <X className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setZoom(Math.max(25, zoom - 25))}>
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-gray-600 w-12 text-center">{zoom}%</span>
+              <Button size="sm" variant="outline" onClick={() => setZoom(Math.min(400, zoom + 25))}>
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setRotation((rotation + 90) % 360)}>
+                <RotateCw className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={downloadImage} disabled={!currentImage}>
+                <Download className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          
           <div className="relative bg-gray-50 rounded-lg min-h-96 flex items-center justify-center overflow-hidden">
             {currentImage ? (
               <div className="flex w-full h-full">
