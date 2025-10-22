@@ -2,9 +2,13 @@ import { CortanexNavigation } from '@/components/CortanexNavigation';
 import { CortanexFooter } from '@/components/CortanexFooter';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Wrench, Zap, BarChart, Shield, ArrowRight, Code2, Gauge, Target } from 'lucide-react';
+import { CheckCircle2, Wrench, Zap, BarChart, Shield, ArrowRight, Code2, Gauge, Target, Search, Link, FileCode, Monitor } from 'lucide-react';
 import cncFeature from '@/assets/cnc-feature.jpg';
 import cncInterface from '@/assets/cnc-control-interface.jpg';
+import cncMachineList from '@/assets/cnc-machine-list.png';
+import cncEndpointManager from '@/assets/cnc-endpoint-manager.png';
+import cncToolpathManager from '@/assets/cnc-toolpath-manager.png';
+import cncFullSystem from '@/assets/cnc-full-system.png';
 
 const CortanexCNC = () => {
   const features = [
@@ -179,6 +183,131 @@ const CortanexCNC = () => {
               </div>
             </div>
           </Card>
+        </div>
+      </section>
+
+      {/* Hardware Portal Features Section */}
+      <section className="py-20 bg-gradient-to-b from-white via-sky-50/30 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">
+              Complete <span className="text-sky-600">Control System</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Experience the full power of CORTANEX 4.0's CNC management capabilities
+            </p>
+          </div>
+
+          {/* Full System Overview */}
+          <div className="mb-20">
+            <Card className="overflow-hidden hover:shadow-2xl transition-all">
+              <img 
+                src={cncFullSystem} 
+                alt="Complete CNC Control System Dashboard" 
+                className="w-full"
+              />
+              <div className="p-8 bg-gradient-to-br from-white to-sky-50/30">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
+                    <Monitor className="w-6 h-6 text-sky-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">Unified Control Dashboard</h3>
+                    <p className="text-gray-700 leading-relaxed">
+                      The complete CORTANEX 4.0 CNC control interface provides a comprehensive three-panel layout designed for maximum efficiency. 
+                      Monitor multiple machines simultaneously, visualize toolpaths in real-time with 2D/3D rendering, and control all parameters 
+                      from a single unified dashboard. The system displays live machine status with color-coded indicators (Connected, Ready, Active), 
+                      real-time position tracking, and instant parameter adjustments. The emergency stop function is always accessible, ensuring 
+                      operator safety while maintaining full control over production operations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Feature Grid */}
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Machine Management */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all">
+              <img 
+                src={cncMachineList} 
+                alt="CNC Machine List and Filters" 
+                className="w-full"
+              />
+              <div className="p-6 bg-gradient-to-br from-white to-sky-50/20">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0">
+                    <Search className="w-5 h-5 text-sky-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">Smart Machine Management</h4>
+                    <p className="text-gray-600 leading-relaxed">
+                      Efficiently manage your entire fleet of CNC machines through an intuitive interface. The advanced search and 
+                      filter system allows instant access to any machine by name, model, or manufacturer. Real-time status indicators 
+                      show machine availability at a glance (Idle, Running, Error, Maintenance). Each machine card displays critical 
+                      information including model number, endpoint connections, and quick-access controls for editing configurations 
+                      or removing machines from the system.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Endpoint Management */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all">
+              <img 
+                src={cncEndpointManager} 
+                alt="Endpoint Manager Interface" 
+                className="w-full"
+              />
+              <div className="p-6 bg-gradient-to-br from-white to-emerald-50/20">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <Link className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">Seamless Integration</h4>
+                    <p className="text-gray-600 leading-relaxed">
+                      Connect your CNC machines to external systems effortlessly through the Endpoint Manager. Configure connections 
+                      to Manufacturing Execution Systems (MES), Enterprise Resource Planning (ERP) software, and other industrial 
+                      protocols. Each endpoint displays its connection status (Connected/Disconnected) with IP address information 
+                      for easy network diagnostics. Add new endpoints with a single click and establish bi-directional communication 
+                      for data exchange, production tracking, and automated workflow integration.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Toolpath Management */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all md:col-span-2">
+              <img 
+                src={cncToolpathManager} 
+                alt="Toolpath and G-Code Management" 
+                className="w-full"
+              />
+              <div className="p-6 bg-gradient-to-br from-white to-sky-50/20">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0">
+                    <FileCode className="w-5 h-5 text-sky-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">Advanced Toolpath Control</h4>
+                    <p className="text-gray-600 leading-relaxed">
+                      Take full control of your machining operations with comprehensive G-Code management. The system supports both 
+                      manual toolpath creation by clicking within the material area and automated G-Code generation. Download generated 
+                      toolpaths for offline editing or upload existing G-Code files from external CAM software. Save multiple toolpath 
+                      configurations with descriptive names for quick recall and reuse. The "Send Configuration" button instantly 
+                      transmits instructions to your CNC machine, while the saved toolpaths library provides easy access to frequently 
+                      used patterns. Each toolpath displays the number of points and can be loaded with a single click, dramatically 
+                      reducing setup time and minimizing human error.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
       </section>
 
