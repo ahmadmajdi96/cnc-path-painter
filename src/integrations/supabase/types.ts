@@ -563,6 +563,167 @@ export type Database = {
         }
         Relationships: []
       }
+      dataset_annotations: {
+        Row: {
+          class_id: string
+          created_at: string
+          dataset_item_id: string
+          height: number
+          id: string
+          width: number
+          x: number
+          y: number
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          dataset_item_id: string
+          height: number
+          id?: string
+          width: number
+          x: number
+          y: number
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          dataset_item_id?: string
+          height?: number
+          id?: string
+          width?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dataset_annotations_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "dataset_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dataset_annotations_dataset_item_id_fkey"
+            columns: ["dataset_item_id"]
+            isOneToOne: false
+            referencedRelation: "dataset_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dataset_classes: {
+        Row: {
+          color: string
+          created_at: string
+          dataset_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          dataset_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          dataset_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dataset_classes_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dataset_items: {
+        Row: {
+          classification_class_id: string | null
+          content: string | null
+          created_at: string
+          dataset_id: string
+          id: string
+          name: string
+          url: string | null
+        }
+        Insert: {
+          classification_class_id?: string | null
+          content?: string | null
+          created_at?: string
+          dataset_id: string
+          id?: string
+          name: string
+          url?: string | null
+        }
+        Update: {
+          classification_class_id?: string | null
+          content?: string | null
+          created_at?: string
+          dataset_id?: string
+          id?: string
+          name?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dataset_items_classification_class_id_fkey"
+            columns: ["classification_class_id"]
+            isOneToOne: false
+            referencedRelation: "dataset_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dataset_items_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      datasets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          item_count: number | null
+          mode: string | null
+          name: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_count?: number | null
+          mode?: string | null
+          name: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_count?: number | null
+          mode?: string | null
+          name?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           company_id: string | null
@@ -741,7 +902,7 @@ export type Database = {
           data_type: string | null
           id: string
           installation_date: string | null
-          ip_address: unknown | null
+          ip_address: unknown
           model: string | null
           name: string
           serial_number: string | null
@@ -755,7 +916,7 @@ export type Database = {
           data_type?: string | null
           id?: string
           installation_date?: string | null
-          ip_address?: unknown | null
+          ip_address?: unknown
           model?: string | null
           name: string
           serial_number?: string | null
@@ -769,7 +930,7 @@ export type Database = {
           data_type?: string | null
           id?: string
           installation_date?: string | null
-          ip_address?: unknown | null
+          ip_address?: unknown
           model?: string | null
           name?: string
           serial_number?: string | null
@@ -1593,7 +1754,7 @@ export type Database = {
           created_at: string
           degrees_of_freedom: number
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_connected: boolean | null
           joints: number
           manufacturer: string | null
@@ -1613,7 +1774,7 @@ export type Database = {
           created_at?: string
           degrees_of_freedom?: number
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_connected?: boolean | null
           joints?: number
           manufacturer?: string | null
@@ -1633,7 +1794,7 @@ export type Database = {
           created_at?: string
           degrees_of_freedom?: number
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_connected?: boolean | null
           joints?: number
           manufacturer?: string | null

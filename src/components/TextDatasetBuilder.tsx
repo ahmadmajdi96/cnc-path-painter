@@ -2,7 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Construction } from 'lucide-react';
 
-export const TextDatasetBuilder = () => {
+interface TextDatasetBuilderProps {
+  datasetId: string;
+}
+
+export const TextDatasetBuilder = ({ datasetId }: TextDatasetBuilderProps) => {
   return (
     <Card>
       <CardHeader>
