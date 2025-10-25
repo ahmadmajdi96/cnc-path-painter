@@ -30,6 +30,8 @@ const aiAgents = [
 
 const dataTools = [
   { title: "Dataset Builder", to: "/ai/dataset-builder", description: "Build and annotate datasets for AI training" },
+  { title: "Rules Dataset", to: "/ai/rules-dataset", description: "Create and manage rules with sub-rules and prompts" },
+  { title: "Datasets Combiner", to: "/ai/datasets-combiner", description: "Select and combine multiple datasets" },
 ];
 
 export const AINavigation = () => {

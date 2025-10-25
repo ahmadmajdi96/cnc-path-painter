@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Upload, Settings, Play, Image, UserCheck } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
 const FaceRecognitionPage = () => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
@@ -86,14 +87,20 @@ const FaceRecognitionPage = () => {
           </Card>
         </div>
 
-        {/* AI Model Manager */}
-        <AIModelManager
-          modelType="face_recognition"
-          title="Face Recognition"
-          description="AI models for face detection and recognition"
-          onModelSelect={setSelectedModel}
-          selectedModelId={selectedModel?.id}
-        />
+        {/* AI Model and Dataset Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <AIModelManager
+            modelType="face_recognition"
+            title="Face Recognition"
+            description="AI models for face detection and recognition"
+            onModelSelect={setSelectedModel}
+            selectedModelId={selectedModel?.id}
+          />
+          <AIModelDatasetSelector
+            modelId={selectedModel?.id || null}
+            modelType="face_recognition"
+          />
+        </div>
 
         {/* Model Performance */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">

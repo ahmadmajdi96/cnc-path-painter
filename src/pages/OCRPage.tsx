@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { FileText, Upload, Copy, Download, Image } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
 import { useToast } from '@/hooks/use-toast';
 
@@ -181,14 +182,20 @@ const OCRPage = () => {
           </Card>
         </div>
 
-        {/* AI Model Manager */}
-        <AIModelManager
-          modelType="ocr"
-          title="OCR"
-          description="AI models for optical character recognition and text extraction"
-          onModelSelect={setSelectedModel}
-          selectedModelId={selectedModel?.id}
-        />
+        {/* AI Model and Dataset Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <AIModelManager
+            modelType="ocr"
+            title="OCR"
+            description="AI models for optical character recognition and text extraction"
+            onModelSelect={setSelectedModel}
+            selectedModelId={selectedModel?.id}
+          />
+          <AIModelDatasetSelector
+            modelId={selectedModel?.id || null}
+            modelType="ocr"
+          />
+        </div>
 
         {/* OCR Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">

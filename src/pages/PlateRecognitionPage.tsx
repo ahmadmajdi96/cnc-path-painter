@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Scan, Upload, Settings, Play, Image, Car } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
 const PlateRecognitionPage = () => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
@@ -84,14 +85,20 @@ const PlateRecognitionPage = () => {
           </Card>
         </div>
 
-        {/* AI Model Manager */}
-        <AIModelManager
-          modelType="plate_recognition"
-          title="Plate Recognition"
-          description="AI models for license plate detection and OCR"
-          onModelSelect={setSelectedModel}
-          selectedModelId={selectedModel?.id}
-        />
+        {/* AI Model and Dataset Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <AIModelManager
+            modelType="plate_recognition"
+            title="Plate Recognition"
+            description="AI models for license plate detection and OCR"
+            onModelSelect={setSelectedModel}
+            selectedModelId={selectedModel?.id}
+          />
+          <AIModelDatasetSelector
+            modelId={selectedModel?.id || null}
+            modelType="plate_recognition"
+          />
+        </div>
 
         {/* Model Performance */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">

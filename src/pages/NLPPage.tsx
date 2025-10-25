@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Brain, FileText, MessageSquare, Zap, Upload } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
 import { useToast } from '@/hooks/use-toast';
 
@@ -162,14 +163,20 @@ const NLPPage = () => {
           </Card>
         </div>
 
-        {/* AI Model Manager */}
-        <AIModelManager
-          modelType="nlp"
-          title="NLP"
-          description="AI models for natural language processing and text analysis"
-          onModelSelect={setSelectedModel}
-          selectedModelId={selectedModel?.id}
-        />
+        {/* AI Model and Dataset Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <AIModelManager
+            modelType="nlp"
+            title="NLP"
+            description="AI models for natural language processing and text analysis"
+            onModelSelect={setSelectedModel}
+            selectedModelId={selectedModel?.id}
+          />
+          <AIModelDatasetSelector
+            modelId={selectedModel?.id || null}
+            modelType="nlp"
+          />
+        </div>
 
         {/* NLP Capabilities */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">

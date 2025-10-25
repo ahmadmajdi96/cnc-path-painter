@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Camera, Upload, Settings, Play, Image } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
 const ObjectRecognitionPage = () => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
@@ -81,14 +82,20 @@ const ObjectRecognitionPage = () => {
           </Card>
         </div>
 
-        {/* AI Model Manager */}
-        <AIModelManager
-          modelType="object_recognition"
-          title="Object Recognition"
-          description="AI models for object classification and identification"
-          onModelSelect={setSelectedModel}
-          selectedModelId={selectedModel?.id}
-        />
+        {/* AI Model and Dataset Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <AIModelManager
+            modelType="object_recognition"
+            title="Object Recognition"
+            description="AI models for object classification and identification"
+            onModelSelect={setSelectedModel}
+            selectedModelId={selectedModel?.id}
+          />
+          <AIModelDatasetSelector
+            modelId={selectedModel?.id || null}
+            modelType="object_recognition"
+          />
+        </div>
 
         {/* Model Performance */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">

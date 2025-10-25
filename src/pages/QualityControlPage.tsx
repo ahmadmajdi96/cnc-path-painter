@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Camera, AlertTriangle, CheckCircle, Settings, Play } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
+import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
 const QualityControlPage = () => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
@@ -69,14 +70,20 @@ const QualityControlPage = () => {
           </CardContent>
         </Card>
 
-        {/* AI Model Manager */}
-        <AIModelManager
-          modelType="quality_control"
-          title="Quality Control"
-          description="AI models for visual inspection and defect detection"
-          onModelSelect={setSelectedModel}
-          selectedModelId={selectedModel?.id}
-        />
+        {/* AI Model and Dataset Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <AIModelManager
+            modelType="quality_control"
+            title="Quality Control"
+            description="AI models for visual inspection and defect detection"
+            onModelSelect={setSelectedModel}
+            selectedModelId={selectedModel?.id}
+          />
+          <AIModelDatasetSelector
+            modelId={selectedModel?.id || null}
+            modelType="quality_control"
+          />
+        </div>
 
         {/* Recent Inspections */}
         <Card className="mt-6">
