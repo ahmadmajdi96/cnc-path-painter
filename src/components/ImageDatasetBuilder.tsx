@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Upload, Plus, X, Tag, Box } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Upload, Plus, X, Tag, Box, ZoomIn, ZoomOut, Move, Hand } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ImageAnnotationCanvas } from './ImageAnnotationCanvas';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 interface DatasetClass {
   id: string;
@@ -49,6 +50,7 @@ interface ImageDatasetBuilderProps {
 export const ImageDatasetBuilder = ({ datasetId }: ImageDatasetBuilderProps) => {
   const [newClassName, setNewClassName] = useState('');
   const [selectedImage, setSelectedImage] = useState<UploadedImage | null>(null);
+  const [selectedClassForAnnotation, setSelectedClassForAnnotation] = useState<string>('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -278,23 +280,167 @@ export const ImageDatasetBuilder = ({ datasetId }: ImageDatasetBuilderProps) => 
     classification: item.classification_class_id,
   }));
 
+  // Set first class as selected by default
+  useEffect(() => {
+    if (classes.length > 0 && !selectedClassForAnnotation) {
+      setSelectedClassForAnnotation(classes[0].id);
+    }
+  }, [classes]);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left Panel - Classes and Upload */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Tag className="w-5 h-5" />
-            Classes
-          </CardTitle>
-          <CardDescription>
-            Define classes for classification or annotation
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
+    <div className="flex h-[calc(100vh-12rem)] gap-4">
+      {/* Left Sidebar - Image List */}
+      <div className="w-64 border rounded-lg bg-card flex flex-col">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold mb-3">Images ({images.length})</h3>
+          <Label htmlFor="image-upload" className="cursor-pointer">
+            <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-accent transition-colors">
+              <Upload className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
+              <p className="text-xs font-medium">Upload Images</p>
+            </div>
             <Input
-              placeholder="Enter class name"
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+          </Label>
+        </div>
+
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-2">
+            {images.map((image) => (
+              <div
+                key={image.id}
+                className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                  selectedImage?.id === image.id
+                    ? 'border-primary ring-2 ring-primary/20'
+                    : 'border-transparent hover:border-primary/50'
+                }`}
+                onClick={() => handleImageClick(image)}
+              >
+                <img
+                  src={image.url}
+                  alt={image.name}
+                  className="w-full h-32 object-cover"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                  <p className="text-xs text-white truncate">{image.name}</p>
+                  <div className="flex gap-1 mt-1">
+                    {mode === 'annotate' && annotations.filter(a => a.dataset_item_id === image.id).length > 0 && (
+                      <Badge variant="secondary" className="text-xs h-5">
+                        <Box className="w-3 h-3 mr-1" />
+                        {annotations.filter(a => a.dataset_item_id === image.id).length}
+                      </Badge>
+                    )}
+                    {mode === 'classify' && image.classification && (
+                      <Badge variant="secondary" className="text-xs h-5">
+                        {classes.find(c => c.id === image.classification)?.name}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Center - Main Canvas */}
+      <div className="flex-1 border rounded-lg bg-card flex flex-col">
+        {selectedImage ? (
+          <>
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">{selectedImage.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {mode === 'annotate' 
+                    ? `${annotations.filter(a => a.dataset_item_id === selectedImage.id).length} annotations` 
+                    : 'Classification mode'
+                  }
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden">
+              {mode === 'annotate' ? (
+                <ImageAnnotationCanvas
+                  image={selectedImage}
+                  classes={classes}
+                  annotations={annotations
+                    .filter(a => a.dataset_item_id === selectedImage.id)
+                    .map(a => ({
+                      id: a.id,
+                      classId: a.class_id,
+                      x: Number(a.x),
+                      y: Number(a.y),
+                      width: Number(a.width),
+                      height: Number(a.height),
+                    }))}
+                  onAnnotationsUpdate={handleAnnotationUpdate}
+                  selectedClass={selectedClassForAnnotation}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center p-8">
+                  <div className="max-w-2xl w-full space-y-4">
+                    <img
+                      src={selectedImage.url}
+                      alt={selectedImage.name}
+                      className="w-full rounded-lg border"
+                    />
+                    <div>
+                      <Label>Select Class</Label>
+                      <Select
+                        value={selectedImage.classification}
+                        onValueChange={(value) => handleClassificationUpdate(selectedImage.id, value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classes.map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded"
+                                  style={{ backgroundColor: cls.color }}
+                                />
+                                {cls.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Box className="w-16 h-16 mx-auto mb-4 opacity-20" />
+              <p className="text-lg font-medium">No image selected</p>
+              <p className="text-sm mt-2">Select an image from the left to start {mode === 'annotate' ? 'annotating' : 'classifying'}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar - Classes & Tools */}
+      <div className="w-80 border rounded-lg bg-card flex flex-col">
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-2 mb-3">
+            <Tag className="w-5 h-5" />
+            <h3 className="font-semibold">Classes</h3>
+          </div>
+
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Class name"
               value={newClassName}
               onChange={(e) => setNewClassName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddClass()}
@@ -303,12 +449,19 @@ export const ImageDatasetBuilder = ({ datasetId }: ImageDatasetBuilderProps) => 
               <Plus className="w-4 h-4" />
             </Button>
           </div>
+        </div>
 
+        <ScrollArea className="flex-1 p-4">
           <div className="space-y-2">
             {classes.map((cls) => (
               <div
                 key={cls.id}
-                className="flex items-center justify-between p-2 rounded border"
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  selectedClassForAnnotation === cls.id
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onClick={() => setSelectedClassForAnnotation(cls.id)}
               >
                 <div className="flex items-center gap-2">
                   <div
@@ -320,155 +473,43 @@ export const ImageDatasetBuilder = ({ datasetId }: ImageDatasetBuilderProps) => 
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleRemoveClass(cls.id)}
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveClass(cls.id);
+                  }}
                 >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
             ))}
-          </div>
 
-          <div className="pt-4 border-t">
-            <Label htmlFor="image-upload" className="cursor-pointer">
-              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-accent transition-colors">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm font-medium">Upload Images</p>
-                <p className="text-xs text-muted-foreground mt-1">Max 100 images</p>
+            {classes.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Tag className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                <p className="text-sm">No classes yet</p>
+                <p className="text-xs mt-1">Add classes to start labeling</p>
               </div>
-              <Input
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-            </Label>
+            )}
           </div>
+        </ScrollArea>
 
-          <div className="text-sm text-muted-foreground">
-            <p>{images.length} image(s) uploaded</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Middle Panel - Image Grid */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Images</CardTitle>
-          <CardDescription>
-            {mode === 'classify' ? 'Select images to classify' : 'Select images to annotate'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 max-h-[600px] overflow-y-auto">
-            {images.map((image) => (
-              <div
-                key={image.id}
-                className="relative group cursor-pointer"
-                onClick={() => handleImageClick(image)}
-              >
-                <img
-                  src={image.url}
-                  alt={image.name}
-                  className="w-full h-32 object-cover rounded border-2 transition-all hover:border-primary"
-                  style={{
-                    borderColor: selectedImage?.id === image.id ? 'hsl(var(--primary))' : undefined
-                  }}
-                />
-                <div className="absolute top-2 right-2">
-                  {mode === 'annotate' && annotations.filter(a => a.dataset_item_id === image.id).length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      <Box className="w-3 h-3 mr-1" />
-                      {annotations.filter(a => a.dataset_item_id === image.id).length}
-                    </Badge>
-                  )}
-                  {mode === 'classify' && image.classification && (
-                    <Badge variant="secondary" className="text-xs">
-                      {classes.find(c => c.id === image.classification)?.name}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {images.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>No images uploaded yet</p>
+        {mode === 'annotate' && (
+          <>
+            <Separator />
+            <div className="p-4">
+              <h4 className="text-sm font-semibold mb-3">Annotation Tips</h4>
+              <ul className="text-xs text-muted-foreground space-y-2">
+                <li>• Select a class before drawing</li>
+                <li>• Click and drag to create boxes</li>
+                <li>• Drag corners to resize</li>
+                <li>• Click box center to move</li>
+                <li>• Press Delete to remove</li>
+              </ul>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Right Panel - Annotation/Classification */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {mode === 'annotate' ? 'Annotate' : 'Classify'}
-          </CardTitle>
-          <CardDescription>
-            {selectedImage ? selectedImage.name : 'Select an image to start'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {selectedImage ? (
-            mode === 'annotate' ? (
-              <ImageAnnotationCanvas
-                image={selectedImage}
-                classes={classes}
-                annotations={annotations
-                  .filter(a => a.dataset_item_id === selectedImage.id)
-                  .map(a => ({
-                    id: a.id,
-                    classId: a.class_id,
-                    x: Number(a.x),
-                    y: Number(a.y),
-                    width: Number(a.width),
-                    height: Number(a.height),
-                  }))}
-                onAnnotationsUpdate={handleAnnotationUpdate}
-              />
-            ) : (
-              <div className="space-y-4">
-                <img
-                  src={selectedImage.url}
-                  alt={selectedImage.name}
-                  className="w-full rounded border"
-                />
-                <div>
-                  <Label>Select Class</Label>
-                  <Select
-                    value={selectedImage.classification}
-                    onValueChange={(value) => handleClassificationUpdate(selectedImage.id, value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded"
-                              style={{ backgroundColor: cls.color }}
-                            />
-                            {cls.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Select an image to start {mode === 'annotate' ? 'annotating' : 'classifying'}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </>
+        )}
+      </div>
     </div>
   );
 };

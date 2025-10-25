@@ -30,6 +30,7 @@ interface ImageAnnotationCanvasProps {
   classes: DatasetClass[];
   annotations: Annotation[];
   onAnnotationsUpdate: (annotations: Annotation[]) => void;
+  selectedClass?: string;
 }
 
 type DragHandle = 'tl' | 'tr' | 'bl' | 'br' | 'move' | null;
@@ -39,11 +40,12 @@ export const ImageAnnotationCanvas: React.FC<ImageAnnotationCanvasProps> = ({
   classes,
   annotations,
   onAnnotationsUpdate,
+  selectedClass: externalSelectedClass,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [selectedClass, setSelectedClass] = useState<string>(classes[0]?.id || '');
+  const [selectedClass, setSelectedClass] = useState<string>(externalSelectedClass || classes[0]?.id || '');
   const [currentAnnotation, setCurrentAnnotation] = useState<Annotation | null>(null);
   const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(null);
   const [dragHandle, setDragHandle] = useState<DragHandle>(null);
@@ -61,6 +63,12 @@ export const ImageAnnotationCanvas: React.FC<ImageAnnotationCanvasProps> = ({
   }, [image.url]);
 
   useEffect(() => {
+    if (externalSelectedClass) {
+      setSelectedClass(externalSelectedClass);
+    }
+  }, [externalSelectedClass]);
+
+  useEffect(() => {
     if (imageLoaded) {
       drawCanvas();
     }
@@ -74,9 +82,9 @@ export const ImageAnnotationCanvas: React.FC<ImageAnnotationCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size to match image
+    // Set canvas size to match image - fill container
     const maxWidth = container.clientWidth;
-    const maxHeight = 500;
+    const maxHeight = container.clientHeight;
     const imgRatio = imageRef.current.width / imageRef.current.height;
     
     let canvasWidth = maxWidth;
@@ -291,57 +299,25 @@ export const ImageAnnotationCanvas: React.FC<ImageAnnotationCanvasProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <Label>Selected Class</Label>
-          <Select value={selectedClass} onValueChange={setSelectedClass}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a class" />
-            </SelectTrigger>
-            <SelectContent>
-              {classes.map((cls) => (
-                <SelectItem key={cls.id} value={cls.id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded"
-                      style={{ backgroundColor: cls.color }}
-                    />
-                    {cls.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {selectedAnnotation && (
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={handleDeleteAnnotation}
-            className="mt-6"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      <div ref={containerRef} className="border rounded-lg overflow-hidden bg-muted">
-        <canvas
-          ref={canvasRef}
-          className="cursor-crosshair w-full"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        />
-      </div>
-
-      <div className="text-sm text-muted-foreground">
-        <p>• Click and drag to create bounding boxes</p>
-        <p>• Click on boxes to select them</p>
-        <p>• Drag corners to resize, drag inside to move</p>
-      </div>
+    <div ref={containerRef} className="h-full w-full flex items-center justify-center bg-muted/20 relative">
+      <canvas
+        ref={canvasRef}
+        className="cursor-crosshair max-w-full max-h-full shadow-lg"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      />
+      {selectedAnnotation && (
+        <Button
+          variant="destructive"
+          size="icon"
+          onClick={handleDeleteAnnotation}
+          className="absolute top-4 right-4 shadow-lg"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      )}
     </div>
   );
 };
