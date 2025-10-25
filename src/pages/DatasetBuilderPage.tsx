@@ -111,7 +111,7 @@ const DatasetBuilderPage = () => {
 
   if (selectedDataset) {
     return (
-      <div className="container mx-auto px-6 py-8">
+      <div className="px-6 py-8">
         <div className="mb-6">
           <Button variant="outline" onClick={() => setSelectedDataset(null)} className="mb-4">
             ← Back to Datasets
@@ -139,7 +139,7 @@ const DatasetBuilderPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="px-6 py-8">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
