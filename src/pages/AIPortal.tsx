@@ -17,7 +17,7 @@ const AIPortal = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AINavigation />
-      <div className="container mx-auto px-6 py-8">
+      <div className="w-full px-6 py-8">
         <Routes>
           <Route path="/" element={<ComputerVisionPage />} />
           <Route path="/computer-vision" element={<ComputerVisionPage />} />
