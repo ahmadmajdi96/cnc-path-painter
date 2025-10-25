@@ -11,6 +11,7 @@ import FaceRecognitionPage from './FaceRecognitionPage';
 import PlateRecognitionPage from './PlateRecognitionPage';
 import NLPPage from './NLPPage';
 import ChatBotsPage from './ChatBotsPage';
+import DatasetBuilderPage from './DatasetBuilderPage';
 
 const AIPortal = () => {
   return (
@@ -28,6 +29,7 @@ const AIPortal = () => {
           <Route path="/plate-recognition" element={<PlateRecognitionPage />} />
           <Route path="/nlp" element={<NLPPage />} />
           <Route path="/chatbots" element={<ChatBotsPage />} />
+          <Route path="/dataset-builder" element={<DatasetBuilderPage />} />
           <Route path="*" element={
             <div className="text-center py-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Page Coming Soon</h2>
