@@ -12,10 +12,10 @@ interface Dataset {
   id: string;
   name: string;
   description: string | null;
-  type: 'image' | 'file' | 'text';
-  mode: 'classify' | 'annotate' | null;
+  type: 'image' | 'file' | 'text' | 'questions' | 'rules';
+  mode?: 'classify' | 'annotate' | null;
   status: 'draft' | 'in_progress' | 'completed';
-  item_count: number;
+  item_count?: number;
   created_at: string;
 }
 
@@ -24,15 +24,68 @@ const DatasetsCombinerPage = () => {
   const [selectedDatasets, setSelectedDatasets] = useState<Set<string>>(new Set());
 
   const { data: datasets, isLoading } = useQuery({
-    queryKey: ['datasets'],
+    queryKey: ['all-datasets'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch regular datasets
+      const { data: regularData, error: regularError } = await supabase
         .from('datasets')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as Dataset[];
+      if (regularError) throw regularError;
+
+      // Fetch question datasets
+      const { data: questionData, error: questionError } = await supabase
+        .from('question_datasets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (questionError) throw questionError;
+
+      // Fetch rules datasets
+      const { data: rulesData, error: rulesError } = await supabase
+        .from('rules_datasets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (rulesError) throw rulesError;
+
+      // Combine all datasets
+      const allDatasets: Dataset[] = [
+        ...(regularData || []).map(d => ({ 
+          id: d.id,
+          name: d.name,
+          description: d.description,
+          type: d.type as 'image' | 'file' | 'text',
+          mode: d.mode as 'classify' | 'annotate' | null,
+          status: d.status as 'draft' | 'in_progress' | 'completed',
+          item_count: d.item_count || 0,
+          created_at: d.created_at
+        })),
+        ...(questionData || []).map(d => ({ 
+          id: d.id,
+          name: d.name,
+          description: d.description,
+          type: 'questions' as const,
+          status: d.status as 'draft' | 'in_progress' | 'completed',
+          item_count: 0,
+          created_at: d.created_at
+        })),
+        ...(rulesData || []).map(d => ({ 
+          id: d.id,
+          name: d.name,
+          description: d.description,
+          type: 'rules' as const,
+          status: d.status as 'draft' | 'in_progress' | 'completed',
+          item_count: 0,
+          created_at: d.created_at
+        }))
+      ];
+
+      // Sort by created_at
+      return allDatasets.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     },
   });
 
@@ -86,6 +139,10 @@ const DatasetsCombinerPage = () => {
         return 'bg-green-500/10 text-green-500';
       case 'text':
         return 'bg-purple-500/10 text-purple-500';
+      case 'questions':
+        return 'bg-orange-500/10 text-orange-500';
+      case 'rules':
+        return 'bg-pink-500/10 text-pink-500';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -175,7 +232,7 @@ const DatasetsCombinerPage = () => {
                       )}
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      {dataset.item_count} items
+                      {dataset.item_count || 0} items
                     </span>
                   </div>
                 </CardContent>
@@ -200,7 +257,7 @@ const DatasetsCombinerPage = () => {
                         <Badge key={datasetId} variant="secondary" className="px-3 py-1">
                           {dataset.name}
                           <span className="ml-2 text-xs text-muted-foreground">
-                            ({dataset.item_count} items)
+                            ({dataset.item_count || 0} items)
                           </span>
                         </Badge>
                       ) : null;
