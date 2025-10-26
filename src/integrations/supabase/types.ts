@@ -1642,6 +1642,71 @@ export type Database = {
           },
         ]
       }
+      question_datasets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          answer: string
+          created_at: string
+          dataset_id: string
+          id: string
+          is_expanded: boolean | null
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          dataset_id: string
+          id?: string
+          is_expanded?: boolean | null
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          dataset_id?: string
+          id?: string
+          is_expanded?: boolean | null
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "question_datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resources: {
         Row: {
           created_at: string
@@ -1889,6 +1954,74 @@ export type Database = {
           },
         ]
       }
+      rules: {
+        Row: {
+          created_at: string
+          dataset_id: string
+          description: string | null
+          id: string
+          is_expanded: boolean | null
+          name: string
+          prompt: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dataset_id: string
+          description?: string | null
+          id?: string
+          is_expanded?: boolean | null
+          name: string
+          prompt?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dataset_id?: string
+          description?: string | null
+          id?: string
+          is_expanded?: boolean | null
+          name?: string
+          prompt?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "rules_datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rules_datasets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       section_capacity: {
         Row: {
           current_load: number | null
@@ -2043,6 +2176,70 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sub_questions: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          question: string
+          question_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          question: string
+          question_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          question?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sub_rules: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          prompt: string | null
+          rule_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          prompt?: string | null
+          rule_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          prompt?: string | null
+          rule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_rules_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "rules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {

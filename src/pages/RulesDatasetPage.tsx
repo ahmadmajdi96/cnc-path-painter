@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, ChevronDown, ChevronRight, Search, Save, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -55,6 +56,61 @@ const RulesDatasetPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState('');
   const [newDatasetDescription, setNewDatasetDescription] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDatasets();
+  }, []);
+
+  const fetchDatasets = async () => {
+    try {
+      setLoading(true);
+      const { data: datasets, error } = await supabase
+        .from('rules_datasets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const datasetsWithRules = await Promise.all(
+        (datasets || []).map(async (dataset) => {
+          const { data: rules, error: rulesError } = await supabase
+            .from('rules')
+            .select('*, sub_rules(*)')
+            .eq('dataset_id', dataset.id)
+            .order('created_at', { ascending: true });
+
+          if (rulesError) throw rulesError;
+
+          return {
+            id: dataset.id,
+            name: dataset.name,
+            description: dataset.description || '',
+            rules: (rules || []).map(rule => ({
+              id: rule.id,
+              name: rule.name,
+              description: rule.description || '',
+              prompt: rule.prompt || '',
+              subRules: (rule.sub_rules || []).map((sr: any) => ({
+                id: sr.id,
+                prompt: sr.prompt || '',
+                description: sr.description || '',
+              })),
+              isExpanded: rule.is_expanded ?? true,
+            })),
+            createdAt: dataset.created_at,
+            status: (dataset.status || 'draft') as 'draft' | 'active' | 'archived',
+          };
+        })
+      );
+
+      setRulesDatasets(datasetsWithRules);
+    } catch (error: any) {
+      toast({ title: "Error fetching datasets", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredDatasets = useMemo(() => {
     return rulesDatasets.filter((dataset) => {
@@ -65,71 +121,121 @@ const RulesDatasetPage = () => {
     });
   }, [rulesDatasets, searchQuery, statusFilter]);
 
-  const createDataset = () => {
+  const createDataset = async () => {
     if (!newDatasetName.trim()) {
       toast({ title: "Name required", variant: "destructive" });
       return;
     }
 
-    const newDataset: RulesDataset = {
-      id: Date.now().toString(),
-      name: newDatasetName,
-      description: newDatasetDescription,
-      rules: [],
-      createdAt: new Date().toISOString(),
-      status: 'draft',
-    };
+    try {
+      const { data, error } = await supabase
+        .from('rules_datasets')
+        .insert({
+          name: newDatasetName,
+          description: newDatasetDescription,
+          status: 'draft',
+        })
+        .select()
+        .single();
 
-    setRulesDatasets([...rulesDatasets, newDataset]);
-    setNewDatasetName('');
-    setNewDatasetDescription('');
-    setCreateDialogOpen(false);
-    toast({ title: "Rules dataset created successfully" });
+      if (error) throw error;
+
+      const newDataset: RulesDataset = {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        rules: [],
+        createdAt: data.created_at,
+        status: (data.status || 'draft') as 'draft' | 'active' | 'archived',
+      };
+
+      setRulesDatasets([newDataset, ...rulesDatasets]);
+      setNewDatasetName('');
+      setNewDatasetDescription('');
+      setCreateDialogOpen(false);
+      toast({ title: "Rules dataset created successfully" });
+    } catch (error: any) {
+      toast({ title: "Error creating dataset", description: error.message, variant: "destructive" });
+    }
   };
 
-  const addRule = () => {
+  const addRule = async () => {
     if (!selectedDataset) return;
     
-    const newRule: Rule = {
-      id: Date.now().toString(),
-      name: '',
-      description: '',
-      prompt: '',
-      subRules: [],
-      isExpanded: true,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('rules')
+        .insert({
+          dataset_id: selectedDataset.id,
+          name: 'Untitled Rule',
+          description: '',
+          prompt: '',
+          is_expanded: true,
+        })
+        .select()
+        .single();
 
-    const updatedDataset = {
-      ...selectedDataset,
-      rules: [...selectedDataset.rules, newRule],
-    };
+      if (error) throw error;
 
-    setSelectedDataset(updatedDataset);
-    setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      const newRule: Rule = {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        prompt: data.prompt || '',
+        subRules: [],
+        isExpanded: data.is_expanded ?? true,
+      };
+
+      const updatedDataset = {
+        ...selectedDataset,
+        rules: [...selectedDataset.rules, newRule],
+      };
+
+      setSelectedDataset(updatedDataset);
+      setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+    } catch (error: any) {
+      toast({ title: "Error adding rule", description: error.message, variant: "destructive" });
+    }
   };
 
-  const addSubRule = (ruleId: string) => {
+  const addSubRule = async (ruleId: string) => {
     if (!selectedDataset) return;
 
-    const updatedRules = selectedDataset.rules.map(rule => {
-      if (rule.id === ruleId) {
-        return {
-          ...rule,
-          subRules: [
-            ...rule.subRules,
-            { id: Date.now().toString(), prompt: '', description: '' }
-          ]
-        };
-      }
-      return rule;
-    });
+    try {
+      const { data, error } = await supabase
+        .from('sub_rules')
+        .insert({
+          rule_id: ruleId,
+          prompt: '',
+          description: '',
+        })
+        .select()
+        .single();
 
-    const updatedDataset = { ...selectedDataset, rules: updatedRules };
-    setSelectedDataset(updatedDataset);
-    setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      if (error) throw error;
+
+      const updatedRules = selectedDataset.rules.map(rule => {
+        if (rule.id === ruleId) {
+          return {
+            ...rule,
+            subRules: [
+              ...rule.subRules,
+              { id: data.id, prompt: data.prompt || '', description: data.description || '' }
+            ]
+          };
+        }
+        return rule;
+      });
+
+      const updatedDataset = { ...selectedDataset, rules: updatedRules };
+      setSelectedDataset(updatedDataset);
+      setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+    } catch (error: any) {
+      toast({ title: "Error adding sub-rule", description: error.message, variant: "destructive" });
+    }
   };
 
-  const updateRule = (ruleId: string, field: keyof Rule, value: string) => {
+  const updateRule = async (ruleId: string, field: keyof Rule, value: string) => {
     if (!selectedDataset) return;
 
     const updatedRules = selectedDataset.rules.map(rule => 
@@ -139,9 +245,20 @@ const RulesDatasetPage = () => {
     const updatedDataset = { ...selectedDataset, rules: updatedRules };
     setSelectedDataset(updatedDataset);
     setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+
+    try {
+      const { error } = await supabase
+        .from('rules')
+        .update({ [field]: value })
+        .eq('id', ruleId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast({ title: "Error updating rule", description: error.message, variant: "destructive" });
+    }
   };
 
-  const updateSubRule = (ruleId: string, subRuleId: string, field: keyof SubRule, value: string) => {
+  const updateSubRule = async (ruleId: string, subRuleId: string, field: keyof SubRule, value: string) => {
     if (!selectedDataset) return;
 
     const updatedRules = selectedDataset.rules.map(rule => {
@@ -159,35 +276,68 @@ const RulesDatasetPage = () => {
     const updatedDataset = { ...selectedDataset, rules: updatedRules };
     setSelectedDataset(updatedDataset);
     setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+
+    try {
+      const { error } = await supabase
+        .from('sub_rules')
+        .update({ [field]: value })
+        .eq('id', subRuleId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast({ title: "Error updating sub-rule", description: error.message, variant: "destructive" });
+    }
   };
 
-  const deleteRule = (ruleId: string) => {
+  const deleteRule = async (ruleId: string) => {
     if (!selectedDataset) return;
 
-    const updatedRules = selectedDataset.rules.filter(rule => rule.id !== ruleId);
-    const updatedDataset = { ...selectedDataset, rules: updatedRules };
-    setSelectedDataset(updatedDataset);
-    setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
-    toast({ title: "Rule deleted successfully" });
+    try {
+      const { error } = await supabase
+        .from('rules')
+        .delete()
+        .eq('id', ruleId);
+
+      if (error) throw error;
+
+      const updatedRules = selectedDataset.rules.filter(rule => rule.id !== ruleId);
+      const updatedDataset = { ...selectedDataset, rules: updatedRules };
+      setSelectedDataset(updatedDataset);
+      setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      toast({ title: "Rule deleted successfully" });
+    } catch (error: any) {
+      toast({ title: "Error deleting rule", description: error.message, variant: "destructive" });
+    }
   };
 
-  const deleteSubRule = (ruleId: string, subRuleId: string) => {
+  const deleteSubRule = async (ruleId: string, subRuleId: string) => {
     if (!selectedDataset) return;
 
-    const updatedRules = selectedDataset.rules.map(rule => {
-      if (rule.id === ruleId) {
-        return {
-          ...rule,
-          subRules: rule.subRules.filter(subRule => subRule.id !== subRuleId)
-        };
-      }
-      return rule;
-    });
+    try {
+      const { error } = await supabase
+        .from('sub_rules')
+        .delete()
+        .eq('id', subRuleId);
 
-    const updatedDataset = { ...selectedDataset, rules: updatedRules };
-    setSelectedDataset(updatedDataset);
-    setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
-    toast({ title: "Sub-rule deleted successfully" });
+      if (error) throw error;
+
+      const updatedRules = selectedDataset.rules.map(rule => {
+        if (rule.id === ruleId) {
+          return {
+            ...rule,
+            subRules: rule.subRules.filter(subRule => subRule.id !== subRuleId)
+          };
+        }
+        return rule;
+      });
+
+      const updatedDataset = { ...selectedDataset, rules: updatedRules };
+      setSelectedDataset(updatedDataset);
+      setRulesDatasets(rulesDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      toast({ title: "Sub-rule deleted successfully" });
+    } catch (error: any) {
+      toast({ title: "Error deleting sub-rule", description: error.message, variant: "destructive" });
+    }
   };
 
   const toggleExpanded = (ruleId: string) => {

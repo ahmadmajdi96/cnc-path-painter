@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, ChevronDown, ChevronRight, Search, Save, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -60,6 +61,64 @@ const QuestionDatasetPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState('');
   const [newDatasetDescription, setNewDatasetDescription] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDatasets();
+  }, []);
+
+  const fetchDatasets = async () => {
+    try {
+      setLoading(true);
+      const { data: datasets, error } = await supabase
+        .from('question_datasets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const datasetsWithQuestions = await Promise.all(
+        (datasets || []).map(async (dataset) => {
+          const { data: questions, error: questionsError } = await supabase
+            .from('questions')
+            .select('*, sub_questions(*)')
+            .eq('dataset_id', dataset.id)
+            .order('created_at', { ascending: true });
+
+          if (questionsError) throw questionsError;
+
+          return {
+            id: dataset.id,
+            name: dataset.name,
+            description: dataset.description || '',
+            questionAnswers: (questions || []).map(q => ({
+              id: q.id,
+              question: q.question,
+              answers: [{
+                id: q.id + '_answer',
+                text: q.answer,
+                subQuestions: (q.sub_questions || []).map((sq: any) => ({
+                  id: sq.id,
+                  question: sq.question,
+                  answer: sq.answer,
+                })),
+                isExpanded: q.is_expanded ?? true,
+              }],
+              isExpanded: q.is_expanded ?? true,
+            })),
+            createdAt: dataset.created_at,
+            status: (dataset.status || 'draft') as 'draft' | 'active' | 'archived',
+          };
+        })
+      );
+
+      setQuestionDatasets(datasetsWithQuestions);
+    } catch (error: any) {
+      toast({ title: "Error fetching datasets", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredDatasets = useMemo(() => {
     return questionDatasets.filter((dataset) => {
@@ -70,45 +129,83 @@ const QuestionDatasetPage = () => {
     });
   }, [questionDatasets, searchQuery, statusFilter]);
 
-  const createDataset = () => {
+  const createDataset = async () => {
     if (!newDatasetName.trim()) {
       toast({ title: "Name required", variant: "destructive" });
       return;
     }
 
-    const newDataset: QuestionDataset = {
-      id: Date.now().toString(),
-      name: newDatasetName,
-      description: newDatasetDescription,
-      questionAnswers: [],
-      createdAt: new Date().toISOString(),
-      status: 'draft',
-    };
+    try {
+      const { data, error } = await supabase
+        .from('question_datasets')
+        .insert({
+          name: newDatasetName,
+          description: newDatasetDescription,
+          status: 'draft',
+        })
+        .select()
+        .single();
 
-    setQuestionDatasets([...questionDatasets, newDataset]);
-    setNewDatasetName('');
-    setNewDatasetDescription('');
-    setCreateDialogOpen(false);
-    toast({ title: "Question dataset created successfully" });
+      if (error) throw error;
+
+      const newDataset: QuestionDataset = {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        questionAnswers: [],
+        createdAt: data.created_at,
+        status: (data.status || 'draft') as 'draft' | 'active' | 'archived',
+      };
+
+      setQuestionDatasets([newDataset, ...questionDatasets]);
+      setNewDatasetName('');
+      setNewDatasetDescription('');
+      setCreateDialogOpen(false);
+      toast({ title: "Question dataset created successfully" });
+    } catch (error: any) {
+      toast({ title: "Error creating dataset", description: error.message, variant: "destructive" });
+    }
   };
 
-  const addQuestionAnswer = () => {
+  const addQuestionAnswer = async () => {
     if (!selectedDataset) return;
     
-    const newQA: QuestionAnswer = {
-      id: Date.now().toString(),
-      question: '',
-      answers: [],
-      isExpanded: true,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .insert({
+          dataset_id: selectedDataset.id,
+          question: 'Untitled Question',
+          answer: '',
+          is_expanded: true,
+        })
+        .select()
+        .single();
 
-    const updatedDataset = {
-      ...selectedDataset,
-      questionAnswers: [...selectedDataset.questionAnswers, newQA],
-    };
+      if (error) throw error;
 
-    setSelectedDataset(updatedDataset);
-    setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      const newQA: QuestionAnswer = {
+        id: data.id,
+        question: data.question,
+        answers: [{
+          id: data.id + '_answer',
+          text: data.answer || '',
+          subQuestions: [],
+          isExpanded: true,
+        }],
+        isExpanded: data.is_expanded ?? true,
+      };
+
+      const updatedDataset = {
+        ...selectedDataset,
+        questionAnswers: [...selectedDataset.questionAnswers, newQA],
+      };
+
+      setSelectedDataset(updatedDataset);
+      setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+    } catch (error: any) {
+      toast({ title: "Error adding question", description: error.message, variant: "destructive" });
+    }
   };
 
   const addAnswer = (qaId: string) => {
@@ -132,36 +229,52 @@ const QuestionDatasetPage = () => {
     setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
   };
 
-  const addSubQuestion = (qaId: string, answerId: string) => {
+  const addSubQuestion = async (qaId: string, answerId: string) => {
     if (!selectedDataset) return;
 
-    const updatedQAs = selectedDataset.questionAnswers.map(qa => {
-      if (qa.id === qaId) {
-        return {
-          ...qa,
-          answers: qa.answers.map(answer => {
-            if (answer.id === answerId) {
-              return {
-                ...answer,
-                subQuestions: [
-                  ...answer.subQuestions,
-                  { id: Date.now().toString(), question: '', answer: '' }
-                ]
-              };
-            }
-            return answer;
-          })
-        };
-      }
-      return qa;
-    });
+    try {
+      const { data, error } = await supabase
+        .from('sub_questions')
+        .insert({
+          question_id: qaId,
+          question: '',
+          answer: '',
+        })
+        .select()
+        .single();
 
-    const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
-    setSelectedDataset(updatedDataset);
-    setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      if (error) throw error;
+
+      const updatedQAs = selectedDataset.questionAnswers.map(qa => {
+        if (qa.id === qaId) {
+          return {
+            ...qa,
+            answers: qa.answers.map(answer => {
+              if (answer.id === answerId) {
+                return {
+                  ...answer,
+                  subQuestions: [
+                    ...answer.subQuestions,
+                    { id: data.id, question: data.question || '', answer: data.answer || '' }
+                  ]
+                };
+              }
+              return answer;
+            })
+          };
+        }
+        return qa;
+      });
+
+      const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
+      setSelectedDataset(updatedDataset);
+      setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+    } catch (error: any) {
+      toast({ title: "Error adding sub-question", description: error.message, variant: "destructive" });
+    }
   };
 
-  const updateQuestion = (qaId: string, question: string) => {
+  const updateQuestion = async (qaId: string, question: string) => {
     if (!selectedDataset) return;
 
     const updatedQAs = selectedDataset.questionAnswers.map(qa => 
@@ -171,9 +284,20 @@ const QuestionDatasetPage = () => {
     const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
     setSelectedDataset(updatedDataset);
     setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .update({ question })
+        .eq('id', qaId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast({ title: "Error updating question", description: error.message, variant: "destructive" });
+    }
   };
 
-  const updateAnswer = (qaId: string, answerId: string, text: string) => {
+  const updateAnswer = async (qaId: string, answerId: string, text: string) => {
     if (!selectedDataset) return;
 
     const updatedQAs = selectedDataset.questionAnswers.map(qa => {
@@ -191,9 +315,20 @@ const QuestionDatasetPage = () => {
     const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
     setSelectedDataset(updatedDataset);
     setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .update({ answer: text })
+        .eq('id', qaId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast({ title: "Error updating answer", description: error.message, variant: "destructive" });
+    }
   };
 
-  const updateSubQuestion = (qaId: string, answerId: string, subQId: string, field: 'question' | 'answer', value: string) => {
+  const updateSubQuestion = async (qaId: string, answerId: string, subQId: string, field: 'question' | 'answer', value: string) => {
     if (!selectedDataset) return;
 
     const updatedQAs = selectedDataset.questionAnswers.map(qa => {
@@ -219,16 +354,38 @@ const QuestionDatasetPage = () => {
     const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
     setSelectedDataset(updatedDataset);
     setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+
+    try {
+      const { error } = await supabase
+        .from('sub_questions')
+        .update({ [field]: value })
+        .eq('id', subQId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      toast({ title: "Error updating sub-question", description: error.message, variant: "destructive" });
+    }
   };
 
-  const deleteQuestionAnswer = (qaId: string) => {
+  const deleteQuestionAnswer = async (qaId: string) => {
     if (!selectedDataset) return;
 
-    const updatedQAs = selectedDataset.questionAnswers.filter(qa => qa.id !== qaId);
-    const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
-    setSelectedDataset(updatedDataset);
-    setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
-    toast({ title: "Question deleted successfully" });
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', qaId);
+
+      if (error) throw error;
+
+      const updatedQAs = selectedDataset.questionAnswers.filter(qa => qa.id !== qaId);
+      const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
+      setSelectedDataset(updatedDataset);
+      setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      toast({ title: "Question deleted successfully" });
+    } catch (error: any) {
+      toast({ title: "Error deleting question", description: error.message, variant: "destructive" });
+    }
   };
 
   const deleteAnswer = (qaId: string, answerId: string) => {
@@ -250,31 +407,42 @@ const QuestionDatasetPage = () => {
     toast({ title: "Answer deleted successfully" });
   };
 
-  const deleteSubQuestion = (qaId: string, answerId: string, subQId: string) => {
+  const deleteSubQuestion = async (qaId: string, answerId: string, subQId: string) => {
     if (!selectedDataset) return;
 
-    const updatedQAs = selectedDataset.questionAnswers.map(qa => {
-      if (qa.id === qaId) {
-        return {
-          ...qa,
-          answers: qa.answers.map(answer => {
-            if (answer.id === answerId) {
-              return {
-                ...answer,
-                subQuestions: answer.subQuestions.filter(subQ => subQ.id !== subQId)
-              };
-            }
-            return answer;
-          })
-        };
-      }
-      return qa;
-    });
+    try {
+      const { error } = await supabase
+        .from('sub_questions')
+        .delete()
+        .eq('id', subQId);
 
-    const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
-    setSelectedDataset(updatedDataset);
-    setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
-    toast({ title: "Sub-question deleted successfully" });
+      if (error) throw error;
+
+      const updatedQAs = selectedDataset.questionAnswers.map(qa => {
+        if (qa.id === qaId) {
+          return {
+            ...qa,
+            answers: qa.answers.map(answer => {
+              if (answer.id === answerId) {
+                return {
+                  ...answer,
+                  subQuestions: answer.subQuestions.filter(subQ => subQ.id !== subQId)
+                };
+              }
+              return answer;
+            })
+          };
+        }
+        return qa;
+      });
+
+      const updatedDataset = { ...selectedDataset, questionAnswers: updatedQAs };
+      setSelectedDataset(updatedDataset);
+      setQuestionDatasets(questionDatasets.map(d => d.id === selectedDataset.id ? updatedDataset : d));
+      toast({ title: "Sub-question deleted successfully" });
+    } catch (error: any) {
+      toast({ title: "Error deleting sub-question", description: error.message, variant: "destructive" });
+    }
   };
 
   const toggleQAExpanded = (qaId: string) => {
