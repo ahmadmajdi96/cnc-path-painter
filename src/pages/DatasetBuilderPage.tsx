@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Database, Plus, Image, FileText, Type, Trash2 } from 'lucide-react';
+import { Database, Plus, Image, FileText, Type, Trash2, Search } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CreateDatasetDialog } from '@/components/CreateDatasetDialog';
@@ -37,6 +45,9 @@ const DatasetBuilderPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [datasetToDelete, setDatasetToDelete] = useState<Dataset | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { toast } = useToast();
 
   const { data: datasets, refetch } = useQuery({
@@ -109,6 +120,19 @@ const DatasetBuilderPage = () => {
     }
   };
 
+  const filteredDatasets = useMemo(() => {
+    if (!datasets) return [];
+
+    return datasets.filter((dataset) => {
+      const matchesSearch = dataset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dataset.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = typeFilter === 'all' || dataset.type === typeFilter;
+      const matchesStatus = statusFilter === 'all' || dataset.status === statusFilter;
+
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [datasets, searchQuery, typeFilter, statusFilter]);
+
   if (selectedDataset) {
     return (
       <div className="px-6 py-8">
@@ -156,8 +180,42 @@ const DatasetBuilderPage = () => {
         </p>
       </div>
 
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search datasets..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="image">Image</SelectItem>
+            <SelectItem value="file">File</SelectItem>
+            <SelectItem value="text">Text</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {datasets?.map((dataset) => (
+        {filteredDatasets?.map((dataset) => (
           <Card
             key={dataset.id}
             className="cursor-pointer hover:border-primary transition-colors"
@@ -204,6 +262,18 @@ const DatasetBuilderPage = () => {
             </CardContent>
           </Card>
         ))}
+
+        {filteredDatasets?.length === 0 && datasets && datasets.length > 0 && (
+          <Card className="col-span-full">
+            <CardContent className="py-12 text-center">
+              <Database className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No datasets found</h3>
+              <p className="text-muted-foreground mb-4">
+                Try adjusting your search or filters
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {datasets?.length === 0 && (
           <Card className="col-span-full">

@@ -13,6 +13,7 @@ import NLPPage from './NLPPage';
 import ChatBotsPage from './ChatBotsPage';
 import DatasetBuilderPage from './DatasetBuilderPage';
 import RulesDatasetPage from './RulesDatasetPage';
+import QuestionDatasetPage from './QuestionDatasetPage';
 import DatasetsCombinerPage from './DatasetsCombinerPage';
 
 const AIPortal = () => {
@@ -33,6 +34,7 @@ const AIPortal = () => {
           <Route path="/chatbots" element={<ChatBotsPage />} />
           <Route path="/dataset-builder" element={<DatasetBuilderPage />} />
           <Route path="/rules-dataset" element={<RulesDatasetPage />} />
+          <Route path="/question-dataset" element={<QuestionDatasetPage />} />
           <Route path="/datasets-combiner" element={<DatasetsCombinerPage />} />
           <Route path="*" element={
             <div className="text-center py-12">
