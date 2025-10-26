@@ -104,9 +104,14 @@ const PlateNumberExtractionPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="plate_ocr"
+          title="AI Models"
+          description="Select or configure plate OCR models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="plate_ocr"
+        />
       </div>
 
       {/* Dataset Requirements */}

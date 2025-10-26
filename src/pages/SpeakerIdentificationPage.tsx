@@ -133,9 +133,14 @@ const SpeakerIdentificationPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="speaker_identification"
+          title="AI Models"
+          description="Select or configure speaker identification models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="speaker_identification"
+        />
       </div>
 
       {/* Dataset Requirements */}

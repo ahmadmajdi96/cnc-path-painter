@@ -74,13 +74,13 @@ export const AINavigation = () => {
               <NavigationMenuItem>
                 <NavigationMenuTrigger className={cn(
                   "h-9",
-                  isVisionActive && "bg-accent text-accent-foreground"
+                  isUrbanActive && "bg-accent text-accent-foreground"
                 )}>
-                  Vision Systems
+                  Urban
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-1 p-2">
-                    {visionSystems.map((item) => (
+                    {urbanSystems.map((item) => (
                       <li key={item.to}>
                         <NavigationMenuLink asChild>
                           <Link
@@ -105,13 +105,75 @@ export const AINavigation = () => {
               <NavigationMenuItem>
                 <NavigationMenuTrigger className={cn(
                   "h-9",
-                  isAgentsActive && "bg-accent text-accent-foreground"
+                  isIndustrialActive && "bg-accent text-accent-foreground"
                 )}>
-                  AI Agents
+                  Industrial
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-1 p-2">
-                    {aiAgents.map((item) => (
+                    {industrialSystems.map((item) => (
+                      <li key={item.to}>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            to={item.to}
+                            className={cn(
+                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                              location.pathname === item.to && "bg-accent text-accent-foreground"
+                            )}
+                          >
+                            <div className="text-sm font-medium leading-none">{item.title}</div>
+                            <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+                              {item.description}
+                            </p>
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className={cn(
+                  "h-9",
+                  isPeopleActive && "bg-accent text-accent-foreground"
+                )}>
+                  People
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-1 p-2">
+                    {peopleSystems.map((item) => (
+                      <li key={item.to}>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            to={item.to}
+                            className={cn(
+                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                              location.pathname === item.to && "bg-accent text-accent-foreground"
+                            )}
+                          >
+                            <div className="text-sm font-medium leading-none">{item.title}</div>
+                            <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+                              {item.description}
+                            </p>
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className={cn(
+                  "h-9",
+                  isSoundActive && "bg-accent text-accent-foreground"
+                )}>
+                  Sounds
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-1 p-2">
+                    {soundSystems.map((item) => (
                       <li key={item.to}>
                         <NavigationMenuLink asChild>
                           <Link

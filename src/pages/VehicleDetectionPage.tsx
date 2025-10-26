@@ -85,9 +85,14 @@ const VehicleDetectionPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="vehicle_detection"
+          title="AI Models"
+          description="Select or configure vehicle detection models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="vehicle_detection"
+        />
       </div>
 
       {/* Dataset Requirements */}

@@ -87,9 +87,14 @@ const HumanDetectionPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="human_detection"
+          title="AI Models"
+          description="Select or configure human detection models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="human_detection"
+        />
       </div>
 
       {/* Dataset Requirements */}

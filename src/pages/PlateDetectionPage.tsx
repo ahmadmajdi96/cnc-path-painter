@@ -86,9 +86,14 @@ const PlateDetectionPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="plate_detection"
+          title="AI Models"
+          description="Select or configure plate detection models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="plate_detection"
+        />
       </div>
 
       {/* Dataset Requirements */}

@@ -91,9 +91,14 @@ const PathOptimizationPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="path_optimization"
+          title="AI Models"
+          description="Select or configure path optimization models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="path_optimization"
+        />
       </div>
 
       {/* Dataset Requirements */}

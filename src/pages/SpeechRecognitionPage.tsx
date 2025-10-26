@@ -114,9 +114,14 @@ const SpeechRecognitionPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="speech_recognition"
+          title="AI Models"
+          description="Select or configure speech recognition models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="speech_recognition"
+        />
       </div>
 
       {/* Dataset Requirements */}

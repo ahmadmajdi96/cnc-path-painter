@@ -158,9 +158,14 @@ const SpeechSynthesisPage = () => {
       <div className="grid md:grid-cols-2 gap-6">
         <AIModelManager 
           modelType="speech_synthesis"
+          title="AI Models"
+          description="Select or configure speech synthesis models"
           onModelSelect={setSelectedModel}
         />
-        <AIModelDatasetSelector selectedModel={selectedModel} />
+        <AIModelDatasetSelector 
+          modelId={selectedModel?.id || null}
+          modelType="speech_synthesis"
+        />
       </div>
 
       {/* Dataset Requirements */}
