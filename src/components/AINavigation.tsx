@@ -13,19 +13,31 @@ import {
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 
-const visionSystems = [
-  { title: "Computer Vision", to: "/ai/computer-vision", description: "Advanced computer vision processing" },
+const urbanSystems = [
+  { title: "Vehicle Detection", to: "/ai/vehicle-detection", description: "Detect vehicles in images and videos" },
+  { title: "Vehicle Recognition", to: "/ai/vehicle-recognition", description: "Classify and identify vehicle types" },
+  { title: "Plate Detection", to: "/ai/plate-detection", description: "Locate license plates in images" },
+  { title: "Plate Number Extraction", to: "/ai/plate-number-extraction", description: "Extract text from license plates" },
+  { title: "Feeds Management", to: "/ai/feeds-management", description: "Manage multiple video surveillance feeds" },
+  { title: "Path Optimization", to: "/ai/path-optimization", description: "Optimize vehicle routing and paths" },
+];
+
+const industrialSystems = [
   { title: "OCR", to: "/ai/ocr", description: "Optical character recognition" },
   { title: "Quality Control", to: "/ai/quality-control", description: "AI-powered quality inspection" },
   { title: "Object Detection", to: "/ai/object-detection", description: "Real-time object detection" },
   { title: "Object Recognition", to: "/ai/object-recognition", description: "Object classification and recognition" },
-  { title: "Face Recognition", to: "/ai/face-recognition", description: "Facial detection and recognition" },
-  { title: "Plate Recognition", to: "/ai/plate-recognition", description: "License plate recognition" },
 ];
 
-const aiAgents = [
-  { title: "NLP", to: "/ai/nlp", description: "Natural language processing" },
-  { title: "Chat Bots", to: "/ai/chatbots", description: "Conversational AI agents" },
+const peopleSystems = [
+  { title: "Human Detection", to: "/ai/human-detection", description: "Detect people in images and videos" },
+  { title: "Facial Recognition", to: "/ai/facial-recognition", description: "Facial detection and recognition" },
+];
+
+const soundSystems = [
+  { title: "Speech Recognition", to: "/ai/speech-recognition", description: "Convert speech to text" },
+  { title: "Speech Synthesis", to: "/ai/speech-synthesis", description: "Convert text to speech" },
+  { title: "Speaker Identification", to: "/ai/speaker-identification", description: "Identify speakers by voice" },
 ];
 
 const dataTools = [
@@ -38,8 +50,10 @@ const dataTools = [
 export const AINavigation = () => {
   const location = useLocation();
   
-  const isVisionActive = visionSystems.some(item => location.pathname === item.to);
-  const isAgentsActive = aiAgents.some(item => location.pathname === item.to);
+  const isUrbanActive = urbanSystems.some(item => location.pathname === item.to);
+  const isIndustrialActive = industrialSystems.some(item => location.pathname === item.to);
+  const isPeopleActive = peopleSystems.some(item => location.pathname === item.to);
+  const isSoundActive = soundSystems.some(item => location.pathname === item.to);
   const isDataToolsActive = dataTools.some(item => location.pathname === item.to);
   
   return (
