@@ -59,25 +59,12 @@ const PlateDetectionPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Detection Results</CardTitle>
-          <CardDescription>Detected license plates with coordinates and confidence</CardDescription>
+          <CardDescription>License plate detections will appear here after processing</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {[
-              { bbox: '[245, 180, 312, 206]', confidence: 0.97, angle: 2.3 },
-              { bbox: '[520, 145, 587, 171]', confidence: 0.95, angle: -1.5 },
-              { bbox: '[102, 215, 169, 241]', confidence: 0.92, angle: 0.8 },
-              { bbox: '[678, 190, 745, 216]', confidence: 0.89, angle: 3.1 },
-            ].map((plate, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <Badge variant="outline">Plate {idx + 1}</Badge>
-                  <span className="text-sm text-muted-foreground">BBox: {plate.bbox}</span>
-                  <span className="text-sm text-muted-foreground">Angle: {plate.angle}°</span>
-                </div>
-                <Badge variant="secondary">{(plate.confidence * 100).toFixed(1)}%</Badge>
-              </div>
-            ))}
+          <div className="text-center py-12 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No plate detections yet. Upload an image to start plate detection.</p>
           </div>
         </CardContent>
       </Card>
@@ -96,45 +83,6 @@ const PlateDetectionPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>YOLO format with plate bounding box annotations</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── images/</div>
-              <div>│   ├── train/</div>
-              <div>│   └── val/</div>
-              <div>└── labels/</div>
-              <div>    ├── train/ (YOLO .txt)</div>
-              <div>    └── val/ (YOLO .txt)</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Annotation Format:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div># class_id center_x center_y width height</div>
-              <div>0 0.485 0.623 0.145 0.062  # License plate</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Data Augmentation:</h4>
-            <p className="text-sm text-muted-foreground mb-2">
-              Apply various transformations to improve robustness:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {['Rotation', 'Brightness', 'Blur', 'Occlusion', 'Perspective', 'Weather'].map(aug => (
-                <Badge key={aug} variant="outline">{aug}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-3 gap-6">

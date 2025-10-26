@@ -69,33 +69,12 @@ const PlateNumberExtractionPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Extraction Results</CardTitle>
-          <CardDescription>Recognized plate numbers with confidence scores</CardDescription>
+          <CardDescription>Plate number extractions will appear here after processing</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[
-              { number: 'ABC 1234', region: 'US', confidence: 0.98 },
-              { number: 'XYZ-9876', region: 'EU', confidence: 0.96 },
-              { number: '京A 12345', region: 'CN', confidence: 0.94 },
-              { number: 'DEF 567', region: 'UK', confidence: 0.91 },
-            ].map((plate, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="font-mono text-lg font-semibold">{plate.number}</div>
-                  <Badge variant="outline">{plate.region}</Badge>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary">{(plate.confidence * 100).toFixed(1)}%</Badge>
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => copyToClipboard(plate.number)}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+          <div className="text-center py-12 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No extractions yet. Upload a plate image to start OCR extraction.</p>
           </div>
         </CardContent>
       </Card>
@@ -114,51 +93,6 @@ const PlateNumberExtractionPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>OCR training data with character-level annotations</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── images/</div>
-              <div>│   ├── plate_001.jpg</div>
-              <div>│   └── ...</div>
-              <div>└── annotations/</div>
-              <div>    └── labels.txt</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Annotation Format:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div># filename, plate_text</div>
-              <div>plate_001.jpg, ABC1234</div>
-              <div>plate_002.jpg, XYZ-9876</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Character Set:</h4>
-            <p className="text-sm text-muted-foreground mb-2">
-              Support for alphanumeric and special characters:
-            </p>
-            <div className="bg-muted p-3 rounded-lg font-mono text-sm">
-              A-Z, 0-9, -, space, and region-specific characters
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Preprocessing:</h4>
-            <div className="flex flex-wrap gap-2">
-              {['Deskew', 'Denoise', 'Contrast Enhancement', 'Normalization', 'Segmentation'].map(process => (
-                <Badge key={process} variant="outline">{process}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-3 gap-6">

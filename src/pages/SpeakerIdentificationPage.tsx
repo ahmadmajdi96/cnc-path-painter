@@ -59,33 +59,12 @@ const SpeakerIdentificationPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Identification Results</CardTitle>
-          <CardDescription>Identified speakers with confidence scores and voice characteristics</CardDescription>
+          <CardDescription>Speaker identifications will appear here after processing</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[
-              { id: 'SPK001', name: 'John Doe', confidence: 0.96, gender: 'Male', language: 'English', segment: '0:00-0:15' },
-              { id: 'SPK002', name: 'Jane Smith', confidence: 0.93, gender: 'Female', language: 'English', segment: '0:15-0:28' },
-              { id: 'SPK003', name: 'Robert Johnson', confidence: 0.89, gender: 'Male', language: 'English', segment: '0:28-0:42' },
-            ].map((speaker) => (
-              <div key={speaker.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <UserCircle className="w-10 h-10 text-muted-foreground" />
-                    <div>
-                      <div className="font-semibold">{speaker.name}</div>
-                      <div className="text-sm text-muted-foreground">ID: {speaker.id}</div>
-                    </div>
-                  </div>
-                  <Badge variant="default">{(speaker.confidence * 100).toFixed(1)}%</Badge>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{speaker.gender}</Badge>
-                  <Badge variant="outline">{speaker.language}</Badge>
-                  <Badge variant="secondary">Segment: {speaker.segment}</Badge>
-                </div>
-              </div>
-            ))}
+          <div className="text-center py-12 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No identifications yet. Upload audio or start recording to identify speakers.</p>
           </div>
         </CardContent>
       </Card>
@@ -143,59 +122,6 @@ const SpeakerIdentificationPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>Speaker audio samples for voice embedding training</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── speaker_001/</div>
-              <div>│   ├── utterance_001.wav</div>
-              <div>│   ├── utterance_002.wav</div>
-              <div>│   └── ...</div>
-              <div>├── speaker_002/</div>
-              <div>│   └── ...</div>
-              <div>└── metadata.json</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Metadata Format:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div>{'{'}</div>
-              <div>  "speaker_001": {'{'}</div>
-              <div>    "name": "John Doe",</div>
-              <div>    "gender": "male",</div>
-              <div>    "age": 35,</div>
-              <div>    "num_samples": 50</div>
-              <div>  {'}'}</div>
-              <div>{'}'}</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Audio Requirements:</h4>
-            <div className="bg-muted p-3 rounded-lg text-sm space-y-1">
-              <div><span className="font-medium">Samples per Speaker:</span> Minimum 10-20 utterances</div>
-              <div><span className="font-medium">Duration:</span> 3-10 seconds per sample</div>
-              <div><span className="font-medium">Sample Rate:</span> 16kHz</div>
-              <div><span className="font-medium">Format:</span> WAV, FLAC</div>
-              <div><span className="font-medium">Quality:</span> Clean speech, minimal noise</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Feature Extraction:</h4>
-            <div className="flex flex-wrap gap-2">
-              {['MFCC', 'i-vectors', 'x-vectors', 'd-vectors', 'Speaker Embeddings'].map(feature => (
-                <Badge key={feature} variant="outline">{feature}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-4 gap-6">

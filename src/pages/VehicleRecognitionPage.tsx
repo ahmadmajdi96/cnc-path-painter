@@ -59,30 +59,12 @@ const VehicleRecognitionPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Recognition Results</CardTitle>
-          <CardDescription>Detailed vehicle classification results</CardDescription>
+          <CardDescription>Vehicle classification results will appear here after processing</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[
-              { type: 'Sedan', make: 'Toyota', model: 'Camry', year: '2021', color: 'Silver', confidence: 0.96 },
-              { type: 'SUV', make: 'Ford', model: 'Explorer', year: '2022', color: 'Black', confidence: 0.93 },
-              { type: 'Truck', make: 'Chevrolet', model: 'Silverado', year: '2020', color: 'White', confidence: 0.89 },
-            ].map((vehicle, idx) => (
-              <div key={idx} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge>{vehicle.type}</Badge>
-                      <span className="font-semibold">{vehicle.make} {vehicle.model}</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Year: {vehicle.year} • Color: {vehicle.color}
-                    </div>
-                  </div>
-                  <Badge variant="secondary">{(vehicle.confidence * 100).toFixed(1)}%</Badge>
-                </div>
-              </div>
-            ))}
+          <div className="text-center py-12 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No recognition results yet. Upload an image to start vehicle classification.</p>
           </div>
         </CardContent>
       </Card>
@@ -101,50 +83,6 @@ const VehicleRecognitionPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>Image classification dataset for vehicle recognition</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── train/</div>
-              <div>│   ├── sedan/</div>
-              <div>│   ├── suv/</div>
-              <div>│   ├── truck/</div>
-              <div>│   └── ...</div>
-              <div>└── val/</div>
-              <div>    ├── sedan/</div>
-              <div>    └── ...</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Metadata (JSON):</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div>{'{'}</div>
-              <div>  "image": "vehicle_001.jpg",</div>
-              <div>  "type": "sedan",</div>
-              <div>  "make": "Toyota",</div>
-              <div>  "model": "Camry",</div>
-              <div>  "year": 2021,</div>
-              <div>  "color": "silver"</div>
-              <div>{'}'}</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Vehicle Categories:</h4>
-            <div className="flex flex-wrap gap-2">
-              {['Sedan', 'SUV', 'Truck', 'Van', 'Coupe', 'Convertible', 'Hatchback', 'Wagon'].map(type => (
-                <Badge key={type} variant="outline">{type}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-3 gap-6">

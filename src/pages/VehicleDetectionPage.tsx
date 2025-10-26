@@ -59,24 +59,12 @@ const VehicleDetectionPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Detection Results</CardTitle>
-          <CardDescription>Detected vehicles with bounding boxes and confidence scores</CardDescription>
+          <CardDescription>Detected vehicles will appear here after processing</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {[
-              { type: 'Car', confidence: 0.98, bbox: '[120, 45, 280, 195]' },
-              { type: 'Truck', confidence: 0.95, bbox: '[310, 60, 480, 220]' },
-              { type: 'Motorcycle', confidence: 0.89, bbox: '[520, 110, 590, 180]' },
-              { type: 'Bus', confidence: 0.93, bbox: '[42, 180, 240, 340]' },
-            ].map((detection, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">{detection.type}</Badge>
-                  <span className="text-sm text-muted-foreground">BBox: {detection.bbox}</span>
-                </div>
-                <Badge variant="secondary">{(detection.confidence * 100).toFixed(1)}%</Badge>
-              </div>
-            ))}
+          <div className="text-center py-12 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No detections yet. Upload an image or connect a video feed to start detection.</p>
           </div>
         </CardContent>
       </Card>
@@ -95,43 +83,6 @@ const VehicleDetectionPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>YOLO format annotations for vehicle detection training</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── images/</div>
-              <div>│   ├── train/ (training images)</div>
-              <div>│   └── val/ (validation images)</div>
-              <div>└── labels/</div>
-              <div>    ├── train/ (YOLO format .txt files)</div>
-              <div>    └── val/ (YOLO format .txt files)</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Annotation Format (YOLO):</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div># class_id center_x center_y width height (normalized 0-1)</div>
-              <div>0 0.5 0.5 0.3 0.4  # Car</div>
-              <div>1 0.7 0.3 0.2 0.3  # Truck</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Classes:</h4>
-            <div className="flex flex-wrap gap-2">
-              {['Car', 'Truck', 'Bus', 'Motorcycle', 'Bicycle', 'Van'].map(cls => (
-                <Badge key={cls} variant="outline">{cls}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-3 gap-6">

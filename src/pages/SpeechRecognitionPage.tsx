@@ -69,43 +69,13 @@ const SpeechRecognitionPage = () => {
       {/* Transcription Results */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Transcription Results</CardTitle>
-              <CardDescription>Recognized text with confidence scores and timestamps</CardDescription>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => copyToClipboard("The quick brown fox jumps over the lazy dog.")}
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy All
-            </Button>
-          </div>
+          <CardTitle>Transcription Results</CardTitle>
+          <CardDescription>Speech transcriptions will appear here after processing</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea 
-            rows={6}
-            readOnly
-            value="The quick brown fox jumps over the lazy dog. This is a sample transcription that would appear after audio processing."
-            className="font-mono"
-          />
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">Segments with Timestamps:</h4>
-            {[
-              { text: 'The quick brown fox', time: '0:00-0:02', confidence: 0.98 },
-              { text: 'jumps over the lazy dog', time: '0:02-0:04', confidence: 0.96 },
-              { text: 'This is a sample transcription', time: '0:05-0:07', confidence: 0.94 },
-            ].map((segment, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <div className="text-sm">{segment.text}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{segment.time}</div>
-                </div>
-                <Badge variant="secondary">{(segment.confidence * 100).toFixed(1)}%</Badge>
-              </div>
-            ))}
+        <CardContent>
+          <div className="text-center py-12 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No transcriptions yet. Upload audio or start recording to transcribe speech.</p>
           </div>
         </CardContent>
       </Card>
@@ -124,53 +94,6 @@ const SpeechRecognitionPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>Audio files with text transcriptions for ASR training</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── audio/</div>
-              <div>│   ├── train/</div>
-              <div>│   │   ├── speaker_001.wav</div>
-              <div>│   │   └── ...</div>
-              <div>│   └── val/</div>
-              <div>└── transcripts/</div>
-              <div>    └── transcripts.csv</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Annotation Format:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div># filename, transcription, duration</div>
-              <div>speaker_001.wav,"Hello world",2.5</div>
-              <div>speaker_002.wav,"How are you",1.8</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Audio Specifications:</h4>
-            <div className="bg-muted p-3 rounded-lg text-sm space-y-1">
-              <div><span className="font-medium">Format:</span> WAV, FLAC, MP3</div>
-              <div><span className="font-medium">Sample Rate:</span> 16kHz or 48kHz</div>
-              <div><span className="font-medium">Channels:</span> Mono preferred</div>
-              <div><span className="font-medium">Bit Depth:</span> 16-bit or 24-bit</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Preprocessing:</h4>
-            <div className="flex flex-wrap gap-2">
-              {['Noise Reduction', 'Normalization', 'Silence Removal', 'Resampling', 'MFCC Features'].map(process => (
-                <Badge key={process} variant="outline">{process}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-3 gap-6">

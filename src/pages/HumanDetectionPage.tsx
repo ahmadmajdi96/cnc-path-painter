@@ -59,26 +59,12 @@ const HumanDetectionPage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Detection Results</CardTitle>
-          <CardDescription>Detected people with bounding boxes and pose estimation</CardDescription>
+          <CardDescription>Human detections will appear here after processing</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {[
-              { id: 1, bbox: '[120, 45, 240, 380]', confidence: 0.97, pose: 'Standing', keypoints: 17 },
-              { id: 2, bbox: '[310, 60, 420, 350]', confidence: 0.94, pose: 'Walking', keypoints: 17 },
-              { id: 3, bbox: '[520, 110, 610, 340]', confidence: 0.91, pose: 'Sitting', keypoints: 14 },
-              { id: 4, bbox: '[42, 180, 150, 380]', confidence: 0.88, pose: 'Standing', keypoints: 17 },
-            ].map((person) => (
-              <div key={person.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">Person {person.id}</Badge>
-                  <span className="text-sm text-muted-foreground">BBox: {person.bbox}</span>
-                  <Badge variant="secondary">{person.pose}</Badge>
-                  <span className="text-sm text-muted-foreground">{person.keypoints} keypoints</span>
-                </div>
-                <Badge variant="default">{(person.confidence * 100).toFixed(1)}%</Badge>
-              </div>
-            ))}
+          <div className="text-center py-12 text-muted-foreground">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No detections yet. Upload an image or video to start human detection.</p>
           </div>
         </CardContent>
       </Card>
@@ -97,48 +83,6 @@ const HumanDetectionPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>COCO-style annotations for person detection with keypoints</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── images/</div>
-              <div>│   ├── train/</div>
-              <div>│   └── val/</div>
-              <div>└── annotations/</div>
-              <div>    ├── person_keypoints_train.json</div>
-              <div>    └── person_keypoints_val.json</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Annotation Format (COCO):</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div>{'{'}</div>
-              <div>  "bbox": [x, y, width, height],</div>
-              <div>  "keypoints": [x1,y1,v1, x2,y2,v2, ...],</div>
-              <div>  "num_keypoints": 17,</div>
-              <div>  "category_id": 1</div>
-              <div>{'}'}</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Keypoint Schema (17 points):</h4>
-            <div className="flex flex-wrap gap-2 text-xs">
-              {['Nose', 'Left Eye', 'Right Eye', 'Left Ear', 'Right Ear', 'Left Shoulder', 'Right Shoulder', 
-                'Left Elbow', 'Right Elbow', 'Left Wrist', 'Right Wrist', 'Left Hip', 'Right Hip', 
-                'Left Knee', 'Right Knee', 'Left Ankle', 'Right Ankle'].map(kp => (
-                <Badge key={kp} variant="outline">{kp}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-3 gap-6">

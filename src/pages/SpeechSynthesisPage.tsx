@@ -168,53 +168,6 @@ const SpeechSynthesisPage = () => {
         />
       </div>
 
-      {/* Dataset Requirements */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dataset Requirements</CardTitle>
-          <CardDescription>Audio samples with transcriptions for TTS training</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Required Structure:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm space-y-1">
-              <div>dataset/</div>
-              <div>├── wavs/</div>
-              <div>│   ├── speaker1/</div>
-              <div>│   │   ├── audio_001.wav</div>
-              <div>│   │   └── ...</div>
-              <div>│   └── speaker2/</div>
-              <div>└── metadata.csv</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Metadata Format:</h4>
-            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-              <div># filename|transcription|speaker</div>
-              <div>audio_001.wav|Hello world|speaker1</div>
-              <div>audio_002.wav|How are you|speaker1</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Audio Requirements:</h4>
-            <div className="bg-muted p-3 rounded-lg text-sm space-y-1">
-              <div><span className="font-medium">Format:</span> WAV (uncompressed)</div>
-              <div><span className="font-medium">Sample Rate:</span> 22050Hz or 44100Hz</div>
-              <div><span className="font-medium">Channels:</span> Mono</div>
-              <div><span className="font-medium">Duration:</span> 1-10 seconds per clip</div>
-              <div><span className="font-medium">Quality:</span> Studio quality, minimal background noise</div>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Model Architectures:</h4>
-            <div className="flex flex-wrap gap-2">
-              {['Tacotron 2', 'FastSpeech', 'WaveNet', 'Transformer TTS', 'VITS'].map(arch => (
-                <Badge key={arch} variant="outline">{arch}</Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Performance Metrics */}
       <div className="grid md:grid-cols-3 gap-6">
