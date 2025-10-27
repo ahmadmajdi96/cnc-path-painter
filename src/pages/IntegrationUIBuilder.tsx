@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogActions } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -268,10 +268,10 @@ const IntegrationUIBuilder = () => {
               </Select>
             </div>
           </div>
-          <DialogActions>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveUI}>{editingUI ? 'Update' : 'Create'}</Button>
-          </DialogActions>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -308,10 +308,10 @@ const IntegrationUIBuilder = () => {
             <div><Label>Width</Label><Input type="number" value={componentData.size?.width} onChange={(e) => setComponentData({ ...componentData, size: { ...componentData.size!, width: parseInt(e.target.value) } })} /></div>
             <div><Label>Height</Label><Input type="number" value={componentData.size?.height} onChange={(e) => setComponentData({ ...componentData, size: { ...componentData.size!, height: parseInt(e.target.value) } })} /></div>
           </div>
-          <DialogActions>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setIsComponentDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveComponent}>{editingComponent ? 'Update' : 'Add'}</Button>
-          </DialogActions>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
