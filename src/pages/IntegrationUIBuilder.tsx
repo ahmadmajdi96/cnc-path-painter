@@ -28,6 +28,21 @@ interface DataBinding {
   variable: string;
 }
 
+interface FormField {
+  id: string;
+  label: string;
+  placeholder: string;
+  type: 'text' | 'number' | 'email' | 'password' | 'textarea';
+}
+
+interface FormButton {
+  id: string;
+  label: string;
+  backgroundColor: string;
+  textColor: string;
+  action: string;
+}
+
 interface UIComponent {
   id: string;
   type: 'gauge' | 'chart' | 'indicator' | 'button' | 'value' | 'toggle' | 'slider' | 'text' | 'shape' | 'input' | 'form' | 'table' | 'list' | 'card' | 'label' | 'checkbox' | 'dropdown';
@@ -51,6 +66,8 @@ interface UIComponent {
     unit?: string;
     placeholder?: string;
     columns?: string[];
+    formFields?: FormField[];
+    formButtons?: FormButton[];
   };
 }
 
@@ -284,6 +301,73 @@ const DraggableUIComponent: React.FC<DraggableUIComponentProps> = ({
                 List Item {item}
               </div>
             ))}
+          </div>
+        );
+      
+      case 'form':
+        const formFields = component.config?.formFields || [];
+        const formButtons = component.config?.formButtons || [];
+        return (
+          <div style={{ ...baseStyle, flexDirection: 'column', alignItems: 'stretch', gap: '16px', padding: '20px', background: '#ffffff', overflow: 'auto' }}>
+            <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '4px' }}>{component.label}</div>
+            {formFields.map((field) => (
+              <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>{field.label}</label>
+                {field.type === 'textarea' ? (
+                  <div style={{ 
+                    minHeight: '80px', 
+                    padding: '8px 12px',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#e5e7eb',
+                    borderWidth: '2px',
+                    borderStyle: 'solid',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    color: '#9ca3af',
+                  }}>
+                    {field.placeholder}
+                  </div>
+                ) : (
+                  <div style={{ 
+                    height: '40px', 
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#e5e7eb',
+                    borderWidth: '2px',
+                    borderStyle: 'solid',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    color: '#9ca3af',
+                  }}>
+                    {field.placeholder}
+                  </div>
+                )}
+              </div>
+            ))}
+            {formButtons.length > 0 && (
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                {formButtons.map((btn) => (
+                  <div key={btn.id} style={{
+                    flex: 1,
+                    padding: '10px 20px',
+                    backgroundColor: btn.backgroundColor,
+                    color: btn.textColor,
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    cursor: 'pointer',
+                  }}>
+                    {btn.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       
@@ -576,6 +660,29 @@ const IntegrationUIBuilder = () => {
       style: getDefaultStyles(type),
       config: {
         placeholder: type === 'input' ? `Enter ${type}...` : undefined,
+        formFields: type === 'form' ? [
+          {
+            id: '1',
+            label: 'Name',
+            placeholder: 'Enter your name',
+            type: 'text',
+          },
+          {
+            id: '2',
+            label: 'Email',
+            placeholder: 'Enter your email',
+            type: 'email',
+          },
+        ] : undefined,
+        formButtons: type === 'form' ? [
+          {
+            id: '1',
+            label: 'Submit',
+            backgroundColor: '#667eea',
+            textColor: '#ffffff',
+            action: 'submit',
+          },
+        ] : undefined,
       },
     };
 
@@ -1138,6 +1245,261 @@ const IntegrationUIBuilder = () => {
                         >
                           Warning
                         </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedComponent.type === 'form' && (
+                    <div className="space-y-6">
+                      {/* Form Fields Section */}
+                      <div className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-semibold">Form Fields</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const newField: FormField = {
+                                id: Date.now().toString(),
+                                label: 'New Field',
+                                placeholder: 'Enter value...',
+                                type: 'text',
+                              };
+                              handleUpdateComponent(selectedComponent.id, {
+                                config: {
+                                  ...selectedComponent.config,
+                                  formFields: [...(selectedComponent.config?.formFields || []), newField],
+                                },
+                              });
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Field
+                          </Button>
+                        </div>
+                        
+                        <ScrollArea className="max-h-64">
+                          <div className="space-y-3">
+                            {(selectedComponent.config?.formFields || []).map((field, index) => (
+                              <Card key={field.id} className="p-3">
+                                <div className="flex items-start justify-between mb-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    Field {index + 1}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => {
+                                      const newFields = (selectedComponent.config?.formFields || []).filter(f => f.id !== field.id);
+                                      handleUpdateComponent(selectedComponent.id, {
+                                        config: { ...selectedComponent.config, formFields: newFields },
+                                      });
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3 text-destructive" />
+                                  </Button>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <div>
+                                    <Label className="text-xs">Label</Label>
+                                    <Input
+                                      value={field.label}
+                                      onChange={(e) => {
+                                        const newFields = (selectedComponent.config?.formFields || []).map(f =>
+                                          f.id === field.id ? { ...f, label: e.target.value } : f
+                                        );
+                                        handleUpdateComponent(selectedComponent.id, {
+                                          config: { ...selectedComponent.config, formFields: newFields },
+                                        });
+                                      }}
+                                      className="h-8"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label className="text-xs">Placeholder</Label>
+                                    <Input
+                                      value={field.placeholder}
+                                      onChange={(e) => {
+                                        const newFields = (selectedComponent.config?.formFields || []).map(f =>
+                                          f.id === field.id ? { ...f, placeholder: e.target.value } : f
+                                        );
+                                        handleUpdateComponent(selectedComponent.id, {
+                                          config: { ...selectedComponent.config, formFields: newFields },
+                                        });
+                                      }}
+                                      className="h-8"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label className="text-xs">Type</Label>
+                                    <Select
+                                      value={field.type}
+                                      onValueChange={(value) => {
+                                        const newFields = (selectedComponent.config?.formFields || []).map(f =>
+                                          f.id === field.id ? { ...f, type: value as FormField['type'] } : f
+                                        );
+                                        handleUpdateComponent(selectedComponent.id, {
+                                          config: { ...selectedComponent.config, formFields: newFields },
+                                        });
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="text">Text</SelectItem>
+                                        <SelectItem value="number">Number</SelectItem>
+                                        <SelectItem value="email">Email</SelectItem>
+                                        <SelectItem value="password">Password</SelectItem>
+                                        <SelectItem value="textarea">Textarea</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                      
+                      {/* Form Buttons Section */}
+                      <div className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-semibold">Form Buttons</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const newButton: FormButton = {
+                                id: Date.now().toString(),
+                                label: 'Button',
+                                backgroundColor: '#667eea',
+                                textColor: '#ffffff',
+                                action: 'submit',
+                              };
+                              handleUpdateComponent(selectedComponent.id, {
+                                config: {
+                                  ...selectedComponent.config,
+                                  formButtons: [...(selectedComponent.config?.formButtons || []), newButton],
+                                },
+                              });
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Button
+                          </Button>
+                        </div>
+                        
+                        <ScrollArea className="max-h-64">
+                          <div className="space-y-3">
+                            {(selectedComponent.config?.formButtons || []).map((button, index) => (
+                              <Card key={button.id} className="p-3">
+                                <div className="flex items-start justify-between mb-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    Button {index + 1}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => {
+                                      const newButtons = (selectedComponent.config?.formButtons || []).filter(b => b.id !== button.id);
+                                      handleUpdateComponent(selectedComponent.id, {
+                                        config: { ...selectedComponent.config, formButtons: newButtons },
+                                      });
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3 text-destructive" />
+                                  </Button>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <div>
+                                    <Label className="text-xs">Label</Label>
+                                    <Input
+                                      value={button.label}
+                                      onChange={(e) => {
+                                        const newButtons = (selectedComponent.config?.formButtons || []).map(b =>
+                                          b.id === button.id ? { ...b, label: e.target.value } : b
+                                        );
+                                        handleUpdateComponent(selectedComponent.id, {
+                                          config: { ...selectedComponent.config, formButtons: newButtons },
+                                        });
+                                      }}
+                                      className="h-8"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label className="text-xs">Background Color</Label>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="color"
+                                        value={button.backgroundColor}
+                                        onChange={(e) => {
+                                          const newButtons = (selectedComponent.config?.formButtons || []).map(b =>
+                                            b.id === button.id ? { ...b, backgroundColor: e.target.value } : b
+                                          );
+                                          handleUpdateComponent(selectedComponent.id, {
+                                            config: { ...selectedComponent.config, formButtons: newButtons },
+                                          });
+                                        }}
+                                        className="w-12 h-8"
+                                      />
+                                      <Input
+                                        value={button.backgroundColor}
+                                        onChange={(e) => {
+                                          const newButtons = (selectedComponent.config?.formButtons || []).map(b =>
+                                            b.id === button.id ? { ...b, backgroundColor: e.target.value } : b
+                                          );
+                                          handleUpdateComponent(selectedComponent.id, {
+                                            config: { ...selectedComponent.config, formButtons: newButtons },
+                                          });
+                                        }}
+                                        className="h-8"
+                                      />
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <Label className="text-xs">Text Color</Label>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="color"
+                                        value={button.textColor}
+                                        onChange={(e) => {
+                                          const newButtons = (selectedComponent.config?.formButtons || []).map(b =>
+                                            b.id === button.id ? { ...b, textColor: e.target.value } : b
+                                          );
+                                          handleUpdateComponent(selectedComponent.id, {
+                                            config: { ...selectedComponent.config, formButtons: newButtons },
+                                          });
+                                        }}
+                                        className="w-12 h-8"
+                                      />
+                                      <Input
+                                        value={button.textColor}
+                                        onChange={(e) => {
+                                          const newButtons = (selectedComponent.config?.formButtons || []).map(b =>
+                                            b.id === button.id ? { ...b, textColor: e.target.value } : b
+                                          );
+                                          handleUpdateComponent(selectedComponent.id, {
+                                            config: { ...selectedComponent.config, formButtons: newButtons },
+                                          });
+                                        }}
+                                        className="h-8"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </ScrollArea>
                       </div>
                     </div>
                   )}
