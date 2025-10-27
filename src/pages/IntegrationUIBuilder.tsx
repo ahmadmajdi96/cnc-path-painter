@@ -1,6 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Canvas as FabricCanvas, Rect, Circle, Text as FabricText, FabricObject } from 'fabric';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  useSensors,
+  useSensor,
+  PointerSensor,
+  KeyboardSensor,
+  DragEndEvent,
+  DragStartEvent,
+  DragMoveEvent,
+  useDraggable,
+} from '@dnd-kit/core';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Save, Trash2, Eye, Settings, Layers, Grid3x3 } from 'lucide-react';
+import { Plus, Trash2, Eye, Settings, Layers, Grid3x3, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface UIComponent {
@@ -28,19 +39,13 @@ interface UIComponent {
     borderWidth?: number;
     fontSize?: number;
     fontWeight?: string;
-    opacity?: number;
-    rotation?: number;
   };
   config?: {
     min?: number;
     max?: number;
     unit?: string;
-    decimals?: number;
-    shape?: 'rectangle' | 'circle';
     placeholder?: string;
-    rows?: number;
     columns?: string[];
-    items?: string[];
   };
 }
 
@@ -53,19 +58,180 @@ interface IntegrationUI {
     width: number;
     height: number;
     backgroundColor: string;
-    gridSize: number;
-    showGrid: boolean;
   };
   createdAt: string;
   updatedAt: string;
 }
 
+// Draggable Component
+interface DraggableUIComponentProps {
+  component: UIComponent;
+  isSelected: boolean;
+  onSelect: () => void;
+  onUpdate: (component: UIComponent) => void;
+  onDelete: (id: string) => void;
+}
+
+const DraggableUIComponent: React.FC<DraggableUIComponentProps> = ({
+  component,
+  isSelected,
+  onSelect,
+  onUpdate,
+  onDelete,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: component.id,
+  });
+
+  const style: React.CSSProperties = {
+    position: 'absolute',
+    left: `${component.position.x}px`,
+    top: `${component.position.y}px`,
+    width: `${component.size.width}px`,
+    height: `${component.size.height}px`,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isSelected ? 1000 : 1,
+  };
+
+  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = component.size.width;
+    const startHeight = component.size.height;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+
+      if (direction.includes('right')) {
+        newWidth = Math.max(50, startWidth + (e.clientX - startX));
+      }
+      if (direction.includes('bottom')) {
+        newHeight = Math.max(30, startHeight + (e.clientY - startY));
+      }
+
+      onUpdate({
+        ...component,
+        size: { width: newWidth, height: newHeight },
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const getComponentIcon = () => {
+    const icons: Record<string, string> = {
+      input: '📝',
+      form: '📋',
+      label: '🏷️',
+      checkbox: '☑️',
+      dropdown: '▼',
+      button: '🔘',
+      table: '📊',
+      list: '📝',
+      card: '🃏',
+      gauge: '⏱️',
+      chart: '📈',
+      indicator: '🚥',
+      value: '🔢',
+      toggle: '🔄',
+      slider: '🎚️',
+      text: '📄',
+      shape: '⬜',
+    };
+    return icons[component.type] || '📦';
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group"
+      onClick={onSelect}
+    >
+      <Card
+        className={`h-full ${
+          isSelected ? 'ring-2 ring-primary shadow-lg' : 'shadow-sm hover:shadow-md'
+        } transition-all cursor-pointer`}
+        style={{
+          backgroundColor: component.style.backgroundColor,
+          borderColor: component.style.borderColor,
+          borderWidth: component.style.borderWidth || 1,
+        }}
+      >
+        <CardContent className="p-2 h-full relative">
+          <div className="flex items-center justify-between mb-1">
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-secondary/50 rounded"
+            >
+              <GripVertical className="w-3 h-3 text-muted-foreground" />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(component.id);
+              }}
+            >
+              <Trash2 className="w-3 h-3 text-destructive" />
+            </Button>
+          </div>
+          
+          <div className="flex flex-col items-center justify-center h-[calc(100%-40px)]">
+            <div className="text-2xl mb-1">{getComponentIcon()}</div>
+            <div
+              className="text-xs font-medium text-center mb-1 truncate w-full"
+              style={{ color: component.style.textColor }}
+            >
+              {component.label}
+            </div>
+            <div className="text-xs text-muted-foreground truncate w-full text-center">
+              {component.variable}
+            </div>
+          </div>
+
+          {isSelected && (
+            <>
+              <div
+                className="absolute bottom-0 right-0 w-3 h-3 bg-primary cursor-se-resize rounded-tl-md"
+                onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
+              />
+              <div className="absolute bottom-1 left-1 text-[10px] text-muted-foreground">
+                {component.size.width}×{component.size.height}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const IntegrationUIBuilder = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [uis, setUis] = useState<IntegrationUI[]>([]);
   const [selectedUI, setSelectedUI] = useState<IntegrationUI | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<UIComponent | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
   const [uiFormData, setUiFormData] = useState({
@@ -73,13 +239,19 @@ const IntegrationUIBuilder = () => {
     description: '',
     width: 1200,
     height: 800,
-    backgroundColor: '#1e1e1e',
-    showGrid: true,
-    gridSize: 20
+    backgroundColor: '#f5f5f5',
   });
 
-  // Mock integrations with variables
-  const [mockIntegrations] = useState([
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  const mockIntegrations = [
     {
       id: 'int-1',
       name: 'PLC Integration',
@@ -95,281 +267,54 @@ const IntegrationUIBuilder = () => {
       name: 'Sensor Network',
       variables: ['humidity', 'ambient_temp', 'vibration', 'noise_level', 'air_quality']
     }
-  ]);
+  ];
 
-  // Initialize Fabric.js canvas
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    if (fabricCanvas) return;
+  const componentTypes = [
+    { value: 'input', label: 'Input', icon: '📝', category: 'Form' },
+    { value: 'form', label: 'Form', icon: '📋', category: 'Form' },
+    { value: 'label', label: 'Label', icon: '🏷️', category: 'Form' },
+    { value: 'checkbox', label: 'Checkbox', icon: '☑️', category: 'Form' },
+    { value: 'dropdown', label: 'Dropdown', icon: '▼', category: 'Form' },
+    { value: 'button', label: 'Button', icon: '🔘', category: 'Form' },
+    { value: 'table', label: 'Table', icon: '📊', category: 'Data' },
+    { value: 'list', label: 'List', icon: '📝', category: 'Data' },
+    { value: 'card', label: 'Card', icon: '🃏', category: 'Data' },
+    { value: 'gauge', label: 'Gauge', icon: '⏱️', category: 'Visualization' },
+    { value: 'chart', label: 'Chart', icon: '📈', category: 'Visualization' },
+    { value: 'indicator', label: 'Indicator', icon: '🚥', category: 'Visualization' },
+    { value: 'value', label: 'Value', icon: '🔢', category: 'Visualization' },
+    { value: 'toggle', label: 'Toggle', icon: '🔄', category: 'Control' },
+    { value: 'slider', label: 'Slider', icon: '🎚️', category: 'Control' },
+    { value: 'text', label: 'Text', icon: '📄', category: 'Basic' },
+    { value: 'shape', label: 'Shape', icon: '⬜', category: 'Basic' },
+  ];
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: 1200,
-      height: 800,
-      backgroundColor: '#1e1e1e',
-      selection: true,
-    });
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  };
 
-    canvas.on('selection:created', (e: any) => {
-      const selected = e.selected?.[0];
-      if (selected && (selected as any).data) {
-        setSelectedComponent((selected as any).data as UIComponent);
+  const handleDragMove = (event: DragMoveEvent) => {
+    if (!activeId || !event.delta || !selectedUI) return;
+
+    const updatedComponents = selectedUI.components.map(component => {
+      if (component.id === activeId) {
+        return {
+          ...component,
+          position: {
+            x: Math.max(0, component.position.x + event.delta.x),
+            y: Math.max(0, component.position.y + event.delta.y),
+          },
+        };
       }
+      return component;
     });
 
-    canvas.on('selection:updated', (e: any) => {
-      const selected = e.selected?.[0];
-      if (selected && (selected as any).data) {
-        setSelectedComponent((selected as any).data as UIComponent);
-      }
-    });
+    setSelectedUI({ ...selectedUI, components: updatedComponents });
+    setUis(uis.map(ui => ui.id === selectedUI.id ? { ...selectedUI, components: updatedComponents } : ui));
+  };
 
-    canvas.on('selection:cleared', () => {
-      setSelectedComponent(null);
-    });
-
-    canvas.on('object:modified', (e: any) => {
-      const obj = e.target;
-      if (obj && (obj as any).data && selectedUI) {
-        const component = (obj as any).data as UIComponent;
-        handleUpdateComponent(component.id, {
-          position: { x: obj.left || 0, y: obj.top || 0 },
-          size: { 
-            width: obj.width ? obj.width * (obj.scaleX || 1) : component.size.width, 
-            height: obj.height ? obj.height * (obj.scaleY || 1) : component.size.height 
-          }
-        });
-      }
-    });
-
-    setFabricCanvas(canvas);
-
-    return () => {
-      canvas.dispose();
-    };
-  }, []);
-
-  // Update canvas when UI is selected
-  useEffect(() => {
-    if (!fabricCanvas || !selectedUI) return;
-
-    fabricCanvas.clear();
-    fabricCanvas.setWidth(selectedUI.canvasConfig.width);
-    fabricCanvas.setHeight(selectedUI.canvasConfig.height);
-    fabricCanvas.backgroundColor = selectedUI.canvasConfig.backgroundColor;
-    fabricCanvas.renderAll();
-
-    // Render components
-    selectedUI.components.forEach(component => {
-      renderComponent(fabricCanvas, component);
-    });
-
-    fabricCanvas.renderAll();
-  }, [selectedUI, fabricCanvas]);
-
-  const renderComponent = (canvas: FabricCanvas, component: UIComponent) => {
-    let obj: any;
-    let labelText = '';
-
-    switch (component.type) {
-      case 'input':
-        // Input field representation
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: component.size.width,
-          height: component.size.height,
-          fill: '#ffffff',
-          stroke: component.style.borderColor || '#cbd5e1',
-          strokeWidth: component.style.borderWidth || 1,
-          rx: 4,
-          ry: 4,
-        });
-        labelText = component.config?.placeholder || component.label;
-        break;
-
-      case 'form':
-        // Form container
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: component.size.width,
-          height: component.size.height,
-          fill: component.style.backgroundColor || '#f8fafc',
-          stroke: component.style.borderColor || '#e2e8f0',
-          strokeWidth: component.style.borderWidth || 2,
-          rx: 8,
-          ry: 8,
-        });
-        labelText = `📋 ${component.label}`;
-        break;
-
-      case 'table':
-        // Data table representation
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: component.size.width,
-          height: component.size.height,
-          fill: '#ffffff',
-          stroke: component.style.borderColor || '#e2e8f0',
-          strokeWidth: component.style.borderWidth || 1,
-        });
-        labelText = `📊 ${component.label}\n${component.variable}`;
-        break;
-
-      case 'list':
-        // List representation
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: component.size.width,
-          height: component.size.height,
-          fill: '#ffffff',
-          stroke: component.style.borderColor || '#e2e8f0',
-          strokeWidth: component.style.borderWidth || 1,
-          rx: 4,
-          ry: 4,
-        });
-        labelText = `📝 ${component.label}\n${component.variable}`;
-        break;
-
-      case 'card':
-        // Card component
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: component.size.width,
-          height: component.size.height,
-          fill: component.style.backgroundColor || '#ffffff',
-          stroke: component.style.borderColor || '#e2e8f0',
-          strokeWidth: component.style.borderWidth || 1,
-          rx: 8,
-          ry: 8,
-        });
-        labelText = component.label;
-        break;
-
-      case 'label':
-        // Text label
-        obj = new FabricText(component.label, {
-          left: component.position.x,
-          top: component.position.y,
-          fontSize: component.style.fontSize || 14,
-          fill: component.style.textColor || '#1e293b',
-          fontWeight: component.style.fontWeight || 'bold',
-        });
-        break;
-
-      case 'checkbox':
-        // Checkbox representation
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: 20,
-          height: 20,
-          fill: '#ffffff',
-          stroke: component.style.borderColor || '#cbd5e1',
-          strokeWidth: 2,
-          rx: 4,
-          ry: 4,
-        });
-        labelText = component.label;
-        break;
-
-      case 'dropdown':
-        // Dropdown/Select representation
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: component.size.width,
-          height: component.size.height,
-          fill: '#ffffff',
-          stroke: component.style.borderColor || '#cbd5e1',
-          strokeWidth: component.style.borderWidth || 1,
-          rx: 4,
-          ry: 4,
-        });
-        labelText = `▼ ${component.label}`;
-        break;
-
-      case 'gauge':
-      case 'indicator':
-        obj = new Circle({
-          left: component.position.x,
-          top: component.position.y,
-          radius: Math.min(component.size.width, component.size.height) / 2,
-          fill: component.style.backgroundColor,
-          stroke: component.style.borderColor,
-          strokeWidth: component.style.borderWidth || 2,
-        });
-        labelText = `${component.label}\n${component.variable}`;
-        break;
-
-      case 'shape':
-        if (component.config?.shape === 'circle') {
-          obj = new Circle({
-            left: component.position.x,
-            top: component.position.y,
-            radius: Math.min(component.size.width, component.size.height) / 2,
-            fill: component.style.backgroundColor,
-            stroke: component.style.borderColor,
-            strokeWidth: component.style.borderWidth || 2,
-          });
-        } else {
-          obj = new Rect({
-            left: component.position.x,
-            top: component.position.y,
-            width: component.size.width,
-            height: component.size.height,
-            fill: component.style.backgroundColor,
-            stroke: component.style.borderColor,
-            strokeWidth: component.style.borderWidth || 2,
-          });
-        }
-        break;
-
-      case 'text':
-        obj = new FabricText(component.label, {
-          left: component.position.x,
-          top: component.position.y,
-          fontSize: component.style.fontSize || 16,
-          fill: component.style.textColor,
-          fontWeight: component.style.fontWeight || 'normal',
-        });
-        break;
-
-      default:
-        obj = new Rect({
-          left: component.position.x,
-          top: component.position.y,
-          width: component.size.width,
-          height: component.size.height,
-          fill: component.style.backgroundColor,
-          stroke: component.style.borderColor,
-          strokeWidth: component.style.borderWidth || 2,
-        });
-        labelText = `${component.label}\n${component.variable}`;
-    }
-
-    if (obj) {
-      (obj as any).data = component;
-      canvas.add(obj);
-
-      // Add label text if needed
-      if (labelText && component.type !== 'text' && component.type !== 'label') {
-        const label = new FabricText(labelText, {
-          left: component.position.x + (component.type === 'checkbox' ? 30 : component.size.width / 2),
-          top: component.position.y + (component.type === 'checkbox' ? 0 : component.size.height / 2),
-          fontSize: component.style.fontSize || 12,
-          fill: component.style.textColor || '#64748b',
-          textAlign: component.type === 'checkbox' ? 'left' : 'center',
-          originX: component.type === 'checkbox' ? 'left' : 'center',
-          originY: 'center',
-        });
-        (label as any).data = component;
-        canvas.add(label);
-      }
-    }
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
   };
 
   const handleCreateUI = () => {
@@ -387,8 +332,6 @@ const IntegrationUIBuilder = () => {
         width: uiFormData.width,
         height: uiFormData.height,
         backgroundColor: uiFormData.backgroundColor,
-        gridSize: uiFormData.gridSize,
-        showGrid: uiFormData.showGrid,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -399,15 +342,12 @@ const IntegrationUIBuilder = () => {
     setIsCreateDialogOpen(false);
     toast.success('UI created successfully');
 
-    // Reset form
     setUiFormData({
       name: '',
       description: '',
       width: 1200,
       height: 800,
-      backgroundColor: '#1e1e1e',
-      showGrid: true,
-      gridSize: 20
+      backgroundColor: '#f5f5f5',
     });
   };
 
@@ -415,7 +355,6 @@ const IntegrationUIBuilder = () => {
     setUis(uis.filter(ui => ui.id !== id));
     if (selectedUI?.id === id) {
       setSelectedUI(null);
-      fabricCanvas?.clear();
     }
     toast.success('UI deleted');
   };
@@ -426,6 +365,26 @@ const IntegrationUIBuilder = () => {
       return;
     }
 
+    const sizeMap: Record<string, { width: number; height: number }> = {
+      input: { width: 250, height: 40 },
+      form: { width: 400, height: 300 },
+      label: { width: 150, height: 30 },
+      checkbox: { width: 150, height: 30 },
+      dropdown: { width: 200, height: 40 },
+      button: { width: 120, height: 40 },
+      table: { width: 600, height: 300 },
+      list: { width: 400, height: 400 },
+      card: { width: 300, height: 200 },
+      gauge: { width: 200, height: 200 },
+      chart: { width: 400, height: 300 },
+      indicator: { width: 100, height: 100 },
+      value: { width: 150, height: 80 },
+      toggle: { width: 100, height: 40 },
+      slider: { width: 250, height: 40 },
+      text: { width: 200, height: 50 },
+      shape: { width: 150, height: 150 },
+    };
+
     const newComponent: UIComponent = {
       id: Date.now().toString(),
       type,
@@ -433,23 +392,17 @@ const IntegrationUIBuilder = () => {
       integrationId: mockIntegrations[0].id,
       variable: mockIntegrations[0].variables[0],
       position: { x: 50, y: 50 },
-      size: { width: type === 'text' ? 150 : 200, height: type === 'text' ? 40 : 150 },
+      size: sizeMap[type] || { width: 200, height: 150 },
       style: {
-        backgroundColor: type === 'text' ? 'transparent' : '#2563eb',
-        textColor: '#ffffff',
-        borderColor: '#3b82f6',
-        borderWidth: 2,
+        backgroundColor: '#ffffff',
+        textColor: '#000000',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
         fontSize: 14,
         fontWeight: 'normal',
-        opacity: 1,
-        rotation: 0,
       },
       config: {
-        min: 0,
-        max: 100,
-        unit: '',
-        decimals: 2,
-        shape: 'rectangle',
+        placeholder: `Enter ${type}...`,
       },
     };
 
@@ -500,321 +453,332 @@ const IntegrationUIBuilder = () => {
     toast.success('Component deleted');
   };
 
-  const componentTypes = [
-    { value: 'input', label: 'Input Field', icon: '📝', category: 'Form' },
-    { value: 'form', label: 'Form Container', icon: '📋', category: 'Form' },
-    { value: 'label', label: 'Label', icon: '🏷️', category: 'Form' },
-    { value: 'checkbox', label: 'Checkbox', icon: '☑️', category: 'Form' },
-    { value: 'dropdown', label: 'Dropdown', icon: '▼', category: 'Form' },
-    { value: 'button', label: 'Button', icon: '🔘', category: 'Form' },
-    { value: 'table', label: 'Data Table', icon: '📊', category: 'Data' },
-    { value: 'list', label: 'List', icon: '📝', category: 'Data' },
-    { value: 'card', label: 'Card', icon: '🃏', category: 'Data' },
-    { value: 'gauge', label: 'Gauge', icon: '⏱️', category: 'Visualization' },
-    { value: 'chart', label: 'Chart', icon: '📈', category: 'Visualization' },
-    { value: 'indicator', label: 'Indicator', icon: '🚥', category: 'Visualization' },
-    { value: 'value', label: 'Value Display', icon: '🔢', category: 'Visualization' },
-    { value: 'toggle', label: 'Toggle', icon: '🔄', category: 'Control' },
-    { value: 'slider', label: 'Slider', icon: '🎚️', category: 'Control' },
-    { value: 'text', label: 'Text', icon: '📄', category: 'Basic' },
-    { value: 'shape', label: 'Shape', icon: '⬜', category: 'Basic' },
-  ];
+  const activeComponent = selectedUI?.components.find(c => c.id === activeId);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b bg-card p-4">
-        <div className="flex items-center justify-between max-w-[1800px] mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold">Integration UI Builder</h1>
-            <p className="text-muted-foreground">Build custom 2D interfaces for your integrations</p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              New UI
-            </Button>
-          </div>
+    <div className="flex h-screen bg-background">
+      {/* Left Sidebar */}
+      <div className="w-64 border-r bg-card">
+        <div className="p-4 border-b">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Layers className="w-5 h-5" />
+            My UIs
+          </h2>
+        </div>
+        <ScrollArea className="h-[calc(100vh-180px)] p-4">
+          {uis.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No UIs created yet</p>
+          ) : (
+            <div className="space-y-2">
+              {uis.map(ui => (
+                <Card
+                  key={ui.id}
+                  className={`p-3 cursor-pointer transition-colors ${
+                    selectedUI?.id === ui.id ? 'border-primary bg-accent' : ''
+                  }`}
+                  onClick={() => setSelectedUI(ui)}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-medium text-sm">{ui.name}</h3>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteUI(ui.id);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {ui.components.length} component{ui.components.length !== 1 ? 's' : ''}
+                  </p>
+                  <Badge variant="outline" className="mt-2 text-xs">
+                    {ui.canvasConfig.width}×{ui.canvasConfig.height}
+                  </Badge>
+                </Card>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+        <div className="p-4 border-t">
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="w-full">
+            <Plus className="w-4 h-4 mr-2" />
+            New UI
+          </Button>
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-120px)]">
-        {/* Left Sidebar - UI List */}
-        <div className="w-64 border-r bg-card p-4">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Layers className="w-4 h-4" />
-            My UIs
-          </h2>
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            {uis.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No UIs created yet</p>
-            ) : (
-              <div className="space-y-2">
-                {uis.map(ui => (
-                  <Card
-                    key={ui.id}
-                    className={`p-3 cursor-pointer transition-colors ${
-                      selectedUI?.id === ui.id ? 'border-primary bg-accent' : ''
-                    }`}
-                    onClick={() => setSelectedUI(ui)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-sm">{ui.name}</h3>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteUI(ui.id);
-                        }}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+      {/* Center - Canvas */}
+      <div className="flex-1 relative">
+        {selectedUI ? (
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="h-full overflow-auto p-6 bg-secondary/20">
+              <div className="mb-4 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold">{selectedUI.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedUI.components.length} components
+                  </p>
+                </div>
+              </div>
+              
+              <div
+                className="canvas-container relative border-2 border-border shadow-lg"
+                style={{
+                  width: `${selectedUI.canvasConfig.width}px`,
+                  height: `${selectedUI.canvasConfig.height}px`,
+                  backgroundColor: selectedUI.canvasConfig.backgroundColor,
+                }}
+              >
+                {selectedUI.components.length === 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <Grid3x3 className="w-16 h-16 mx-auto mb-4" />
+                      <p className="font-medium mb-2">Start Building</p>
+                      <p className="text-sm">Add components from the toolbox</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {ui.components.length} component{ui.components.length !== 1 ? 's' : ''}
-                    </p>
-                    <Badge variant="outline" className="mt-2 text-xs">
-                      {ui.canvasConfig.width}x{ui.canvasConfig.height}
-                    </Badge>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-
-        {/* Center - Canvas */}
-        <div className="flex-1 p-6 overflow-auto bg-secondary/20">
-          {selectedUI ? (
-            <div className="flex flex-col items-center">
-              <div className="mb-4 flex gap-2 items-center">
-                <h2 className="text-xl font-semibold">{selectedUI.name}</h2>
-                <Badge variant="secondary">{selectedUI.components.length} components</Badge>
-              </div>
-              <div className="border-2 border-border rounded-lg shadow-2xl" style={{ 
-                backgroundColor: selectedUI.canvasConfig.backgroundColor,
-                padding: '20px'
-              }}>
-                <canvas ref={canvasRef} />
-              </div>
-              <div className="mt-4 text-sm text-muted-foreground">
-                Drag and resize components on the canvas. Select them to edit properties.
+                  </div>
+                ) : (
+                  selectedUI.components.map((component) => (
+                    <DraggableUIComponent
+                      key={component.id}
+                      component={component}
+                      isSelected={selectedComponent?.id === component.id}
+                      onSelect={() => setSelectedComponent(component)}
+                      onUpdate={(updated) => handleUpdateComponent(updated.id, updated)}
+                      onDelete={handleDeleteComponent}
+                    />
+                  ))
+                )}
               </div>
             </div>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <Grid3x3 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">No UI Selected</h3>
-                <p className="text-muted-foreground mb-4">Select a UI from the list or create a new one to start building</p>
-                <Button onClick={() => setIsCreateDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First UI
-                </Button>
-              </div>
+
+            <DragOverlay>
+              {activeComponent && (
+                <div className="bg-card border rounded p-4 shadow-xl opacity-90">
+                  <div className="font-medium">{activeComponent.label}</div>
+                  <div className="text-sm text-muted-foreground">{activeComponent.type}</div>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <Grid3x3 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-2">No UI Selected</h3>
+              <p className="text-muted-foreground mb-4">Select or create a UI to start building</p>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create UI
+              </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        {/* Right Sidebar - Toolbox & Properties */}
-        <div className="w-80 border-l bg-card">
-          <Tabs defaultValue="components" className="h-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="components">Components</TabsTrigger>
-              <TabsTrigger value="properties" disabled={!selectedComponent}>
-                Properties
-              </TabsTrigger>
-            </TabsList>
+      {/* Right Sidebar */}
+      <div className="w-80 border-l bg-card">
+        <Tabs defaultValue="components" className="h-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="components">Components</TabsTrigger>
+            <TabsTrigger value="properties" disabled={!selectedComponent}>
+              Properties
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="components" className="p-4">
-              <ScrollArea className="h-[calc(100vh-220px)]">
-                <h3 className="text-sm font-semibold mb-4">Add Component</h3>
-                
-                {['Form', 'Data', 'Visualization', 'Control', 'Basic'].map(category => {
-                  const categoryTypes = componentTypes.filter(t => t.category === category);
-                  return (
-                    <div key={category} className="mb-6">
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">{category}</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        {categoryTypes.map(type => (
-                          <Button
-                            key={type.value}
-                            variant="outline"
-                            className="h-auto flex-col py-3"
-                            onClick={() => handleAddComponent(type.value as UIComponent['type'])}
-                            disabled={!selectedUI}
-                          >
-                            <span className="text-2xl mb-1">{type.icon}</span>
-                            <span className="text-xs text-center">{type.label}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {selectedUI && selectedUI.components.length > 0 && (
-                  <>
-                    <h3 className="text-sm font-semibold mb-4 mt-6">Components List</h3>
-                    <div className="space-y-2">
-                      {selectedUI.components.map(comp => (
-                        <Card key={comp.id} className="p-2">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="text-sm font-medium">{comp.label}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {comp.type} - {comp.variable}
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteComponent(comp.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </Card>
+          <TabsContent value="components" className="p-4">
+            <ScrollArea className="h-[calc(100vh-120px)]">
+              {['Form', 'Data', 'Visualization', 'Control', 'Basic'].map(category => {
+                const categoryTypes = componentTypes.filter(t => t.category === category);
+                return (
+                  <div key={category} className="mb-6">
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2">{category}</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {categoryTypes.map(type => (
+                        <Button
+                          key={type.value}
+                          variant="outline"
+                          className="h-auto flex-col py-3"
+                          onClick={() => handleAddComponent(type.value as UIComponent['type'])}
+                          disabled={!selectedUI}
+                        >
+                          <span className="text-2xl mb-1">{type.icon}</span>
+                          <span className="text-xs">{type.label}</span>
+                        </Button>
                       ))}
                     </div>
-                  </>
-                )}
-              </ScrollArea>
-            </TabsContent>
+                  </div>
+                );
+              })}
+            </ScrollArea>
+          </TabsContent>
 
-            <TabsContent value="properties" className="p-4">
-              {selectedComponent && (
-                <ScrollArea className="h-[calc(100vh-220px)]">
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
+          <TabsContent value="properties" className="p-4">
+            {selectedComponent && (
+              <ScrollArea className="h-[calc(100vh-120px)]">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                       <Settings className="w-4 h-4" />
-                      Component Properties
+                      Properties
                     </h3>
+                  </div>
 
-                    <div>
-                      <Label>Label</Label>
-                      <Input
-                        value={selectedComponent.label}
-                        onChange={(e) =>
-                          handleUpdateComponent(selectedComponent.id, { label: e.target.value })
-                        }
-                      />
-                    </div>
+                  <div>
+                    <Label>Label</Label>
+                    <Input
+                      value={selectedComponent.label}
+                      onChange={(e) =>
+                        handleUpdateComponent(selectedComponent.id, { label: e.target.value })
+                      }
+                    />
+                  </div>
 
-                    <div>
-                      <Label>Integration</Label>
-                      <Select
-                        value={selectedComponent.integrationId}
-                        onValueChange={(value) => {
-                          const integration = mockIntegrations.find(i => i.id === value);
-                          handleUpdateComponent(selectedComponent.id, {
-                            integrationId: value,
-                            variable: integration?.variables[0] || '',
-                          });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockIntegrations.map(int => (
-                            <SelectItem key={int.id} value={int.id}>
-                              {int.name}
+                  <div>
+                    <Label>Integration</Label>
+                    <Select
+                      value={selectedComponent.integrationId}
+                      onValueChange={(value) => {
+                        const integration = mockIntegrations.find(i => i.id === value);
+                        handleUpdateComponent(selectedComponent.id, {
+                          integrationId: value,
+                          variable: integration?.variables[0] || '',
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockIntegrations.map(int => (
+                          <SelectItem key={int.id} value={int.id}>
+                            {int.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Variable</Label>
+                    <Select
+                      value={selectedComponent.variable}
+                      onValueChange={(value) =>
+                        handleUpdateComponent(selectedComponent.id, { variable: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockIntegrations
+                          .find(i => i.id === selectedComponent.integrationId)
+                          ?.variables.map(variable => (
+                            <SelectItem key={variable} value={variable}>
+                              {variable}
                             </SelectItem>
                           ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    <div>
-                      <Label>Variable</Label>
-                      <Select
-                        value={selectedComponent.variable}
-                        onValueChange={(value) =>
-                          handleUpdateComponent(selectedComponent.id, { variable: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockIntegrations
-                            .find(i => i.id === selectedComponent.integrationId)
-                            ?.variables.map(variable => (
-                              <SelectItem key={variable} value={variable}>
-                                {variable}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>Background Color</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={selectedComponent.style.backgroundColor}
-                          onChange={(e) =>
-                            handleUpdateComponent(selectedComponent.id, {
-                              style: { ...selectedComponent.style, backgroundColor: e.target.value },
-                            })
-                          }
-                          className="w-16"
-                        />
-                        <Input
-                          value={selectedComponent.style.backgroundColor}
-                          onChange={(e) =>
-                            handleUpdateComponent(selectedComponent.id, {
-                              style: { ...selectedComponent.style, backgroundColor: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Text Color</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="color"
-                          value={selectedComponent.style.textColor}
-                          onChange={(e) =>
-                            handleUpdateComponent(selectedComponent.id, {
-                              style: { ...selectedComponent.style, textColor: e.target.value },
-                            })
-                          }
-                          className="w-16"
-                        />
-                        <Input
-                          value={selectedComponent.style.textColor}
-                          onChange={(e) =>
-                            handleUpdateComponent(selectedComponent.id, {
-                              style: { ...selectedComponent.style, textColor: e.target.value },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Font Size</Label>
+                  <div>
+                    <Label>Background Color</Label>
+                    <div className="flex gap-2">
                       <Input
-                        type="number"
-                        value={selectedComponent.style.fontSize}
+                        type="color"
+                        value={selectedComponent.style.backgroundColor}
                         onChange={(e) =>
                           handleUpdateComponent(selectedComponent.id, {
-                            style: { ...selectedComponent.style, fontSize: parseInt(e.target.value) },
+                            style: { ...selectedComponent.style, backgroundColor: e.target.value },
+                          })
+                        }
+                        className="w-16"
+                      />
+                      <Input
+                        value={selectedComponent.style.backgroundColor}
+                        onChange={(e) =>
+                          handleUpdateComponent(selectedComponent.id, {
+                            style: { ...selectedComponent.style, backgroundColor: e.target.value },
                           })
                         }
                       />
                     </div>
                   </div>
-                </ScrollArea>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
+
+                  <div>
+                    <Label>Text Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={selectedComponent.style.textColor}
+                        onChange={(e) =>
+                          handleUpdateComponent(selectedComponent.id, {
+                            style: { ...selectedComponent.style, textColor: e.target.value },
+                          })
+                        }
+                        className="w-16"
+                      />
+                      <Input
+                        value={selectedComponent.style.textColor}
+                        onChange={(e) =>
+                          handleUpdateComponent(selectedComponent.id, {
+                            style: { ...selectedComponent.style, textColor: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Border Color</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={selectedComponent.style.borderColor}
+                        onChange={(e) =>
+                          handleUpdateComponent(selectedComponent.id, {
+                            style: { ...selectedComponent.style, borderColor: e.target.value },
+                          })
+                        }
+                        className="w-16"
+                      />
+                      <Input
+                        value={selectedComponent.style.borderColor}
+                        onChange={(e) =>
+                          handleUpdateComponent(selectedComponent.id, {
+                            style: { ...selectedComponent.style, borderColor: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Font Size</Label>
+                    <Input
+                      type="number"
+                      value={selectedComponent.style.fontSize}
+                      onChange={(e) =>
+                        handleUpdateComponent(selectedComponent.id, {
+                          style: { ...selectedComponent.style, fontSize: parseInt(e.target.value) },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </ScrollArea>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create UI Dialog */}
@@ -822,7 +786,6 @@ const IntegrationUIBuilder = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New UI</DialogTitle>
-            <p className="text-sm text-muted-foreground">Configure your new integration UI canvas</p>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -830,7 +793,7 @@ const IntegrationUIBuilder = () => {
               <Input
                 value={uiFormData.name}
                 onChange={(e) => setUiFormData({ ...uiFormData, name: e.target.value })}
-                placeholder="My Control Panel"
+                placeholder="Control Panel"
               />
             </div>
             <div>
@@ -838,12 +801,12 @@ const IntegrationUIBuilder = () => {
               <Input
                 value={uiFormData.description}
                 onChange={(e) => setUiFormData({ ...uiFormData, description: e.target.value })}
-                placeholder="Description of the UI"
+                placeholder="Description"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Canvas Width</Label>
+                <Label>Width (px)</Label>
                 <Input
                   type="number"
                   value={uiFormData.width}
@@ -851,7 +814,7 @@ const IntegrationUIBuilder = () => {
                 />
               </div>
               <div>
-                <Label>Canvas Height</Label>
+                <Label>Height (px)</Label>
                 <Input
                   type="number"
                   value={uiFormData.height}
@@ -879,7 +842,7 @@ const IntegrationUIBuilder = () => {
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateUI}>Create UI</Button>
+            <Button onClick={handleCreateUI}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
