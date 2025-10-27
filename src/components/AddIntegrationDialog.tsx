@@ -28,7 +28,6 @@ interface VariableMapping {
   id: string;
   sourceField: string;
   targetField: string;
-  transformation?: string;
 }
 
 export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
@@ -130,8 +129,7 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
       {
         id: Date.now().toString(),
         sourceField: '',
-        targetField: '',
-        transformation: ''
+        targetField: ''
       }
     ]);
   };
@@ -623,14 +621,24 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               {variableMappings.map((mapping) => (
-                <div key={mapping.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                <div key={mapping.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
                   <div>
                     <Label>Source Field</Label>
-                    <Input
+                    <Select
                       value={mapping.sourceField}
-                      onChange={(e) => updateVariableMapping(mapping.id, 'sourceField', e.target.value)}
-                      placeholder="Source field name"
-                    />
+                      onValueChange={(value) => updateVariableMapping(mapping.id, 'sourceField', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select parameter" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {expectedParameters.filter(p => p.name).map(param => (
+                          <SelectItem key={param.id} value={param.name}>
+                            {param.name} ({param.type})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>
@@ -639,15 +647,6 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                       value={mapping.targetField}
                       onChange={(e) => updateVariableMapping(mapping.id, 'targetField', e.target.value)}
                       placeholder="Target field name"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label>Transformation (Optional)</Label>
-                    <Input
-                      value={mapping.transformation || ''}
-                      onChange={(e) => updateVariableMapping(mapping.id, 'transformation', e.target.value)}
-                      placeholder="e.g., toUpperCase(), multiply(2)"
                     />
                   </div>
                   

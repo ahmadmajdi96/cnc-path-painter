@@ -6,6 +6,7 @@ import ServicesPage from './ServicesPage';
 import AutomationPage from './AutomationPage';
 import AppBuilderPage from './AppBuilderPage';
 import IntegrationsPage from './IntegrationsPage';
+import IntegrationUIBuilder from './IntegrationUIBuilder';
 import NotFound from './NotFound';
 
 const SoftwarePortal = () => {
@@ -16,6 +17,7 @@ const SoftwarePortal = () => {
         <Route path="/" element={<ServicesPage />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/integrations" element={<IntegrationsPage />} />
+        <Route path="/ui-builder" element={<IntegrationUIBuilder />} />
         <Route path="/automation/*" element={<AutomationPage />} />
         <Route path="/app-builder/*" element={<AppBuilderPage />} />
         <Route path="*" element={<NotFound />} />

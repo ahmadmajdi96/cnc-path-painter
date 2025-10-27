@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Settings, Zap, Code, Link as LinkIcon } from 'lucide-react';
+import { Settings, Zap, Code, Link as LinkIcon, Layout } from 'lucide-react';
 
 export const SoftwareNavigation = () => {
   const location = useLocation();
@@ -10,6 +10,7 @@ export const SoftwareNavigation = () => {
   const navItems = [
     { path: '/software/services', label: 'Services', icon: Settings },
     { path: '/software/integrations', label: 'Integrations', icon: LinkIcon },
+    { path: '/software/ui-builder', label: 'UI Builder', icon: Layout },
     { path: '/software/automation', label: 'Automation', icon: Zap },
     { path: '/software/app-builder', label: 'App Builder', icon: Code },
   ];
