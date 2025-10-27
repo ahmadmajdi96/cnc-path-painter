@@ -163,14 +163,30 @@ const DraggableUIComponent: React.FC<DraggableUIComponentProps> = ({
     switch (component.type) {
       case 'input':
         return (
-          <div style={{ ...baseStyle, justifyContent: 'flex-start', padding: '8px 12px', background: '#ffffff', border: '2px solid #e5e7eb' }}>
-            <span style={{ color: '#9ca3af', fontSize: '14px' }}>{component.config?.placeholder || component.label}</span>
+          <div style={{ 
+            ...baseStyle, 
+            justifyContent: 'flex-start', 
+            padding: '8px 12px',
+            backgroundColor: component.style.backgroundColor || '#ffffff',
+            borderColor: component.style.borderColor || '#e5e7eb',
+            borderWidth: component.style.borderWidth || 2,
+          }}>
+            <span style={{ color: '#9ca3af', fontSize: component.style.fontSize || 14 }}>
+              {component.config?.placeholder || component.label}
+            </span>
           </div>
         );
       
       case 'button':
         return (
-          <div style={{ ...baseStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)' }}>
+          <div style={{ 
+            ...baseStyle, 
+            backgroundColor: component.style.backgroundColor || '#667eea',
+            color: component.style.textColor || '#ffffff', 
+            fontWeight: '600', 
+            cursor: 'pointer',
+            boxShadow: component.style.boxShadow || '0 4px 12px rgba(102, 126, 234, 0.4)',
+          }}>
             {component.label}
           </div>
         );
@@ -508,6 +524,45 @@ const IntegrationUIBuilder = () => {
       shape: { width: 150, height: 150 },
     };
 
+    // Type-specific default styles
+    const getDefaultStyles = (type: UIComponent['type']) => {
+      switch (type) {
+        case 'button':
+          return {
+            backgroundColor: '#667eea',
+            textColor: '#ffffff',
+            borderColor: '#667eea',
+            borderWidth: 0,
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: '600',
+            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+          };
+        case 'input':
+          return {
+            backgroundColor: '#ffffff',
+            textColor: '#1f2937',
+            borderColor: '#e5e7eb',
+            borderWidth: 2,
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 'normal',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+          };
+        default:
+          return {
+            backgroundColor: '#ffffff',
+            textColor: '#1f2937',
+            borderColor: '#e5e7eb',
+            borderWidth: 1,
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 'normal',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          };
+      }
+    };
+
     const newComponent: UIComponent = {
       id: Date.now().toString(),
       type,
@@ -518,18 +573,9 @@ const IntegrationUIBuilder = () => {
       }],
       position: { x: 50, y: 50 },
       size: sizeMap[type] || { width: 200, height: 150 },
-      style: {
-        backgroundColor: '#ffffff',
-        textColor: '#1f2937',
-        borderColor: '#e5e7eb',
-        borderWidth: 1,
-        borderRadius: 8,
-        fontSize: 14,
-        fontWeight: 'normal',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      },
+      style: getDefaultStyles(type),
       config: {
-        placeholder: `Enter ${type}...`,
+        placeholder: type === 'input' ? `Enter ${type}...` : undefined,
       },
     };
 
@@ -1004,6 +1050,97 @@ const IntegrationUIBuilder = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Component-specific configuration */}
+                  {selectedComponent.type === 'input' && (
+                    <div>
+                      <Label>Placeholder</Label>
+                      <Input
+                        value={selectedComponent.config?.placeholder || ''}
+                        onChange={(e) =>
+                          handleUpdateComponent(selectedComponent.id, {
+                            config: { ...selectedComponent.config, placeholder: e.target.value },
+                          })
+                        }
+                        placeholder="Enter placeholder text..."
+                      />
+                    </div>
+                  )}
+
+                  {selectedComponent.type === 'button' && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold">Button Styles</span>
+                        <Badge variant="secondary" className="text-xs">Quick Presets</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            handleUpdateComponent(selectedComponent.id, {
+                              style: {
+                                ...selectedComponent.style,
+                                backgroundColor: '#667eea',
+                                textColor: '#ffffff',
+                                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                              },
+                            });
+                          }}
+                        >
+                          Primary
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            handleUpdateComponent(selectedComponent.id, {
+                              style: {
+                                ...selectedComponent.style,
+                                backgroundColor: '#10b981',
+                                textColor: '#ffffff',
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+                              },
+                            });
+                          }}
+                        >
+                          Success
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            handleUpdateComponent(selectedComponent.id, {
+                              style: {
+                                ...selectedComponent.style,
+                                backgroundColor: '#ef4444',
+                                textColor: '#ffffff',
+                                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                              },
+                            });
+                          }}
+                        >
+                          Danger
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            handleUpdateComponent(selectedComponent.id, {
+                              style: {
+                                ...selectedComponent.style,
+                                backgroundColor: '#f59e0b',
+                                textColor: '#ffffff',
+                                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+                              },
+                            });
+                          }}
+                        >
+                          Warning
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             )}
