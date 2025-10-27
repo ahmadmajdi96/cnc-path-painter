@@ -46,7 +46,7 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
       description: description.trim(),
       enabled,
       tags,
-      updatedAt: new Date()
+      updatedAt: new Date().toISOString()
     };
 
     onSave(updatedAutomation);
@@ -130,10 +130,10 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
             </div>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-muted/50 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Function Configuration</h4>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>Type:</strong> {automation.type.replace(/_/g, ' ').toUpperCase()}</p>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p><strong>Operations:</strong> {automation.operations.length}</p>
               <p><strong>Input Parameters:</strong> {automation.inputParameters.length}</p>
               <p><strong>Output Parameters:</strong> {automation.outputParameters.length}</p>
             </div>
