@@ -110,7 +110,26 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     console.log('Form data:', formData);
     
     // Validate model type before submission
-    const validModelTypes = ['chatbot', 'nlp', 'computer_vision', 'face_recognition', 'object_detection', 'object_recognition', 'plate_recognition', 'quality_control', 'ocr'];
+    const validModelTypes = [
+      'chatbot', 
+      'nlp', 
+      'computer_vision', 
+      'face_recognition', 
+      'object_detection', 
+      'object_recognition', 
+      'plate_recognition', 
+      'quality_control', 
+      'ocr',
+      'vehicle_detection',
+      'vehicle_recognition',
+      'human_detection',
+      'plate_detection',
+      'plate_number_extraction',
+      'speech_recognition',
+      'speech_synthesis',
+      'speaker_identification',
+      'path_optimization'
+    ];
     
     if (!validModelTypes.includes(modelType)) {
       console.error('Invalid model type detected:', modelType);
