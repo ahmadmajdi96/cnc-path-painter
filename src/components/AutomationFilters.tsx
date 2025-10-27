@@ -33,7 +33,9 @@ export const AutomationFilters = ({ automations, onFilterChange }: AutomationFil
     }
 
     if (typeFilter !== 'all') {
-      filtered = filtered.filter(automation => automation.type === typeFilter);
+      filtered = filtered.filter(automation => 
+        automation.operations.some(op => op.type === typeFilter)
+      );
     }
 
     onFilterChange(filtered);
@@ -79,6 +81,9 @@ export const AutomationFilters = ({ automations, onFilterChange }: AutomationFil
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="database_retrieve">Database Retrieve</SelectItem>
               <SelectItem value="crud_operation">CRUD Operation</SelectItem>
+              <SelectItem value="file_operation">File Operation</SelectItem>
+              <SelectItem value="logical_operation">Logical Operation</SelectItem>
+              <SelectItem value="mathematical_operation">Mathematical Operation</SelectItem>
               <SelectItem value="run_script">Run Script</SelectItem>
             </SelectContent>
           </Select>
