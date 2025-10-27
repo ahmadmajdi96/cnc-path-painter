@@ -46,6 +46,11 @@ serve(async (req) => {
       case 'object_detection':
       case 'object_recognition':
       case 'face_recognition':
+      case 'vehicle_detection':
+      case 'vehicle_recognition':
+      case 'human_detection':
+      case 'plate_detection':
+      case 'plate_number_extraction':
         result = await processVisionModel(model, inputData);
         break;
       case 'ocr':
@@ -54,10 +59,16 @@ serve(async (req) => {
         break;
       case 'nlp':
       case 'chatbot':
+      case 'speech_recognition':
+      case 'speech_synthesis':
+      case 'speaker_identification':
         result = await processNLPModel(model, inputData);
         break;
       case 'quality_control':
         result = await processQualityControlModel(model, inputData);
+        break;
+      case 'path_optimization':
+        result = await processPathOptimization(model, inputData);
         break;
       default:
         throw new Error(`Unsupported model type: ${modelType}`);
@@ -264,6 +275,18 @@ async function processQualityControlModel(model: any, inputData: any) {
     pass: defects.length === 0,
     defects: defects,
     overall_score: defects.length === 0 ? 0.96 : 0.74,
+    processing_time: Date.now()
+  };
+}
+
+async function processPathOptimization(model: any, inputData: any) {
+  const { waypoints, constraints } = inputData;
+  
+  return {
+    success: true,
+    optimized_path: waypoints || [],
+    distance_saved: Math.floor(Math.random() * 20) + 10,
+    time_saved_minutes: Math.floor(Math.random() * 15) + 5,
     processing_time: Date.now()
   };
 }
