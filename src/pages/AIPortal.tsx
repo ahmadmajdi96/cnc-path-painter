@@ -21,6 +21,8 @@ import HumanDetectionPage from './HumanDetectionPage';
 import SpeechRecognitionPage from './SpeechRecognitionPage';
 import SpeechSynthesisPage from './SpeechSynthesisPage';
 import SpeakerIdentificationPage from './SpeakerIdentificationPage';
+import NLPPage from './NLPPage';
+import ChatBotsPage from './ChatBotsPage';
 
 const AIPortal = () => {
   return (
@@ -57,6 +59,11 @@ const AIPortal = () => {
           <Route path="/rules-dataset" element={<RulesDatasetPage />} />
           <Route path="/question-dataset" element={<QuestionDatasetPage />} />
           <Route path="/datasets-combiner" element={<DatasetsCombinerPage />} />
+          
+          {/* Language AI */}
+          <Route path="/nlp" element={<NLPPage />} />
+          <Route path="/chatbots" element={<ChatBotsPage />} />
+          
           <Route path="*" element={
             <div className="text-center py-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Page Coming Soon</h2>

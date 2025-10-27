@@ -47,6 +47,11 @@ const dataTools = [
   { title: "Datasets Combiner", to: "/ai/datasets-combiner", description: "Select and combine multiple datasets" },
 ];
 
+const languageAI = [
+  { title: "NLP", to: "/ai/nlp", description: "Natural Language Processing and text analysis" },
+  { title: "Chat Bots", to: "/ai/chatbots", description: "AI-powered conversational chatbots" },
+];
+
 export const AINavigation = () => {
   const location = useLocation();
   
@@ -55,6 +60,7 @@ export const AINavigation = () => {
   const isPeopleActive = peopleSystems.some(item => location.pathname === item.to);
   const isSoundActive = soundSystems.some(item => location.pathname === item.to);
   const isDataToolsActive = dataTools.some(item => location.pathname === item.to);
+  const isLanguageAIActive = languageAI.some(item => location.pathname === item.to);
   
   return (
     <nav className="bg-background border-b px-6 py-3">
@@ -205,6 +211,37 @@ export const AINavigation = () => {
                 <NavigationMenuContent>
                   <ul className="grid w-[400px] gap-1 p-2">
                     {dataTools.map((item) => (
+                      <li key={item.to}>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            to={item.to}
+                            className={cn(
+                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                              location.pathname === item.to && "bg-accent text-accent-foreground"
+                            )}
+                          >
+                            <div className="text-sm font-medium leading-none">{item.title}</div>
+                            <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+                              {item.description}
+                            </p>
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    ))}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className={cn(
+                  "h-9",
+                  isLanguageAIActive && "bg-accent text-accent-foreground"
+                )}>
+                  Language AI
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-1 p-2">
+                    {languageAI.map((item) => (
                       <li key={item.to}>
                         <NavigationMenuLink asChild>
                           <Link
