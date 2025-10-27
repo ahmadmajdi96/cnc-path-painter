@@ -128,6 +128,27 @@ export const IntegrationList: React.FC<IntegrationListProps> = ({
                 </div>
               </div>
             </div>
+
+            {integration.automationSteps && integration.automationSteps.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="font-medium text-sm mb-2">Automation Steps ({integration.automationSteps.length})</h4>
+                <div className="space-y-2">
+                  {integration.automationSteps.map((step) => (
+                    <div key={step.id} className="text-sm bg-gray-50 p-2 rounded">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">Step {step.order}</Badge>
+                        <span className="font-medium">{step.automationName}</span>
+                      </div>
+                      {step.variableMappings.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {step.variableMappings.length} variable mapping(s)
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {integration.liveData && (
               <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4 text-sm">

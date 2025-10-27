@@ -11,6 +11,20 @@ import { IntegrationStatusCards } from './IntegrationStatusCards';
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, Activity } from 'lucide-react';
 
+export interface AutomationStep {
+  id: string;
+  automationId: string;
+  automationName: string;
+  order: number;
+  variableMappings: Array<{
+    id: string;
+    sourceType: 'integration' | 'previous_step';
+    sourceStepId?: string;
+    sourceField: string;
+    targetParameter: string;
+  }>;
+}
+
 export interface Integration {
   id: string;
   name: string;
@@ -38,6 +52,14 @@ export interface Integration {
       credentials: any;
     };
   };
+  automationSteps: AutomationStep[];
+  outputMappings: Array<{
+    id: string;
+    sourceType: 'integration' | 'step';
+    sourceStepId?: string;
+    sourceField: string;
+    targetField: string;
+  }>;
   parameters: {
     timeout: number;
     retryAttempts: number;
@@ -113,6 +135,8 @@ export const IntegrationControlSystem = () => {
         mode: 'client',
         auth: { type: 'none', credentials: {} }
       },
+      automationSteps: [],
+      outputMappings: [],
       parameters: {
         timeout: 30000,
         retryAttempts: 3,
@@ -195,6 +219,8 @@ export const IntegrationControlSystem = () => {
         mode: 'client',
         auth: { type: 'bearer', credentials: {} }
       },
+      automationSteps: [],
+      outputMappings: [],
       parameters: {
         timeout: 15000,
         retryAttempts: 5,

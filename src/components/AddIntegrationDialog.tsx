@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2 } from 'lucide-react';
-import { Integration } from './IntegrationControlSystem';
+import { Plus, Trash2, X, ArrowRight } from 'lucide-react';
+import { Integration, AutomationStep } from './IntegrationControlSystem';
+import { Badge } from '@/components/ui/badge';
 
 interface AddIntegrationDialogProps {
   open: boolean;
@@ -30,11 +30,36 @@ interface VariableMapping {
   targetField: string;
 }
 
+interface Automation {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  enabled: boolean;
+  config: any;
+  inputParameters: Array<{
+    id: string;
+    name: string;
+    type: string;
+    required: boolean;
+  }>;
+  outputParameters: Array<{
+    id: string;
+    name: string;
+    type: string;
+    required: boolean;
+  }>;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
   open,
   onOpenChange,
   onAdd
 }) => {
+  const [automations, setAutomations] = useState<Automation[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -67,6 +92,50 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
   const [sendDataType, setSendDataType] = useState<'json' | 'xml' | 'binary' | 'text'>('json');
   const [expectedParameters, setExpectedParameters] = useState<Parameter[]>([]);
   const [variableMappings, setVariableMappings] = useState<VariableMapping[]>([]);
+  const [automationSteps, setAutomationSteps] = useState<AutomationStep[]>([]);
+  const [outputMappings, setOutputMappings] = useState<Array<{
+    id: string;
+    sourceType: 'integration' | 'step';
+    sourceStepId?: string;
+    sourceField: string;
+    targetField: string;
+  }>>([]);
+
+  useEffect(() => {
+    // Load mock automations - in production, fetch from your backend
+    const mockAutomations: Automation[] = [
+      {
+        id: '1',
+        name: 'Get User Data',
+        description: 'Retrieve user information from database',
+        type: 'database_retrieve',
+        enabled: true,
+        config: { query: 'SELECT * FROM users WHERE id = $1', database: 'main_db' },
+        inputParameters: [{ id: 'p1', name: 'userId', type: 'string', required: true }],
+        outputParameters: [{ id: 'o1', name: 'userData', type: 'object', required: true }],
+        tags: ['database'],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: '2',
+        name: 'Update Product Status',
+        description: 'Update product status in inventory',
+        type: 'crud_operation',
+        enabled: true,
+        config: { operation: 'update', table: 'products', fields: ['status'] },
+        inputParameters: [
+          { id: 'p1', name: 'productId', type: 'string', required: true },
+          { id: 'p2', name: 'status', type: 'string', required: true }
+        ],
+        outputParameters: [{ id: 'o1', name: 'success', type: 'boolean', required: true }],
+        tags: ['crud'],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+    setAutomations(mockAutomations);
+  }, []);
 
   const protocols = [
     'REST_API', 'SOAP', 'GraphQL', 'MQTT', 'AMQP', 'WebSocket',
@@ -228,11 +297,94 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
     setVariableMappings(prev => prev.filter(mapping => mapping.id !== id));
   };
 
+  const addAutomationStep = () => {
+    const newStep: AutomationStep = {
+      id: Date.now().toString(),
+      automationId: '',
+      automationName: '',
+      order: automationSteps.length + 1,
+      variableMappings: []
+    };
+    setAutomationSteps([...automationSteps, newStep]);
+  };
+
+  const updateAutomationStep = (id: string, field: string, value: any) => {
+    setAutomationSteps(automationSteps.map(step => {
+      if (step.id === id) {
+        if (field === 'automationId') {
+          const automation = automations.find(a => a.id === value);
+          return { ...step, automationId: value, automationName: automation?.name || '' };
+        }
+        return { ...step, [field]: value };
+      }
+      return step;
+    }));
+  };
+
+  const removeAutomationStep = (id: string) => {
+    setAutomationSteps(automationSteps.filter(s => s.id !== id).map((step, index) => ({
+      ...step,
+      order: index + 1
+    })));
+  };
+
+  const addStepVariableMapping = (stepId: string) => {
+    const step = automationSteps.find(s => s.id === stepId);
+    if (!step) return;
+    
+    const newMapping = {
+      id: Date.now().toString(),
+      sourceType: 'integration' as const,
+      sourceField: '',
+      targetParameter: ''
+    };
+    
+    updateAutomationStep(stepId, 'variableMappings', [...step.variableMappings, newMapping]);
+  };
+
+  const updateStepVariableMapping = (stepId: string, mappingId: string, field: string, value: any) => {
+    const step = automationSteps.find(s => s.id === stepId);
+    if (!step) return;
+    
+    const updatedMappings = step.variableMappings.map(m => 
+      m.id === mappingId ? { ...m, [field]: value } : m
+    );
+    
+    updateAutomationStep(stepId, 'variableMappings', updatedMappings);
+  };
+
+  const removeStepVariableMapping = (stepId: string, mappingId: string) => {
+    const step = automationSteps.find(s => s.id === stepId);
+    if (!step) return;
+    
+    updateAutomationStep(stepId, 'variableMappings', step.variableMappings.filter(m => m.id !== mappingId));
+  };
+
+  const addOutputMapping = () => {
+    const newMapping = {
+      id: Date.now().toString(),
+      sourceType: 'integration' as const,
+      sourceField: '',
+      targetField: ''
+    };
+    setOutputMappings([...outputMappings, newMapping]);
+  };
+
+  const updateOutputMapping = (id: string, field: string, value: any) => {
+    setOutputMappings(outputMappings.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+  const removeOutputMapping = (id: string) => {
+    setOutputMappings(outputMappings.filter(m => m.id !== id));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const integrationData = {
       ...formData,
+      automationSteps,
+      outputMappings,
       dataConfiguration: {
         receiveDataType,
         sendDataType,
@@ -281,6 +433,8 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
     setSendDataType('json');
     setExpectedParameters([]);
     setVariableMappings([]);
+    setAutomationSteps([]);
+    setOutputMappings([]);
   };
 
   return (
@@ -765,6 +919,268 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
               
               {variableMappings.length === 0 && (
                 <p className="text-gray-500 text-center py-4">No variable mappings defined</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Automation Steps</span>
+                <Button type="button" onClick={addAutomationStep} size="sm">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Step
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {automationSteps.length === 0 ? (
+                <p className="text-sm text-gray-500">No automation steps configured. Click "Add Step" to begin.</p>
+              ) : (
+                automationSteps.map((step, stepIndex) => {
+                  const selectedAutomation = automations.find(a => a.id === step.automationId);
+                  const previousSteps = automationSteps.slice(0, stepIndex);
+                  
+                  return (
+                    <Card key={step.id} className="border-2">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">Step {step.order}</Badge>
+                            {step.automationName && <span className="font-medium">{step.automationName}</span>}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAutomationStep(step.id)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <Label>Select Automation</Label>
+                          <Select
+                            value={step.automationId}
+                            onValueChange={(value) => updateAutomationStep(step.id, 'automationId', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose an automation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {automations.filter(a => a.enabled).map(automation => (
+                                <SelectItem key={automation.id} value={automation.id}>
+                                  {automation.name} ({automation.type})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {selectedAutomation && (
+                            <p className="text-xs text-gray-500 mt-1">{selectedAutomation.description}</p>
+                          )}
+                        </div>
+
+                        {selectedAutomation && selectedAutomation.inputParameters.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label>Input Variable Mappings</Label>
+                              <Button
+                                type="button"
+                                onClick={() => addStepVariableMapping(step.id)}
+                                size="sm"
+                                variant="outline"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Mapping
+                              </Button>
+                            </div>
+                            <div className="space-y-2">
+                              {step.variableMappings.map(mapping => (
+                                <div key={mapping.id} className="flex gap-2 items-end">
+                                  <div className="flex-1">
+                                    <Label className="text-xs">Source Type</Label>
+                                    <Select
+                                      value={mapping.sourceType}
+                                      onValueChange={(value) => 
+                                        updateStepVariableMapping(step.id, mapping.id, 'sourceType', value)
+                                      }
+                                    >
+                                      <SelectTrigger className="h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="integration">Integration Input</SelectItem>
+                                        <SelectItem value="previous_step">Previous Step</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  {mapping.sourceType === 'previous_step' && previousSteps.length > 0 && (
+                                    <div className="flex-1">
+                                      <Label className="text-xs">Source Step</Label>
+                                      <Select
+                                        value={mapping.sourceStepId || ''}
+                                        onValueChange={(value) => 
+                                          updateStepVariableMapping(step.id, mapping.id, 'sourceStepId', value)
+                                        }
+                                      >
+                                        <SelectTrigger className="h-8">
+                                          <SelectValue placeholder="Select step" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {previousSteps.map(prevStep => (
+                                            <SelectItem key={prevStep.id} value={prevStep.id}>
+                                              Step {prevStep.order}: {prevStep.automationName}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+
+                                  <div className="flex-1">
+                                    <Label className="text-xs">Source Field</Label>
+                                    <Input
+                                      className="h-8"
+                                      value={mapping.sourceField}
+                                      onChange={(e) => 
+                                        updateStepVariableMapping(step.id, mapping.id, 'sourceField', e.target.value)
+                                      }
+                                      placeholder="Field name"
+                                    />
+                                  </div>
+
+                                  <ArrowRight className="w-4 h-4 text-gray-400 mb-1" />
+
+                                  <div className="flex-1">
+                                    <Label className="text-xs">Target Parameter</Label>
+                                    <Select
+                                      value={mapping.targetParameter}
+                                      onValueChange={(value) => 
+                                        updateStepVariableMapping(step.id, mapping.id, 'targetParameter', value)
+                                      }
+                                    >
+                                      <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Select parameter" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {selectedAutomation.inputParameters.map(param => (
+                                          <SelectItem key={param.id} value={param.name}>
+                                            {param.name} ({param.type})
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeStepVariableMapping(step.id, mapping.id)}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Output Mappings to Target Endpoint</span>
+                <Button type="button" onClick={addOutputMapping} size="sm">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Mapping
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {outputMappings.length === 0 ? (
+                <p className="text-sm text-gray-500">No output mappings configured</p>
+              ) : (
+                outputMappings.map(mapping => (
+                  <div key={mapping.id} className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label className="text-xs">Source Type</Label>
+                      <Select
+                        value={mapping.sourceType}
+                        onValueChange={(value) => updateOutputMapping(mapping.id, 'sourceType', value)}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="integration">Integration Input</SelectItem>
+                          <SelectItem value="step">Automation Step</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {mapping.sourceType === 'step' && automationSteps.length > 0 && (
+                      <div className="flex-1">
+                        <Label className="text-xs">Source Step</Label>
+                        <Select
+                          value={mapping.sourceStepId || ''}
+                          onValueChange={(value) => updateOutputMapping(mapping.id, 'sourceStepId', value)}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Select step" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {automationSteps.map(step => (
+                              <SelectItem key={step.id} value={step.id}>
+                                Step {step.order}: {step.automationName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div className="flex-1">
+                      <Label className="text-xs">Source Field</Label>
+                      <Input
+                        className="h-8"
+                        value={mapping.sourceField}
+                        onChange={(e) => updateOutputMapping(mapping.id, 'sourceField', e.target.value)}
+                        placeholder="Field name"
+                      />
+                    </div>
+
+                    <ArrowRight className="w-4 h-4 text-gray-400 mb-1" />
+
+                    <div className="flex-1">
+                      <Label className="text-xs">Target Field</Label>
+                      <Input
+                        className="h-8"
+                        value={mapping.targetField}
+                        onChange={(e) => updateOutputMapping(mapping.id, 'targetField', e.target.value)}
+                        placeholder="Target field name"
+                      />
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOutputMapping(mapping.id)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>
