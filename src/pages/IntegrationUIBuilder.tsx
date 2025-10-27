@@ -8,7 +8,6 @@ import {
   KeyboardSensor,
   DragEndEvent,
   DragStartEvent,
-  DragMoveEvent,
   useDraggable,
 } from '@dnd-kit/core';
 import { Card, CardContent } from '@/components/ui/card';
@@ -293,27 +292,37 @@ const IntegrationUIBuilder = () => {
     setActiveId(String(event.active.id));
   };
 
-  const handleDragMove = (event: DragMoveEvent) => {
-    if (!activeId || !event.delta || !selectedUI) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!activeId || !event.delta || !selectedUI) {
+      setActiveId(null);
+      return;
+    }
 
     const updatedComponents = selectedUI.components.map(component => {
       if (component.id === activeId) {
+        const newX = Math.max(0, Math.min(
+          selectedUI.canvasConfig.width - component.size.width,
+          component.position.x + event.delta.x
+        ));
+        const newY = Math.max(0, Math.min(
+          selectedUI.canvasConfig.height - component.size.height,
+          component.position.y + event.delta.y
+        ));
+        
         return {
           ...component,
           position: {
-            x: Math.max(0, component.position.x + event.delta.x),
-            y: Math.max(0, component.position.y + event.delta.y),
+            x: newX,
+            y: newY,
           },
         };
       }
       return component;
     });
 
-    setSelectedUI({ ...selectedUI, components: updatedComponents });
-    setUis(uis.map(ui => ui.id === selectedUI.id ? { ...selectedUI, components: updatedComponents } : ui));
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
+    const updatedUI = { ...selectedUI, components: updatedComponents, updatedAt: new Date().toISOString() };
+    setSelectedUI(updatedUI);
+    setUis(uis.map(ui => ui.id === updatedUI.id ? updatedUI : ui));
     setActiveId(null);
   };
 
@@ -516,7 +525,6 @@ const IntegrationUIBuilder = () => {
           <DndContext
             sensors={sensors}
             onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
           >
             <div className="h-full overflow-auto p-6 bg-secondary/20">
@@ -530,7 +538,7 @@ const IntegrationUIBuilder = () => {
               </div>
               
               <div
-                className="canvas-container relative border-2 border-border shadow-lg"
+                className="canvas-container relative border-2 border-border shadow-lg overflow-hidden"
                 style={{
                   width: `${selectedUI.canvasConfig.width}px`,
                   height: `${selectedUI.canvasConfig.height}px`,
