@@ -100,6 +100,90 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
     { value: 'array', label: 'Array' }
   ];
 
+  const getProtocolDefaults = (protocol: string) => {
+    const defaults: { port: number; auth: string } = { port: 80, auth: 'none' };
+    
+    switch (protocol) {
+      case 'HTTP':
+        defaults.port = 80;
+        defaults.auth = 'basic';
+        break;
+      case 'HTTPS':
+        defaults.port = 443;
+        defaults.auth = 'bearer';
+        break;
+      case 'Modbus_TCP':
+        defaults.port = 502;
+        defaults.auth = 'none';
+        break;
+      case 'MQTT':
+        defaults.port = 1883;
+        defaults.auth = 'basic';
+        break;
+      case 'OPC_UA':
+        defaults.port = 4840;
+        defaults.auth = 'certificate';
+        break;
+      case 'SOAP':
+        defaults.port = 80;
+        defaults.auth = 'basic';
+        break;
+      case 'REST_API':
+        defaults.port = 443;
+        defaults.auth = 'bearer';
+        break;
+      case 'WebSocket':
+        defaults.port = 443;
+        defaults.auth = 'bearer';
+        break;
+      case 'FTP':
+        defaults.port = 21;
+        defaults.auth = 'basic';
+        break;
+      case 'SFTP':
+        defaults.port = 22;
+        defaults.auth = 'basic';
+        break;
+      case 'TCP':
+        defaults.port = 8080;
+        defaults.auth = 'none';
+        break;
+      case 'UDP':
+        defaults.port = 8080;
+        defaults.auth = 'none';
+        break;
+      case 'AMQP':
+        defaults.port = 5672;
+        defaults.auth = 'basic';
+        break;
+      case 'Kafka':
+        defaults.port = 9092;
+        defaults.auth = 'none';
+        break;
+      case 'RabbitMQ':
+        defaults.port = 5672;
+        defaults.auth = 'basic';
+        break;
+      case 'Redis':
+        defaults.port = 6379;
+        defaults.auth = 'basic';
+        break;
+      case 'CoAP':
+        defaults.port = 5683;
+        defaults.auth = 'none';
+        break;
+      case 'gRPC':
+        defaults.port = 50051;
+        defaults.auth = 'bearer';
+        break;
+      default:
+        defaults.port = 80;
+        defaults.auth = 'none';
+    }
+    
+    return defaults;
+  };
+
   const addParameter = () => {
     setExpectedParameters([
       ...expectedParameters,
@@ -248,10 +332,18 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                     <Label>Protocol</Label>
                     <Select
                       value={formData.sourceEndpoint.protocol}
-                      onValueChange={(value) => setFormData({
-                        ...formData,
-                        sourceEndpoint: { ...formData.sourceEndpoint, protocol: value }
-                      })}
+                      onValueChange={(value) => {
+                        const defaults = getProtocolDefaults(value);
+                        setFormData({
+                          ...formData,
+                          sourceEndpoint: { 
+                            ...formData.sourceEndpoint, 
+                            protocol: value,
+                            port: defaults.port,
+                            auth: { type: defaults.auth as any, credentials: {} }
+                          }
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select protocol" />
@@ -371,10 +463,18 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                     <Label>Protocol</Label>
                     <Select
                       value={formData.targetEndpoint.protocol}
-                      onValueChange={(value) => setFormData({
-                        ...formData,
-                        targetEndpoint: { ...formData.targetEndpoint, protocol: value }
-                      })}
+                      onValueChange={(value) => {
+                        const defaults = getProtocolDefaults(value);
+                        setFormData({
+                          ...formData,
+                          targetEndpoint: { 
+                            ...formData.targetEndpoint, 
+                            protocol: value,
+                            port: defaults.port,
+                            auth: { type: defaults.auth as any, credentials: {} }
+                          }
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select protocol" />
