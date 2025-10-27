@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 interface UIComponent {
   id: string;
-  type: 'gauge' | 'chart' | 'indicator' | 'button' | 'value' | 'toggle' | 'slider' | 'text' | 'shape';
+  type: 'gauge' | 'chart' | 'indicator' | 'button' | 'value' | 'toggle' | 'slider' | 'text' | 'shape' | 'input' | 'form' | 'table' | 'list' | 'card' | 'label' | 'checkbox' | 'dropdown';
   label: string;
   integrationId: string;
   variable: string;
@@ -37,6 +37,10 @@ interface UIComponent {
     unit?: string;
     decimals?: number;
     shape?: 'rectangle' | 'circle';
+    placeholder?: string;
+    rows?: number;
+    columns?: string[];
+    items?: string[];
   };
 }
 
@@ -95,7 +99,8 @@ const IntegrationUIBuilder = () => {
 
   // Initialize Fabric.js canvas
   useEffect(() => {
-    if (!canvasRef.current || fabricCanvas) return;
+    if (!canvasRef.current) return;
+    if (fabricCanvas) return;
 
     const canvas = new FabricCanvas(canvasRef.current, {
       width: 1200,
@@ -163,8 +168,130 @@ const IntegrationUIBuilder = () => {
 
   const renderComponent = (canvas: FabricCanvas, component: UIComponent) => {
     let obj: any;
+    let labelText = '';
 
     switch (component.type) {
+      case 'input':
+        // Input field representation
+        obj = new Rect({
+          left: component.position.x,
+          top: component.position.y,
+          width: component.size.width,
+          height: component.size.height,
+          fill: '#ffffff',
+          stroke: component.style.borderColor || '#cbd5e1',
+          strokeWidth: component.style.borderWidth || 1,
+          rx: 4,
+          ry: 4,
+        });
+        labelText = component.config?.placeholder || component.label;
+        break;
+
+      case 'form':
+        // Form container
+        obj = new Rect({
+          left: component.position.x,
+          top: component.position.y,
+          width: component.size.width,
+          height: component.size.height,
+          fill: component.style.backgroundColor || '#f8fafc',
+          stroke: component.style.borderColor || '#e2e8f0',
+          strokeWidth: component.style.borderWidth || 2,
+          rx: 8,
+          ry: 8,
+        });
+        labelText = `📋 ${component.label}`;
+        break;
+
+      case 'table':
+        // Data table representation
+        obj = new Rect({
+          left: component.position.x,
+          top: component.position.y,
+          width: component.size.width,
+          height: component.size.height,
+          fill: '#ffffff',
+          stroke: component.style.borderColor || '#e2e8f0',
+          strokeWidth: component.style.borderWidth || 1,
+        });
+        labelText = `📊 ${component.label}\n${component.variable}`;
+        break;
+
+      case 'list':
+        // List representation
+        obj = new Rect({
+          left: component.position.x,
+          top: component.position.y,
+          width: component.size.width,
+          height: component.size.height,
+          fill: '#ffffff',
+          stroke: component.style.borderColor || '#e2e8f0',
+          strokeWidth: component.style.borderWidth || 1,
+          rx: 4,
+          ry: 4,
+        });
+        labelText = `📝 ${component.label}\n${component.variable}`;
+        break;
+
+      case 'card':
+        // Card component
+        obj = new Rect({
+          left: component.position.x,
+          top: component.position.y,
+          width: component.size.width,
+          height: component.size.height,
+          fill: component.style.backgroundColor || '#ffffff',
+          stroke: component.style.borderColor || '#e2e8f0',
+          strokeWidth: component.style.borderWidth || 1,
+          rx: 8,
+          ry: 8,
+        });
+        labelText = component.label;
+        break;
+
+      case 'label':
+        // Text label
+        obj = new FabricText(component.label, {
+          left: component.position.x,
+          top: component.position.y,
+          fontSize: component.style.fontSize || 14,
+          fill: component.style.textColor || '#1e293b',
+          fontWeight: component.style.fontWeight || 'bold',
+        });
+        break;
+
+      case 'checkbox':
+        // Checkbox representation
+        obj = new Rect({
+          left: component.position.x,
+          top: component.position.y,
+          width: 20,
+          height: 20,
+          fill: '#ffffff',
+          stroke: component.style.borderColor || '#cbd5e1',
+          strokeWidth: 2,
+          rx: 4,
+          ry: 4,
+        });
+        labelText = component.label;
+        break;
+
+      case 'dropdown':
+        // Dropdown/Select representation
+        obj = new Rect({
+          left: component.position.x,
+          top: component.position.y,
+          width: component.size.width,
+          height: component.size.height,
+          fill: '#ffffff',
+          stroke: component.style.borderColor || '#cbd5e1',
+          strokeWidth: component.style.borderWidth || 1,
+          rx: 4,
+          ry: 4,
+        });
+        labelText = `▼ ${component.label}`;
+        break;
+
       case 'gauge':
       case 'indicator':
         obj = new Circle({
@@ -175,6 +302,7 @@ const IntegrationUIBuilder = () => {
           stroke: component.style.borderColor,
           strokeWidth: component.style.borderWidth || 2,
         });
+        labelText = `${component.label}\n${component.variable}`;
         break;
 
       case 'shape':
@@ -220,26 +348,27 @@ const IntegrationUIBuilder = () => {
           stroke: component.style.borderColor,
           strokeWidth: component.style.borderWidth || 2,
         });
-
-        const label = new FabricText(`${component.label}\n${component.variable}`, {
-          left: component.position.x + component.size.width / 2,
-          top: component.position.y + component.size.height / 2,
-          fontSize: component.style.fontSize || 14,
-          fill: component.style.textColor,
-          textAlign: 'center',
-          originX: 'center',
-          originY: 'center',
-        });
-
-        (obj as any).data = component;
-        (label as any).data = component;
-        canvas.add(obj, label);
-        return;
+        labelText = `${component.label}\n${component.variable}`;
     }
 
     if (obj) {
       (obj as any).data = component;
       canvas.add(obj);
+
+      // Add label text if needed
+      if (labelText && component.type !== 'text' && component.type !== 'label') {
+        const label = new FabricText(labelText, {
+          left: component.position.x + (component.type === 'checkbox' ? 30 : component.size.width / 2),
+          top: component.position.y + (component.type === 'checkbox' ? 0 : component.size.height / 2),
+          fontSize: component.style.fontSize || 12,
+          fill: component.style.textColor || '#64748b',
+          textAlign: component.type === 'checkbox' ? 'left' : 'center',
+          originX: component.type === 'checkbox' ? 'left' : 'center',
+          originY: 'center',
+        });
+        (label as any).data = component;
+        canvas.add(label);
+      }
     }
   };
 
@@ -372,15 +501,23 @@ const IntegrationUIBuilder = () => {
   };
 
   const componentTypes = [
-    { value: 'gauge', label: 'Gauge', icon: '⏱️' },
-    { value: 'chart', label: 'Chart', icon: '📊' },
-    { value: 'indicator', label: 'Indicator', icon: '🚥' },
-    { value: 'button', label: 'Button', icon: '🔘' },
-    { value: 'value', label: 'Value Display', icon: '🔢' },
-    { value: 'toggle', label: 'Toggle', icon: '🔄' },
-    { value: 'slider', label: 'Slider', icon: '🎚️' },
-    { value: 'text', label: 'Text', icon: '📝' },
-    { value: 'shape', label: 'Shape', icon: '⬜' },
+    { value: 'input', label: 'Input Field', icon: '📝', category: 'Form' },
+    { value: 'form', label: 'Form Container', icon: '📋', category: 'Form' },
+    { value: 'label', label: 'Label', icon: '🏷️', category: 'Form' },
+    { value: 'checkbox', label: 'Checkbox', icon: '☑️', category: 'Form' },
+    { value: 'dropdown', label: 'Dropdown', icon: '▼', category: 'Form' },
+    { value: 'button', label: 'Button', icon: '🔘', category: 'Form' },
+    { value: 'table', label: 'Data Table', icon: '📊', category: 'Data' },
+    { value: 'list', label: 'List', icon: '📝', category: 'Data' },
+    { value: 'card', label: 'Card', icon: '🃏', category: 'Data' },
+    { value: 'gauge', label: 'Gauge', icon: '⏱️', category: 'Visualization' },
+    { value: 'chart', label: 'Chart', icon: '📈', category: 'Visualization' },
+    { value: 'indicator', label: 'Indicator', icon: '🚥', category: 'Visualization' },
+    { value: 'value', label: 'Value Display', icon: '🔢', category: 'Visualization' },
+    { value: 'toggle', label: 'Toggle', icon: '🔄', category: 'Control' },
+    { value: 'slider', label: 'Slider', icon: '🎚️', category: 'Control' },
+    { value: 'text', label: 'Text', icon: '📄', category: 'Basic' },
+    { value: 'shape', label: 'Shape', icon: '⬜', category: 'Basic' },
   ];
 
   return (
@@ -447,22 +584,33 @@ const IntegrationUIBuilder = () => {
         </div>
 
         {/* Center - Canvas */}
-        <div className="flex-1 p-4 overflow-auto bg-secondary/20">
+        <div className="flex-1 p-6 overflow-auto bg-secondary/20">
           {selectedUI ? (
             <div className="flex flex-col items-center">
-              <div className="mb-4 flex gap-2">
-                <h2 className="text-lg font-semibold">{selectedUI.name}</h2>
-                <Badge>{selectedUI.components.length} components</Badge>
+              <div className="mb-4 flex gap-2 items-center">
+                <h2 className="text-xl font-semibold">{selectedUI.name}</h2>
+                <Badge variant="secondary">{selectedUI.components.length} components</Badge>
               </div>
-              <div className="border-4 border-border rounded-lg shadow-2xl bg-background">
+              <div className="border-2 border-border rounded-lg shadow-2xl" style={{ 
+                backgroundColor: selectedUI.canvasConfig.backgroundColor,
+                padding: '20px'
+              }}>
                 <canvas ref={canvasRef} />
+              </div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                Drag and resize components on the canvas. Select them to edit properties.
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <Grid3x3 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Select a UI or create a new one to start building</p>
+                <h3 className="text-xl font-semibold mb-2">No UI Selected</h3>
+                <p className="text-muted-foreground mb-4">Select a UI from the list or create a new one to start building</p>
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First UI
+                </Button>
               </div>
             </div>
           )}
@@ -481,20 +629,29 @@ const IntegrationUIBuilder = () => {
             <TabsContent value="components" className="p-4">
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <h3 className="text-sm font-semibold mb-4">Add Component</h3>
-                <div className="grid grid-cols-2 gap-2 mb-6">
-                  {componentTypes.map(type => (
-                    <Button
-                      key={type.value}
-                      variant="outline"
-                      className="h-auto flex-col py-3"
-                      onClick={() => handleAddComponent(type.value as UIComponent['type'])}
-                      disabled={!selectedUI}
-                    >
-                      <span className="text-2xl mb-1">{type.icon}</span>
-                      <span className="text-xs">{type.label}</span>
-                    </Button>
-                  ))}
-                </div>
+                
+                {['Form', 'Data', 'Visualization', 'Control', 'Basic'].map(category => {
+                  const categoryTypes = componentTypes.filter(t => t.category === category);
+                  return (
+                    <div key={category} className="mb-6">
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">{category}</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {categoryTypes.map(type => (
+                          <Button
+                            key={type.value}
+                            variant="outline"
+                            className="h-auto flex-col py-3"
+                            onClick={() => handleAddComponent(type.value as UIComponent['type'])}
+                            disabled={!selectedUI}
+                          >
+                            <span className="text-2xl mb-1">{type.icon}</span>
+                            <span className="text-xs text-center">{type.label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
 
                 {selectedUI && selectedUI.components.length > 0 && (
                   <>
@@ -665,6 +822,7 @@ const IntegrationUIBuilder = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New UI</DialogTitle>
+            <p className="text-sm text-muted-foreground">Configure your new integration UI canvas</p>
           </DialogHeader>
           <div className="space-y-4">
             <div>
