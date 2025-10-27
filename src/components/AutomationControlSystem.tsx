@@ -7,138 +7,116 @@ import { AutomationFilters } from './AutomationFilters';
 import { AutomationList } from './AutomationList';
 import { AddAutomationDialog } from './AddAutomationDialog';
 import { EditAutomationDialog } from './EditAutomationDialog';
-import { AutomationExecutionPanel } from './AutomationExecutionPanel';
 
-export interface TriggerConfig {
-  type: 'request' | 'file_change' | 'schedule' | 'database_change' | 'webhook' | 'manual';
-  config: {
-    // Request trigger
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-    endpoint?: string;
-    headers?: Record<string, string>;
-    
-    // File change trigger
-    watchPath?: string;
-    filePattern?: string;
-    operation?: 'create' | 'modify' | 'delete' | 'move';
-    
-    // Schedule trigger
-    cronExpression?: string;
-    timezone?: string;
-    
-    // Database change trigger
-    table?: string;
-    operation_db?: 'insert' | 'update' | 'delete';
-    conditions?: string;
-    
-    // Webhook trigger
-    webhookUrl?: string;
-    secret?: string;
-  };
-}
-
-export interface ActionConfig {
-  type: 'file_operation' | 'database_operation' | 'api_request' | 'upload_file' | 'download_file' | 'send_email' | 'run_script';
-  config: {
-    // File operations
-    operation?: 'create' | 'read' | 'update' | 'delete' | 'move' | 'copy';
-    sourcePath?: string;
-    targetPath?: string;
-    content?: string;
-    
-    // Database operations
-    query?: string;
-    table?: string;
-    data?: Record<string, any>;
-    
-    // API requests
-    url?: string;
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-    headers?: Record<string, string>;
-    body?: string;
-    
-    // File upload/download
-    uploadProtocol?: 'http' | 'ftp' | 'sftp' | 's3' | 'azure_blob' | 'gcs';
-    bucket?: string;
-    endpoint?: string;
-    credentials?: {
-      username?: string;
-      password?: string;
-      apiKey?: string;
-      accessKey?: string;
-      secretKey?: string;
-    };
-    
-    // Email
-    to?: string[];
-    subject?: string;
-    template?: string;
-    
-    // Script execution
-    script?: string;
-    language?: 'javascript' | 'python' | 'bash' | 'powershell';
-    environment?: Record<string, string>;
-  };
+export interface AutomationParameter {
+  id: string;
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'file';
+  required: boolean;
+  description?: string;
+  defaultValue?: any;
 }
 
 export interface Automation {
   id: string;
   name: string;
   description: string;
+  type: 'database_retrieve' | 'crud_operation' | 'run_script';
   enabled: boolean;
-  trigger: TriggerConfig;
-  actions: ActionConfig[];
-  retryPolicy: {
-    maxRetries: number;
-    retryDelay: number;
-    backoffMultiplier: number;
+  config: {
+    // Database retrieve
+    query?: string;
+    database?: string;
+    
+    // CRUD operation
+    operation?: 'create' | 'read' | 'update' | 'delete';
+    table?: string;
+    fields?: string[];
+    conditions?: Record<string, any>;
+    
+    // Run script
+    scriptFile?: File | null;
+    scriptFileName?: string;
+    scriptLanguage?: 'python';
+    environment?: Record<string, string>;
   };
-  timeout: number;
+  inputParameters: AutomationParameter[];
+  outputParameters: AutomationParameter[];
   tags: string[];
   createdAt: Date;
-  lastExecuted?: Date;
-  executionCount: number;
-  successCount: number;
-  errorCount: number;
+  updatedAt: Date;
 }
 
 export const AutomationControlSystem = () => {
   const [automations, setAutomations] = useState<Automation[]>([
     {
       id: '1',
-      name: 'File Processing Automation',
-      description: 'Process uploaded files and move to archive',
+      name: 'Get User Data',
+      description: 'Retrieve user information from database',
+      type: 'database_retrieve',
       enabled: true,
-      trigger: {
-        type: 'file_change',
-        config: {
-          watchPath: '/uploads',
-          filePattern: '*.pdf',
-          operation: 'create'
-        }
+      config: {
+        query: 'SELECT * FROM users WHERE id = $1',
+        database: 'main_db'
       },
-      actions: [
+      inputParameters: [
         {
-          type: 'file_operation',
-          config: {
-            operation: 'move',
-            sourcePath: '/uploads/{filename}',
-            targetPath: '/processed/{filename}'
-          }
+          id: 'p1',
+          name: 'userId',
+          type: 'string',
+          required: true,
+          description: 'User ID to retrieve'
         }
       ],
-      retryPolicy: {
-        maxRetries: 3,
-        retryDelay: 1000,
-        backoffMultiplier: 2
-      },
-      timeout: 30000,
-      tags: ['file-processing', 'pdf'],
+      outputParameters: [
+        {
+          id: 'o1',
+          name: 'userData',
+          type: 'object',
+          required: true,
+          description: 'User data object'
+        }
+      ],
+      tags: ['database', 'user'],
       createdAt: new Date(),
-      lastExecuted: new Date(),
-      executionCount: 156,
-      successCount: 152,
-      errorCount: 4
+      updatedAt: new Date()
+    },
+    {
+      id: '2',
+      name: 'Update Product Status',
+      description: 'Update product status in inventory',
+      type: 'crud_operation',
+      enabled: true,
+      config: {
+        operation: 'update',
+        table: 'products',
+        fields: ['status', 'updated_at']
+      },
+      inputParameters: [
+        {
+          id: 'p1',
+          name: 'productId',
+          type: 'string',
+          required: true
+        },
+        {
+          id: 'p2',
+          name: 'status',
+          type: 'string',
+          required: true
+        }
+      ],
+      outputParameters: [
+        {
+          id: 'o1',
+          name: 'success',
+          type: 'boolean',
+          required: true
+        }
+      ],
+      tags: ['crud', 'product'],
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
   ]);
   
@@ -146,16 +124,13 @@ export const AutomationControlSystem = () => {
   const [selectedAutomation, setSelectedAutomation] = useState<Automation | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isExecutionPanelOpen, setIsExecutionPanelOpen] = useState(false);
 
-  const handleAddAutomation = (automation: Omit<Automation, 'id' | 'createdAt' | 'executionCount' | 'successCount' | 'errorCount'>) => {
+  const handleAddAutomation = (automation: Omit<Automation, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newAutomation: Automation = {
       ...automation,
       id: Date.now().toString(),
       createdAt: new Date(),
-      executionCount: 0,
-      successCount: 0,
-      errorCount: 0
+      updatedAt: new Date()
     };
     const updatedAutomations = [...automations, newAutomation];
     setAutomations(updatedAutomations);
@@ -195,7 +170,7 @@ export const AutomationControlSystem = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Automations</CardTitle>
@@ -218,25 +193,13 @@ export const AutomationControlSystem = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Executions</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">By Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {automations.reduce((sum, a) => sum + a.executionCount, 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Success Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {automations.length > 0 
-                ? Math.round((automations.reduce((sum, a) => sum + a.successCount, 0) / 
-                   automations.reduce((sum, a) => sum + a.executionCount, 1)) * 100)
-                : 0}%
+            <div className="text-sm space-y-1">
+              <div>DB: {automations.filter(a => a.type === 'database_retrieve').length}</div>
+              <div>CRUD: {automations.filter(a => a.type === 'crud_operation').length}</div>
+              <div>Script: {automations.filter(a => a.type === 'run_script').length}</div>
             </div>
           </CardContent>
         </Card>
@@ -258,10 +221,6 @@ export const AutomationControlSystem = () => {
             }}
             onDelete={handleDeleteAutomation}
             onToggle={handleToggleAutomation}
-            onViewExecution={(automation) => {
-              setSelectedAutomation(automation);
-              setIsExecutionPanelOpen(true);
-            }}
           />
         </div>
       </div>
@@ -277,12 +236,6 @@ export const AutomationControlSystem = () => {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSave={handleEditAutomation}
-      />
-
-      <AutomationExecutionPanel
-        automation={selectedAutomation}
-        open={isExecutionPanelOpen}
-        onOpenChange={setIsExecutionPanelOpen}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -46,7 +45,8 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
       name: name.trim(),
       description: description.trim(),
       enabled,
-      tags
+      tags,
+      updatedAt: new Date()
     };
 
     onSave(updatedAutomation);
@@ -84,7 +84,7 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
                 placeholder="Enter automation name"
               />
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 pt-6">
               <Switch
                 id="enabled"
                 checked={enabled}
@@ -131,14 +131,11 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Current Configuration</h4>
+            <h4 className="font-medium mb-2">Function Configuration</h4>
             <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>Trigger:</strong> {automation.trigger.type.replace('_', ' ')}</p>
-              <p><strong>Actions:</strong> {automation.actions.length} configured</p>
-              <p><strong>Executions:</strong> {automation.executionCount} total</p>
-              <p><strong>Success Rate:</strong> {automation.executionCount > 0 
-                ? Math.round((automation.successCount / automation.executionCount) * 100)
-                : 0}%</p>
+              <p><strong>Type:</strong> {automation.type.replace(/_/g, ' ').toUpperCase()}</p>
+              <p><strong>Input Parameters:</strong> {automation.inputParameters.length}</p>
+              <p><strong>Output Parameters:</strong> {automation.outputParameters.length}</p>
             </div>
           </div>
         </div>
