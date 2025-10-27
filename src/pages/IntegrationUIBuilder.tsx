@@ -23,12 +23,16 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, Eye, Settings, Layers, Grid3x3, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface DataBinding {
+  integrationId: string;
+  variable: string;
+}
+
 interface UIComponent {
   id: string;
   type: 'gauge' | 'chart' | 'indicator' | 'button' | 'value' | 'toggle' | 'slider' | 'text' | 'shape' | 'input' | 'form' | 'table' | 'list' | 'card' | 'label' | 'checkbox' | 'dropdown';
   label: string;
-  integrationId: string;
-  variable: string;
+  dataBindings: DataBinding[]; // Support multiple integrations/variables
   position: { x: number; y: number };
   size: { width: number; height: number };
   style: {
@@ -36,8 +40,10 @@ interface UIComponent {
     textColor?: string;
     borderColor?: string;
     borderWidth?: number;
+    borderRadius?: number;
     fontSize?: number;
     fontWeight?: string;
+    boxShadow?: string;
   };
   config?: {
     min?: number;
@@ -134,27 +140,144 @@ const DraggableUIComponent: React.FC<DraggableUIComponentProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const getComponentIcon = () => {
-    const icons: Record<string, string> = {
-      input: '📝',
-      form: '📋',
-      label: '🏷️',
-      checkbox: '☑️',
-      dropdown: '▼',
-      button: '🔘',
-      table: '📊',
-      list: '📝',
-      card: '🃏',
-      gauge: '⏱️',
-      chart: '📈',
-      indicator: '🚥',
-      value: '🔢',
-      toggle: '🔄',
-      slider: '🎚️',
-      text: '📄',
-      shape: '⬜',
+  const renderRealisticComponent = () => {
+    const baseStyle: React.CSSProperties = {
+      width: '100%',
+      height: '100%',
+      backgroundColor: component.style.backgroundColor,
+      color: component.style.textColor,
+      borderColor: component.style.borderColor,
+      borderWidth: component.style.borderWidth || 1,
+      borderStyle: 'solid',
+      borderRadius: component.style.borderRadius || 8,
+      fontSize: component.style.fontSize || 14,
+      fontWeight: component.style.fontWeight || 'normal',
+      boxShadow: component.style.boxShadow || '0 2px 8px rgba(0,0,0,0.1)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '12px',
+      overflow: 'hidden',
     };
-    return icons[component.type] || '📦';
+
+    switch (component.type) {
+      case 'input':
+        return (
+          <div style={{ ...baseStyle, justifyContent: 'flex-start', padding: '8px 12px', background: '#ffffff', border: '2px solid #e5e7eb' }}>
+            <span style={{ color: '#9ca3af', fontSize: '14px' }}>{component.config?.placeholder || component.label}</span>
+          </div>
+        );
+      
+      case 'button':
+        return (
+          <div style={{ ...baseStyle, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)' }}>
+            {component.label}
+          </div>
+        );
+      
+      case 'gauge':
+        return (
+          <div style={{ ...baseStyle, flexDirection: 'column', background: '#ffffff' }}>
+            <div style={{ width: '80%', height: '80%', border: '8px solid #e5e7eb', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderTopColor: '#667eea', transform: 'rotate(-90deg)' }}>
+              <span style={{ transform: 'rotate(90deg)', fontWeight: 'bold', fontSize: '20px' }}>75%</span>
+            </div>
+          </div>
+        );
+      
+      case 'chart':
+        return (
+          <div style={{ ...baseStyle, background: '#ffffff', flexDirection: 'column', alignItems: 'stretch', padding: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px' }}>{component.label}</div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+              {[40, 65, 45, 80, 55, 70].map((h, i) => (
+                <div key={i} style={{ flex: 1, height: `${h}%`, background: 'linear-gradient(180deg, #667eea, #764ba2)', borderRadius: '4px 4px 0 0' }} />
+              ))}
+            </div>
+          </div>
+        );
+      
+      case 'value':
+        return (
+          <div style={{ ...baseStyle, flexDirection: 'column', background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: '#fff' }}>
+            <div style={{ fontSize: '28px', fontWeight: 'bold' }}>42.5</div>
+            <div style={{ fontSize: '12px', opacity: 0.9 }}>{component.config?.unit || component.label}</div>
+          </div>
+        );
+      
+      case 'indicator':
+        return (
+          <div style={{ ...baseStyle, background: '#ffffff' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #4ade80, #22c55e)', boxShadow: '0 0 20px rgba(74, 222, 128, 0.5)' }} />
+          </div>
+        );
+      
+      case 'table':
+        return (
+          <div style={{ ...baseStyle, flexDirection: 'column', alignItems: 'stretch', padding: '0', background: '#ffffff' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', background: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+              {['Column 1', 'Column 2', 'Column 3'].map((col, i) => (
+                <div key={i} style={{ padding: '12px', fontSize: '12px', fontWeight: '600' }}>{col}</div>
+              ))}
+            </div>
+            {[1, 2, 3].map((row) => (
+              <div key={row} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid #e5e7eb' }}>
+                {[1, 2, 3].map((col) => (
+                  <div key={col} style={{ padding: '12px', fontSize: '12px' }}>Data {row}.{col}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+      
+      case 'toggle':
+        return (
+          <div style={{ ...baseStyle, justifyContent: 'space-between', padding: '12px 16px', background: '#ffffff' }}>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>{component.label}</span>
+            <div style={{ width: '44px', height: '24px', background: '#667eea', borderRadius: '12px', position: 'relative' }}>
+              <div style={{ position: 'absolute', right: '2px', top: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+            </div>
+          </div>
+        );
+      
+      case 'slider':
+        return (
+          <div style={{ ...baseStyle, flexDirection: 'column', gap: '8px', background: '#ffffff', padding: '16px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '500' }}>{component.label}</span>
+            <div style={{ width: '100%', height: '6px', background: '#e5e7eb', borderRadius: '3px', position: 'relative' }}>
+              <div style={{ width: '60%', height: '100%', background: 'linear-gradient(90deg, #667eea, #764ba2)', borderRadius: '3px' }} />
+              <div style={{ position: 'absolute', right: '40%', top: '-5px', width: '16px', height: '16px', background: '#667eea', borderRadius: '50%', boxShadow: '0 2px 6px rgba(102, 126, 234, 0.4)' }} />
+            </div>
+          </div>
+        );
+      
+      case 'card':
+        return (
+          <div style={{ ...baseStyle, flexDirection: 'column', alignItems: 'flex-start', gap: '8px', background: '#ffffff', padding: '16px' }}>
+            <div style={{ fontSize: '16px', fontWeight: '600' }}>{component.label}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.5' }}>
+              Card content with dynamic data from {component.dataBindings.length} source(s)
+            </div>
+          </div>
+        );
+      
+      case 'list':
+        return (
+          <div style={{ ...baseStyle, flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '12px', background: '#ffffff' }}>
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} style={{ padding: '12px', background: '#f9fafb', borderRadius: '6px', fontSize: '13px', borderLeft: '3px solid #667eea' }}>
+                List Item {item}
+              </div>
+            ))}
+          </div>
+        );
+      
+      default:
+        return (
+          <div style={baseStyle}>
+            <span>{component.label}</span>
+          </div>
+        );
+    }
   };
 
   return (
@@ -164,64 +287,55 @@ const DraggableUIComponent: React.FC<DraggableUIComponentProps> = ({
       className="group"
       onClick={onSelect}
     >
-      <Card
+      <div
         className={`h-full ${
-          isSelected ? 'ring-2 ring-primary shadow-lg' : 'shadow-sm hover:shadow-md'
-        } transition-all cursor-pointer`}
-        style={{
-          backgroundColor: component.style.backgroundColor,
-          borderColor: component.style.borderColor,
-          borderWidth: component.style.borderWidth || 1,
-        }}
+          isSelected ? 'ring-2 ring-primary shadow-xl' : 'shadow-md hover:shadow-lg'
+        } transition-all cursor-pointer rounded-lg overflow-hidden`}
       >
-        <CardContent className="p-2 h-full relative">
-          <div className="flex items-center justify-between mb-1">
+        <div className="h-full relative">
+          <div className="absolute top-1 left-1 right-1 z-10 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
             <div
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing p-1 hover:bg-secondary/50 rounded"
+              className="cursor-grab active:cursor-grabbing p-1.5 bg-background/90 backdrop-blur-sm hover:bg-background rounded shadow-sm"
             >
               <GripVertical className="w-3 h-3 text-muted-foreground" />
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+              className="h-7 w-7 p-0 bg-background/90 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(component.id);
               }}
             >
-              <Trash2 className="w-3 h-3 text-destructive" />
+              <Trash2 className="w-3 h-3" />
             </Button>
           </div>
           
-          <div className="flex flex-col items-center justify-center h-[calc(100%-40px)]">
-            <div className="text-2xl mb-1">{getComponentIcon()}</div>
-            <div
-              className="text-xs font-medium text-center mb-1 truncate w-full"
-              style={{ color: component.style.textColor }}
-            >
-              {component.label}
-            </div>
-            <div className="text-xs text-muted-foreground truncate w-full text-center">
-              {component.variable}
-            </div>
-          </div>
+          {renderRealisticComponent()}
 
           {isSelected && (
             <>
               <div
-                className="absolute bottom-0 right-0 w-3 h-3 bg-primary cursor-se-resize rounded-tl-md"
+                className="absolute bottom-0 right-0 w-4 h-4 bg-primary cursor-se-resize rounded-tl-lg z-10"
                 onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
               />
-              <div className="absolute bottom-1 left-1 text-[10px] text-muted-foreground">
+              <div className="absolute bottom-1 left-1 text-[10px] bg-background/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-muted-foreground">
                 {component.size.width}×{component.size.height}
               </div>
+              {component.dataBindings.length > 0 && (
+                <div className="absolute top-1 right-1 z-0">
+                  <Badge variant="secondary" className="text-[10px] py-0">
+                    {component.dataBindings.length} binding{component.dataBindings.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+              )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
@@ -398,17 +512,21 @@ const IntegrationUIBuilder = () => {
       id: Date.now().toString(),
       type,
       label: `${type} ${selectedUI.components.length + 1}`,
-      integrationId: mockIntegrations[0].id,
-      variable: mockIntegrations[0].variables[0],
+      dataBindings: [{
+        integrationId: mockIntegrations[0].id,
+        variable: mockIntegrations[0].variables[0],
+      }],
       position: { x: 50, y: 50 },
       size: sizeMap[type] || { width: 200, height: 150 },
       style: {
         backgroundColor: '#ffffff',
-        textColor: '#000000',
+        textColor: '#1f2937',
         borderColor: '#e5e7eb',
         borderWidth: 1,
+        borderRadius: 8,
         fontSize: 14,
         fontWeight: 'normal',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       },
       config: {
         placeholder: `Enter ${type}...`,
@@ -651,51 +769,119 @@ const IntegrationUIBuilder = () => {
                   </div>
 
                   <div>
-                    <Label>Integration</Label>
-                    <Select
-                      value={selectedComponent.integrationId}
-                      onValueChange={(value) => {
-                        const integration = mockIntegrations.find(i => i.id === value);
-                        handleUpdateComponent(selectedComponent.id, {
-                          integrationId: value,
-                          variable: integration?.variables[0] || '',
-                        });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockIntegrations.map(int => (
-                          <SelectItem key={int.id} value={int.id}>
-                            {int.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Variable</Label>
-                    <Select
-                      value={selectedComponent.variable}
-                      onValueChange={(value) =>
-                        handleUpdateComponent(selectedComponent.id, { variable: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockIntegrations
-                          .find(i => i.id === selectedComponent.integrationId)
-                          ?.variables.map(variable => (
-                            <SelectItem key={variable} value={variable}>
-                              {variable}
-                            </SelectItem>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Data Bindings</Label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const newBinding: DataBinding = {
+                            integrationId: mockIntegrations[0].id,
+                            variable: mockIntegrations[0].variables[0],
+                          };
+                          handleUpdateComponent(selectedComponent.id, {
+                            dataBindings: [...selectedComponent.dataBindings, newBinding],
+                          });
+                        }}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add Binding
+                      </Button>
+                    </div>
+                    
+                    <ScrollArea className="h-48 border rounded-md p-2">
+                      {selectedComponent.dataBindings.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No data bindings yet
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {selectedComponent.dataBindings.map((binding, index) => (
+                            <Card key={index} className="p-3">
+                              <div className="flex items-start justify-between mb-2">
+                                <Badge variant="outline" className="text-xs">
+                                  Binding {index + 1}
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => {
+                                    const newBindings = selectedComponent.dataBindings.filter((_, i) => i !== index);
+                                    handleUpdateComponent(selectedComponent.id, {
+                                      dataBindings: newBindings,
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3 text-destructive" />
+                                </Button>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <div>
+                                  <Label className="text-xs">Integration</Label>
+                                  <Select
+                                    value={binding.integrationId}
+                                    onValueChange={(value) => {
+                                      const integration = mockIntegrations.find(i => i.id === value);
+                                      const newBindings = [...selectedComponent.dataBindings];
+                                      newBindings[index] = {
+                                        integrationId: value,
+                                        variable: integration?.variables[0] || '',
+                                      };
+                                      handleUpdateComponent(selectedComponent.id, {
+                                        dataBindings: newBindings,
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {mockIntegrations.map(int => (
+                                        <SelectItem key={int.id} value={int.id}>
+                                          {int.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs">Variable</Label>
+                                  <Select
+                                    value={binding.variable}
+                                    onValueChange={(value) => {
+                                      const newBindings = [...selectedComponent.dataBindings];
+                                      newBindings[index] = {
+                                        ...newBindings[index],
+                                        variable: value,
+                                      };
+                                      handleUpdateComponent(selectedComponent.id, {
+                                        dataBindings: newBindings,
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {mockIntegrations
+                                        .find(i => i.id === binding.integrationId)
+                                        ?.variables.map(variable => (
+                                          <SelectItem key={variable} value={variable}>
+                                            {variable}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </Card>
                           ))}
-                      </SelectContent>
-                    </Select>
+                        </div>
+                      )}
+                    </ScrollArea>
                   </div>
 
                   <div>
@@ -771,6 +957,19 @@ const IntegrationUIBuilder = () => {
                   </div>
 
                   <div>
+                    <Label>Border Radius</Label>
+                    <Input
+                      type="number"
+                      value={selectedComponent.style.borderRadius}
+                      onChange={(e) =>
+                        handleUpdateComponent(selectedComponent.id, {
+                          style: { ...selectedComponent.style, borderRadius: parseInt(e.target.value) },
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
                     <Label>Font Size</Label>
                     <Input
                       type="number"
@@ -781,6 +980,29 @@ const IntegrationUIBuilder = () => {
                         })
                       }
                     />
+                  </div>
+
+                  <div>
+                    <Label>Shadow</Label>
+                    <Select
+                      value={selectedComponent.style.boxShadow}
+                      onValueChange={(value) =>
+                        handleUpdateComponent(selectedComponent.id, {
+                          style: { ...selectedComponent.style, boxShadow: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="0 1px 2px rgba(0,0,0,0.05)">Small</SelectItem>
+                        <SelectItem value="0 2px 8px rgba(0,0,0,0.1)">Medium</SelectItem>
+                        <SelectItem value="0 4px 12px rgba(0,0,0,0.15)">Large</SelectItem>
+                        <SelectItem value="0 8px 24px rgba(0,0,0,0.2)">XL</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </ScrollArea>
