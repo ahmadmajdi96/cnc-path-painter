@@ -258,6 +258,22 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
               </div>
               
               <div>
+                <Label>Result Destination</Label>
+                <Select
+                  value={formData.resultDestination}
+                  onValueChange={(value: 'client' | 'forward') => setFormData({ ...formData, resultDestination: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="client">Return to Client</SelectItem>
+                    <SelectItem value="forward">Forward to Target Endpoint</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
                 <Label>Status</Label>
                 <Select
                   value={formData.status}
@@ -279,22 +295,22 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Source Endpoint</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Protocol</Label>
                   <Select
-                    value={formData.sourceEndpoint.protocol}
+                    value={formData.configuration.protocol}
                     onValueChange={(value) => {
                       const defaults = getProtocolDefaults(value);
                       setFormData({
                         ...formData,
-                        sourceEndpoint: { 
-                          ...formData.sourceEndpoint, 
+                        configuration: { 
+                          ...formData.configuration, 
                           protocol: value,
                           port: defaults.port,
                           auth: { type: defaults.auth as any, credentials: {} }
@@ -316,13 +332,43 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
                 </div>
                 
                 <div>
+                  <Label>Authentication</Label>
+                  <Select
+                    value={formData.configuration.auth.type}
+                    onValueChange={(value: typeof formData.configuration.auth.type) => setFormData({
+                      ...formData,
+                      configuration: { 
+                        ...formData.configuration, 
+                        auth: { type: value, credentials: {} }
+                      }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="basic">Basic Auth</SelectItem>
+                      <SelectItem value="bearer">Bearer Token</SelectItem>
+                      <SelectItem value="oauth2">OAuth 2.0</SelectItem>
+                      <SelectItem value="api_key">API Key</SelectItem>
+                      <SelectItem value="certificate">Client Certificate</SelectItem>
+                      <SelectItem value="digest">Digest Auth</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label>Host</Label>
                   <Input
-                    value={formData.sourceEndpoint.host}
+                    value={formData.configuration.host}
                     onChange={(e) => setFormData({
                       ...formData,
-                      sourceEndpoint: { ...formData.sourceEndpoint, host: e.target.value }
+                      configuration: { ...formData.configuration, host: e.target.value }
                     })}
+                    placeholder="hostname or IP address"
                     required
                   />
                 </div>
@@ -331,24 +377,49 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
                   <Label>Port</Label>
                   <Input
                     type="number"
-                    value={formData.sourceEndpoint.port}
+                    value={formData.configuration.port}
                     onChange={(e) => setFormData({
                       ...formData,
-                      sourceEndpoint: { ...formData.sourceEndpoint, port: parseInt(e.target.value) }
+                      configuration: { ...formData.configuration, port: parseInt(e.target.value) }
                     })}
                     required
                   />
                 </div>
-                
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Source Endpoint</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <Label>Path (Optional)</Label>
-                  <Input
-                    value={formData.sourceEndpoint.path || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      sourceEndpoint: { ...formData.sourceEndpoint, path: e.target.value }
-                    })}
-                  />
+                  <Label>Protocol</Label>
+                  <Select
+                    value={formData.sourceEndpoint.protocol}
+                    onValueChange={(value) => {
+                      setFormData({
+                        ...formData,
+                        sourceEndpoint: { 
+                          ...formData.sourceEndpoint, 
+                          protocol: value
+                        }
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {protocols.map(protocol => (
+                        <SelectItem key={protocol} value={protocol}>
+                          {protocol.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>

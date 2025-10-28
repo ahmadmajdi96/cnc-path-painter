@@ -229,15 +229,22 @@ export const IntegrationTestPanel: React.FC<IntegrationTestPanelProps> = ({
             <div className="space-y-2">
               <h4 className="font-medium">Source: {integration.sourceEndpoint.protocol.replace(/_/g, ' ')}</h4>
               <div className="text-sm text-gray-600">
-                {integration.sourceEndpoint.host}:{integration.sourceEndpoint.port}
-                {integration.sourceEndpoint.path && integration.sourceEndpoint.path}
+                {integration.sourceEndpoint.auth && integration.sourceEndpoint.auth.type !== 'none' && (
+                  <div>Auth: {integration.sourceEndpoint.auth.type}</div>
+                )}
               </div>
             </div>
             <div className="space-y-2">
               <h4 className="font-medium">Target: {integration.targetEndpoint.protocol.replace(/_/g, ' ')}</h4>
               <div className="text-sm text-gray-600">
                 {integration.targetEndpoint.host}:{integration.targetEndpoint.port}
-                {integration.targetEndpoint.path && integration.targetEndpoint.path}
+                {integration.targetEndpoint.path && ` ${integration.targetEndpoint.path}`}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium">Configuration</h4>
+              <div className="text-sm text-gray-600">
+                {integration.configuration.protocol} - {integration.configuration.host}:{integration.configuration.port}
               </div>
             </div>
           </div>

@@ -64,12 +64,15 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
     name: '',
     description: '',
     status: 'inactive' as 'active' | 'inactive' | 'testing' | 'error',
-    sourceEndpoint: {
-      protocol: '',
+    resultDestination: 'client' as 'client' | 'forward',
+    configuration: {
       host: '',
       port: 80,
-      path: '',
-      mode: 'client' as 'server' | 'client',
+      protocol: '',
+      auth: { type: 'none' as const, credentials: {} }
+    },
+    sourceEndpoint: {
+      protocol: '',
       auth: { type: 'none' as const, credentials: {} }
     },
     targetEndpoint: {
@@ -77,7 +80,6 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
       host: '',
       port: 80,
       path: '',
-      mode: 'client' as 'server' | 'client',
       auth: { type: 'none' as const, credentials: {} }
     },
     parameters: {
@@ -406,12 +408,15 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
       name: '',
       description: '',
       status: 'inactive',
-      sourceEndpoint: {
-        protocol: '',
+      resultDestination: 'client',
+      configuration: {
         host: '',
         port: 80,
-        path: '',
-        mode: 'client',
+        protocol: '',
+        auth: { type: 'none', credentials: {} }
+      },
+      sourceEndpoint: {
+        protocol: '',
         auth: { type: 'none', credentials: {} }
       },
       targetEndpoint: {
@@ -419,7 +424,6 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
         host: '',
         port: 80,
         path: '',
-        mode: 'client',
         auth: { type: 'none', credentials: {} }
       },
       parameters: {
@@ -472,6 +476,122 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                   rows={3}
                 />
               </div>
+
+              <div>
+                <Label htmlFor="resultDestination">Result Destination</Label>
+                <Select
+                  value={formData.resultDestination}
+                  onValueChange={(value: 'client' | 'forward') => setFormData({ ...formData, resultDestination: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="client">Return to Client</SelectItem>
+                    <SelectItem value="forward">Forward to Target Endpoint</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Protocol</Label>
+                  <Select
+                    value={formData.configuration.protocol}
+                    onValueChange={(value) => {
+                      const defaults = getProtocolDefaults(value);
+                      setFormData({
+                        ...formData,
+                        configuration: { 
+                          ...formData.configuration, 
+                          protocol: value,
+                          port: defaults.port,
+                          auth: { type: defaults.auth as any, credentials: {} }
+                        }
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select protocol" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {protocols.map(protocol => (
+                        <SelectItem key={protocol} value={protocol}>
+                          {protocol.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Authentication</Label>
+                  <Select
+                    value={formData.configuration.auth.type}
+                    onValueChange={(value: typeof formData.configuration.auth.type) => setFormData({
+                      ...formData,
+                      configuration: { 
+                        ...formData.configuration, 
+                        auth: { type: value, credentials: {} }
+                      }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {authTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Host</Label>
+                  <Input
+                    value={formData.configuration.host}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      configuration: { ...formData.configuration, host: e.target.value }
+                    })}
+                    placeholder="hostname or IP address"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label>Port</Label>
+                  <Input
+                    type="number"
+                    value={formData.configuration.port}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      configuration: { ...formData.configuration, port: parseInt(e.target.value) }
+                    })}
+                    required
+                  />
+                </div>
+              </div>
+              
+              {formData.configuration.auth.type !== 'none' && (
+                <div className="p-3 bg-gray-50 rounded">
+                  <Label className="text-sm text-gray-600 mb-2 block">
+                    Authentication credentials will be configured after creation
+                  </Label>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -481,95 +601,31 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                 <CardTitle className="text-lg">Source Endpoint</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Protocol</Label>
-                    <Select
-                      value={formData.sourceEndpoint.protocol}
-                      onValueChange={(value) => {
-                        const defaults = getProtocolDefaults(value);
-                        setFormData({
-                          ...formData,
-                          sourceEndpoint: { 
-                            ...formData.sourceEndpoint, 
-                            protocol: value,
-                            port: defaults.port,
-                            auth: { type: defaults.auth as any, credentials: {} }
-                          }
-                        });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select protocol" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {protocols.map(protocol => (
-                          <SelectItem key={protocol} value={protocol}>
-                            {protocol.replace(/_/g, ' ')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label>Mode</Label>
-                    <Select
-                      value={formData.sourceEndpoint.mode}
-                      onValueChange={(value: 'server' | 'client') => setFormData({
-                        ...formData,
-                        sourceEndpoint: { ...formData.sourceEndpoint, mode: value }
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="client">Client</SelectItem>
-                        <SelectItem value="server">Server</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Host</Label>
-                    <Input
-                      value={formData.sourceEndpoint.host}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        sourceEndpoint: { ...formData.sourceEndpoint, host: e.target.value }
-                      })}
-                      placeholder="hostname or IP address"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label>Port</Label>
-                    <Input
-                      type="number"
-                      value={formData.sourceEndpoint.port}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        sourceEndpoint: { ...formData.sourceEndpoint, port: parseInt(e.target.value) }
-                      })}
-                      required
-                    />
-                  </div>
-                </div>
-                
                 <div>
-                  <Label>Path (Optional)</Label>
-                  <Input
-                    value={formData.sourceEndpoint.path}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      sourceEndpoint: { ...formData.sourceEndpoint, path: e.target.value }
-                    })}
-                    placeholder="/api/endpoint"
-                  />
+                  <Label>Protocol</Label>
+                  <Select
+                    value={formData.sourceEndpoint.protocol}
+                    onValueChange={(value) => {
+                      setFormData({
+                        ...formData,
+                        sourceEndpoint: { 
+                          ...formData.sourceEndpoint, 
+                          protocol: value
+                        }
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select protocol" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {protocols.map(protocol => (
+                        <SelectItem key={protocol} value={protocol}>
+                          {protocol.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>
@@ -612,55 +668,34 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                 <CardTitle className="text-lg">Target Endpoint</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Protocol</Label>
-                    <Select
-                      value={formData.targetEndpoint.protocol}
-                      onValueChange={(value) => {
-                        const defaults = getProtocolDefaults(value);
-                        setFormData({
-                          ...formData,
-                          targetEndpoint: { 
-                            ...formData.targetEndpoint, 
-                            protocol: value,
-                            port: defaults.port,
-                            auth: { type: defaults.auth as any, credentials: {} }
-                          }
-                        });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select protocol" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {protocols.map(protocol => (
-                          <SelectItem key={protocol} value={protocol}>
-                            {protocol.replace(/_/g, ' ')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label>Mode</Label>
-                    <Select
-                      value={formData.targetEndpoint.mode}
-                      onValueChange={(value: 'server' | 'client') => setFormData({
+                <div>
+                  <Label>Protocol</Label>
+                  <Select
+                    value={formData.targetEndpoint.protocol}
+                    onValueChange={(value) => {
+                      const defaults = getProtocolDefaults(value);
+                      setFormData({
                         ...formData,
-                        targetEndpoint: { ...formData.targetEndpoint, mode: value }
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="client">Client</SelectItem>
-                        <SelectItem value="server">Server</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        targetEndpoint: { 
+                          ...formData.targetEndpoint, 
+                          protocol: value,
+                          port: defaults.port,
+                          auth: { type: defaults.auth as any, credentials: {} }
+                        }
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select protocol" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {protocols.map(protocol => (
+                        <SelectItem key={protocol} value={protocol}>
+                          {protocol.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">

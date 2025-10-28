@@ -227,12 +227,6 @@ export const IntegrationLiveDataPanel: React.FC<IntegrationLiveDataPanelProps> =
               <h4 className="font-medium mb-2">Source Endpoint</h4>
               <div className="space-y-1 text-sm">
                 <div><strong>Protocol:</strong> {integration.sourceEndpoint.protocol}</div>
-                <div><strong>Mode:</strong> 
-                  <Badge className="ml-2">
-                    {integration.sourceEndpoint.mode}
-                  </Badge>
-                </div>
-                <div><strong>Host:</strong> {integration.sourceEndpoint.host}:{integration.sourceEndpoint.port}</div>
                 {integration.sourceEndpoint.auth && integration.sourceEndpoint.auth.type !== 'none' && (
                   <div><strong>Auth:</strong> {integration.sourceEndpoint.auth.type}</div>
                 )}
@@ -243,15 +237,19 @@ export const IntegrationLiveDataPanel: React.FC<IntegrationLiveDataPanelProps> =
               <h4 className="font-medium mb-2">Target Endpoint</h4>
               <div className="space-y-1 text-sm">
                 <div><strong>Protocol:</strong> {integration.targetEndpoint.protocol}</div>
-                <div><strong>Mode:</strong> 
-                  <Badge className="ml-2">
-                    {integration.targetEndpoint.mode}
-                  </Badge>
-                </div>
                 <div><strong>Host:</strong> {integration.targetEndpoint.host}:{integration.targetEndpoint.port}</div>
                 {integration.targetEndpoint.auth && integration.targetEndpoint.auth.type !== 'none' && (
                   <div><strong>Auth:</strong> {integration.targetEndpoint.auth.type}</div>
                 )}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-medium mb-2">Configuration</h4>
+              <div className="space-y-1 text-sm">
+                <div><strong>Protocol:</strong> {integration.configuration.protocol}</div>
+                <div><strong>Host:</strong> {integration.configuration.host}:{integration.configuration.port}</div>
+                <div><strong>Result:</strong> {integration.resultDestination === 'client' ? 'Return to Client' : 'Forward to Target'}</div>
               </div>
             </div>
           </div>

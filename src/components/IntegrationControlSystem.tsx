@@ -30,12 +30,18 @@ export interface Integration {
   name: string;
   description: string;
   status: 'active' | 'inactive' | 'testing' | 'error';
-  sourceEndpoint: {
-    protocol: string;
+  resultDestination: 'client' | 'forward';
+  configuration: {
     host: string;
     port: number;
-    path?: string;
-    mode: 'server' | 'client';
+    protocol: string;
+    auth: { 
+      type: 'none' | 'basic' | 'bearer' | 'oauth2' | 'api_key' | 'certificate' | 'digest';
+      credentials: any;
+    };
+  };
+  sourceEndpoint: {
+    protocol: string;
     auth?: { 
       type: 'none' | 'basic' | 'bearer' | 'oauth2' | 'api_key' | 'certificate' | 'digest';
       credentials: any;
@@ -46,7 +52,6 @@ export interface Integration {
     host: string;
     port: number;
     path?: string;
-    mode: 'server' | 'client';
     auth?: { 
       type: 'none' | 'basic' | 'bearer' | 'oauth2' | 'api_key' | 'certificate' | 'digest';
       credentials: any;
@@ -119,12 +124,15 @@ export const IntegrationControlSystem = () => {
       name: 'ERP to MES Integration',
       description: 'Real-time data synchronization between ERP and Manufacturing Execution System',
       status: 'active',
-      sourceEndpoint: {
-        protocol: 'REST_API',
+      resultDestination: 'forward',
+      configuration: {
         host: 'erp-system.company.com',
         port: 443,
-        path: '/api/v1/manufacturing',
-        mode: 'client',
+        protocol: 'HTTPS',
+        auth: { type: 'oauth2', credentials: {} }
+      },
+      sourceEndpoint: {
+        protocol: 'REST_API',
         auth: { type: 'oauth2', credentials: {} }
       },
       targetEndpoint: {
@@ -132,7 +140,6 @@ export const IntegrationControlSystem = () => {
         host: 'mes-broker.local',
         port: 1883,
         path: '/production/data',
-        mode: 'client',
         auth: { type: 'none', credentials: {} }
       },
       automationSteps: [],
@@ -203,12 +210,15 @@ export const IntegrationControlSystem = () => {
       name: 'SCADA to Database Sync',
       description: 'Historical data archiving from SCADA system to time-series database',
       status: 'testing',
-      sourceEndpoint: {
-        protocol: 'OPC_UA',
+      resultDestination: 'forward',
+      configuration: {
         host: '192.168.1.100',
         port: 4840,
-        path: '/OPCUA/Server',
-        mode: 'client',
+        protocol: 'TCP',
+        auth: { type: 'certificate', credentials: {} }
+      },
+      sourceEndpoint: {
+        protocol: 'OPC_UA',
         auth: { type: 'certificate', credentials: {} }
       },
       targetEndpoint: {
@@ -216,7 +226,6 @@ export const IntegrationControlSystem = () => {
         host: 'influxdb.company.com',
         port: 8086,
         path: '/write',
-        mode: 'client',
         auth: { type: 'bearer', credentials: {} }
       },
       automationSteps: [],

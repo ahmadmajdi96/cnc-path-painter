@@ -103,11 +103,6 @@ export const IntegrationList: React.FC<IntegrationListProps> = ({
                 <h4 className="font-medium text-sm">Source</h4>
                 <div className="text-sm text-gray-600">
                   <div><strong>Protocol:</strong> {integration.sourceEndpoint.protocol}</div>
-                  <div><strong>Mode:</strong> {integration.sourceEndpoint.mode}</div>
-                  <div><strong>Host:</strong> {integration.sourceEndpoint.host}:{integration.sourceEndpoint.port}</div>
-                  {integration.sourceEndpoint.path && (
-                    <div><strong>Path:</strong> {integration.sourceEndpoint.path}</div>
-                  )}
                   {integration.sourceEndpoint.auth && integration.sourceEndpoint.auth.type !== 'none' && (
                     <div><strong>Auth:</strong> {integration.sourceEndpoint.auth.type}</div>
                   )}
@@ -117,7 +112,6 @@ export const IntegrationList: React.FC<IntegrationListProps> = ({
                 <h4 className="font-medium text-sm">Target</h4>
                 <div className="text-sm text-gray-600">
                   <div><strong>Protocol:</strong> {integration.targetEndpoint.protocol}</div>
-                  <div><strong>Mode:</strong> {integration.targetEndpoint.mode}</div>
                   <div><strong>Host:</strong> {integration.targetEndpoint.host}:{integration.targetEndpoint.port}</div>
                   {integration.targetEndpoint.path && (
                     <div><strong>Path:</strong> {integration.targetEndpoint.path}</div>
@@ -126,6 +120,18 @@ export const IntegrationList: React.FC<IntegrationListProps> = ({
                     <div><strong>Auth:</strong> {integration.targetEndpoint.auth.type}</div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium text-sm mb-2">Configuration</h4>
+              <div className="text-sm text-gray-600 space-y-1">
+                <div><strong>Protocol:</strong> {integration.configuration.protocol}</div>
+                <div><strong>Host:</strong> {integration.configuration.host}:{integration.configuration.port}</div>
+                <div><strong>Result:</strong> {integration.resultDestination === 'client' ? 'Return to Client' : 'Forward to Target'}</div>
+                {integration.configuration.auth && integration.configuration.auth.type !== 'none' && (
+                  <div><strong>Auth:</strong> {integration.configuration.auth.type}</div>
+                )}
               </div>
             </div>
 
