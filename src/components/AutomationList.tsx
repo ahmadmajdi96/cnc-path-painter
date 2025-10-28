@@ -20,9 +20,7 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
         return <Database className="h-4 w-4" />;
       case 'file_operation':
         return <FileText className="h-4 w-4" />;
-      case 'mathematical_operation':
-        return <Calculator className="h-4 w-4" />;
-      case 'logical_operation':
+      case 'logic_conditions':
         return <GitBranch className="h-4 w-4" />;
       case 'run_script':
         return <Code className="h-4 w-4" />;
@@ -35,8 +33,7 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
     const labels: Record<string, string> = {
       crud_operation: 'CRUD Operation',
       file_operation: 'File Operation',
-      logical_operation: 'Logical Operation',
-      mathematical_operation: 'Mathematical Operation',
+      logic_conditions: 'Logic & Conditions',
       run_script: 'Run Script'
     };
     return labels[type] || type;
@@ -100,10 +97,14 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
                     {operation.config.table && <p>Table: {operation.config.table}</p>}
                     {operation.config.operation && <p>Op: {operation.config.operation.toUpperCase()}</p>}
                     {operation.config.fileOperation && <p>Action: {operation.config.fileOperation}</p>}
-                    {operation.config.logicalOperator && <p>Operator: {operation.config.logicalOperator.toUpperCase()}</p>}
+                    {operation.config.operationType && <p>Type: {operation.config.operationType}</p>}
+                    {operation.config.logicalOperator && <p>Operator: {operation.config.logicalOperator}</p>}
                     {operation.config.mathOperator && <p>Operator: {operation.config.mathOperator}</p>}
+                    {operation.config.conditionalOperator && <p>Operator: {operation.config.conditionalOperator}</p>}
                     {operation.config.scriptLanguage && <p>Lang: {operation.config.scriptLanguage}</p>}
                     {operation.outputParameters.length > 0 && <p>Outputs: {operation.outputParameters.length}</p>}
+                    {operation.onSuccess && <p>On Success: {operation.onSuccess.action}</p>}
+                    {operation.onFailure && <p>On Failure: {operation.onFailure.action}</p>}
                   </div>
                 </div>
               ))}

@@ -36,7 +36,7 @@ export interface OperationInputMapping {
 export interface AutomationOperation {
   id: string;
   order: number;
-  type: 'crud_operation' | 'file_operation' | 'logical_operation' | 'mathematical_operation' | 'run_script';
+  type: 'crud_operation' | 'file_operation' | 'logic_conditions' | 'run_script';
   name: string;
   inputMappings: OperationInputMapping[];
   environmentVariables: EnvironmentVariable[];
@@ -60,20 +60,37 @@ export interface AutomationOperation {
     filePath?: string;
     fileContent?: string;
     
-    // Logical operation
-    logicalOperator?: 'and' | 'or' | 'not' | 'if' | 'switch';
-    condition?: string;
-    cases?: { id: string; value: string; actions: string[] }[];
+    // Logic & Conditions operation (combines logical, mathematical, and conditional)
+    operationType?: 'logical' | 'mathematical' | 'conditional';
     
-    // Mathematical operation
-    mathOperator?: 'add' | 'subtract' | 'multiply' | 'divide' | 'modulo' | 'power' | 'sqrt';
-    operands?: string[];
+    // Logical operators (returns boolean)
+    logicalOperator?: 'AND' | 'OR' | 'NOT' | 'XOR';
+    
+    // Mathematical operators (returns number/string/json)
+    mathOperator?: '+' | '-' | '*' | '/' | '%' | '^' | 'concat' | 'merge';
+    
+    // Conditional operators (returns boolean)
+    conditionalOperator?: '==' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'startsWith' | 'endsWith';
+    
+    // Variables for logic/math/conditional operations
+    variables?: string[];
     
     // Script operation
     scriptLanguage?: 'python' | 'javascript' | 'bash';
     scriptContent?: string;
   };
   outputParameters: AutomationParameter[];
+  
+  // Success/Failure routing
+  onSuccess?: {
+    action: 'continue' | 'goto' | 'end';
+    targetOperationId?: string;
+  };
+  onFailure?: {
+    action: 'continue' | 'goto' | 'end' | 'retry';
+    targetOperationId?: string;
+    retryCount?: number;
+  };
 }
 
 export interface Automation {
@@ -261,8 +278,8 @@ export const AutomationControlSystem = () => {
                 <span className="font-medium">{automations.flatMap(a => a.operations).filter(o => o.type === 'file_operation').length}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span>Logic/Math:</span>
-                <span className="font-medium">{automations.flatMap(a => a.operations).filter(o => o.type === 'logical_operation' || o.type === 'mathematical_operation').length}</span>
+                <span>Logic & Conditions:</span>
+                <span className="font-medium">{automations.flatMap(a => a.operations).filter(o => o.type === 'logic_conditions').length}</span>
               </div>
             </div>
           </CardContent>

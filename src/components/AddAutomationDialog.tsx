@@ -336,9 +336,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
         return <Database className="h-4 w-4" />;
       case 'file_operation':
         return <FileText className="h-4 w-4" />;
-      case 'mathematical_operation':
-        return <Calculator className="h-4 w-4" />;
-      case 'logical_operation':
+      case 'logic_conditions':
         return <GitBranch className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
@@ -552,8 +550,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         <SelectContent>
                           <SelectItem value="crud_operation">CRUD Operation</SelectItem>
                           <SelectItem value="file_operation">File Operation</SelectItem>
-                          <SelectItem value="logical_operation">Logical Operation</SelectItem>
-                          <SelectItem value="mathematical_operation">Mathematical Operation</SelectItem>
+                          <SelectItem value="logic_conditions">Logic & Conditions</SelectItem>
                           <SelectItem value="run_script">Run Script</SelectItem>
                         </SelectContent>
                       </Select>
@@ -737,53 +734,130 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       </div>
                     )}
 
-                    {operation.type === 'logical_operation' && (
+                    {operation.type === 'logic_conditions' && (
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
                         <div>
-                          <Label>Logical Operator</Label>
-                          <Select value={operation.config.logicalOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, logicalOperator: value } })}>
+                          <Label>Operation Type</Label>
+                          <Select value={operation.config.operationType} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operationType: value, logicalOperator: undefined, mathOperator: undefined, conditionalOperator: undefined } })}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select operator" />
+                              <SelectValue placeholder="Select operation type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="and">AND</SelectItem>
-                              <SelectItem value="or">OR</SelectItem>
-                              <SelectItem value="not">NOT</SelectItem>
-                              <SelectItem value="if">IF</SelectItem>
-                              <SelectItem value="switch">SWITCH</SelectItem>
+                              <SelectItem value="logical">Logical (returns boolean)</SelectItem>
+                              <SelectItem value="mathematical">Mathematical (returns number/string/json)</SelectItem>
+                              <SelectItem value="conditional">Conditional (returns boolean)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div>
-                          <Label>Condition</Label>
-                          <Input
-                            value={operation.config.condition || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, condition: e.target.value } })}
-                            placeholder="Enter condition"
-                          />
-                        </div>
-                      </div>
-                    )}
 
-                    {operation.type === 'mathematical_operation' && (
-                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                        <div>
-                          <Label>Math Operator</Label>
-                          <Select value={operation.config.mathOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, mathOperator: value } })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select operator" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="add">Add (+)</SelectItem>
-                              <SelectItem value="subtract">Subtract (-)</SelectItem>
-                              <SelectItem value="multiply">Multiply (*)</SelectItem>
-                              <SelectItem value="divide">Divide (/)</SelectItem>
-                              <SelectItem value="modulo">Modulo (%)</SelectItem>
-                              <SelectItem value="power">Power (^)</SelectItem>
-                              <SelectItem value="sqrt">Square Root</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        {operation.config.operationType === 'logical' && (
+                          <div>
+                            <Label>Logical Operator</Label>
+                            <Select value={operation.config.logicalOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, logicalOperator: value } })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select operator" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="AND">AND</SelectItem>
+                                <SelectItem value="OR">OR</SelectItem>
+                                <SelectItem value="NOT">NOT</SelectItem>
+                                <SelectItem value="XOR">XOR</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {operation.config.operationType === 'mathematical' && (
+                          <div>
+                            <Label>Mathematical Operator</Label>
+                            <Select value={operation.config.mathOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, mathOperator: value } })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select operator" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="+">+ (Add)</SelectItem>
+                                <SelectItem value="-">- (Subtract)</SelectItem>
+                                <SelectItem value="*">* (Multiply)</SelectItem>
+                                <SelectItem value="/">/  (Divide)</SelectItem>
+                                <SelectItem value="%">% (Modulo)</SelectItem>
+                                <SelectItem value="^">^ (Power)</SelectItem>
+                                <SelectItem value="concat">Concat (String)</SelectItem>
+                                <SelectItem value="merge">Merge (JSON)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {operation.config.operationType === 'conditional' && (
+                          <div>
+                            <Label>Conditional Operator</Label>
+                            <Select value={operation.config.conditionalOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, conditionalOperator: value } })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select operator" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="==">== (Equals)</SelectItem>
+                                <SelectItem value="!=">!= (Not Equals)</SelectItem>
+                                <SelectItem value=">">{">"} (Greater Than)</SelectItem>
+                                <SelectItem value="<">{"<"} (Less Than)</SelectItem>
+                                <SelectItem value=">=">{">="} (Greater or Equal)</SelectItem>
+                                <SelectItem value="<=">{"<="} (Less or Equal)</SelectItem>
+                                <SelectItem value="contains">Contains</SelectItem>
+                                <SelectItem value="startsWith">Starts With</SelectItem>
+                                <SelectItem value="endsWith">Ends With</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {operation.config.operationType && (
+                          <div>
+                            <Label className="flex items-center justify-between">
+                              Variables
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => {
+                                  const currentVars = operation.config.variables || [];
+                                  updateOperation(operation.id, { 
+                                    config: { ...operation.config, variables: [...currentVars, ''] } 
+                                  });
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Variable
+                              </Button>
+                            </Label>
+                            <div className="space-y-2 mt-2">
+                              {(operation.config.variables || []).map((variable, varIdx) => (
+                                <div key={varIdx} className="flex gap-2">
+                                  <Input
+                                    value={variable}
+                                    onChange={(e) => {
+                                      const newVars = [...(operation.config.variables || [])];
+                                      newVars[varIdx] = e.target.value;
+                                      updateOperation(operation.id, { config: { ...operation.config, variables: newVars } });
+                                    }}
+                                    placeholder="Variable name or value"
+                                    className="flex-1"
+                                  />
+                                  <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      const newVars = (operation.config.variables || []).filter((_, idx) => idx !== varIdx);
+                                      updateOperation(operation.id, { config: { ...operation.config, variables: newVars } });
+                                    }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -967,6 +1041,121 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             </Button>
                           </div>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Success/Failure Routing */}
+                    <div className="border-t pt-4 space-y-3">
+                      <Label className="text-sm font-semibold">Success/Failure Routing</Label>
+                      
+                      {/* On Success */}
+                      <div className="bg-green-500/10 p-3 rounded-lg space-y-2">
+                        <Label className="text-xs text-green-700 dark:text-green-400">On Success</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Action</Label>
+                            <Select 
+                              value={operation.onSuccess?.action || 'continue'} 
+                              onValueChange={(value: any) => updateOperation(operation.id, { 
+                                onSuccess: { ...operation.onSuccess, action: value, targetOperationId: value === 'goto' ? operation.onSuccess?.targetOperationId : undefined } 
+                              })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Continue" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="continue">Continue</SelectItem>
+                                <SelectItem value="goto">Go To Operation</SelectItem>
+                                <SelectItem value="end">End Automation</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {operation.onSuccess?.action === 'goto' && (
+                            <div>
+                              <Label className="text-xs">Target Operation</Label>
+                              <Select 
+                                value={operation.onSuccess?.targetOperationId} 
+                                onValueChange={(value) => updateOperation(operation.id, { 
+                                  onSuccess: { ...operation.onSuccess, action: 'goto', targetOperationId: value } 
+                                })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select operation" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {operations.filter(op => op.id !== operation.id).map(op => (
+                                    <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* On Failure */}
+                      <div className="bg-red-500/10 p-3 rounded-lg space-y-2">
+                        <Label className="text-xs text-red-700 dark:text-red-400">On Failure</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-xs">Action</Label>
+                            <Select 
+                              value={operation.onFailure?.action || 'continue'} 
+                              onValueChange={(value: any) => updateOperation(operation.id, { 
+                                onFailure: { 
+                                  ...operation.onFailure, 
+                                  action: value, 
+                                  targetOperationId: value === 'goto' ? operation.onFailure?.targetOperationId : undefined,
+                                  retryCount: value === 'retry' ? (operation.onFailure?.retryCount || 3) : undefined
+                                } 
+                              })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Continue" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="continue">Continue</SelectItem>
+                                <SelectItem value="goto">Go To Operation</SelectItem>
+                                <SelectItem value="end">End Automation</SelectItem>
+                                <SelectItem value="retry">Retry</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {operation.onFailure?.action === 'goto' && (
+                            <div>
+                              <Label className="text-xs">Target Operation</Label>
+                              <Select 
+                                value={operation.onFailure?.targetOperationId} 
+                                onValueChange={(value) => updateOperation(operation.id, { 
+                                  onFailure: { ...operation.onFailure, action: 'goto', targetOperationId: value } 
+                                })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select operation" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {operations.filter(op => op.id !== operation.id).map(op => (
+                                    <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                          {operation.onFailure?.action === 'retry' && (
+                            <div>
+                              <Label className="text-xs">Retry Count</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="10"
+                                value={operation.onFailure?.retryCount || 3}
+                                onChange={(e) => updateOperation(operation.id, { 
+                                  onFailure: { ...operation.onFailure, action: 'retry', retryCount: parseInt(e.target.value) || 3 } 
+                                })}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

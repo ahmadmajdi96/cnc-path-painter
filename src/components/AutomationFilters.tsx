@@ -80,8 +80,7 @@ export const AutomationFilters = ({ automations, onFilterChange }: AutomationFil
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="crud_operation">CRUD Operation</SelectItem>
               <SelectItem value="file_operation">File Operation</SelectItem>
-              <SelectItem value="logical_operation">Logical Operation</SelectItem>
-              <SelectItem value="mathematical_operation">Mathematical Operation</SelectItem>
+              <SelectItem value="logic_conditions">Logic & Conditions</SelectItem>
               <SelectItem value="run_script">Run Script</SelectItem>
             </SelectContent>
           </Select>
