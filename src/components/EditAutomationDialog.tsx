@@ -25,15 +25,12 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [enabled, setEnabled] = useState(true);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
 
   useEffect(() => {
     if (automation) {
       setName(automation.name);
-      setDescription(automation.description);
+      setDescription(automation.description || '');
       setEnabled(automation.enabled);
-      setTags(automation.tags);
     }
   }, [automation]);
 
@@ -45,23 +42,11 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
       name: name.trim(),
       description: description.trim(),
       enabled,
-      tags,
       updatedAt: new Date().toISOString()
     };
 
     onSave(updatedAutomation);
     onOpenChange(false);
-  };
-
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags(prev => [...prev, newTag.trim()]);
-      setNewTag('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
   };
 
   if (!automation) return null;
@@ -102,32 +87,6 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what this automation does"
             />
-          </div>
-
-          <div>
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map(tag => (
-                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                  {tag}
-                  <X 
-                    className="w-3 h-3 cursor-pointer" 
-                    onClick={() => removeTag(tag)}
-                  />
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add tag..."
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addTag()}
-              />
-              <Button onClick={addTag} variant="outline">
-                Add
-              </Button>
-            </div>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg">

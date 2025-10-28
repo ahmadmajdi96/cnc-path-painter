@@ -6,11 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { X, Plus, Database, FileText, Calculator, GitBranch, Upload, ArrowRight } from 'lucide-react';
+import { X, Plus, Database, FileText, Calculator, GitBranch, ArrowRight, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import type { Automation, AutomationOperation, AutomationParameter } from './AutomationControlSystem';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import type { Automation, AutomationOperation, AutomationParameter, OperationInputMapping, EnvironmentVariable } from './AutomationControlSystem';
 
 interface AddAutomationDialogProps {
   open: boolean;
@@ -34,8 +34,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
   const [operations, setOperations] = useState<AutomationOperation[]>([]);
   const [inputParameters, setInputParameters] = useState<AutomationParameter[]>([]);
   const [outputParameters, setOutputParameters] = useState<AutomationParameter[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const [environmentVariables, setEnvironmentVariables] = useState<EnvironmentVariable[]>([]);
 
   const handleSubmit = () => {
     if (!name) {
@@ -55,7 +54,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
       operations,
       inputParameters,
       outputParameters,
-      tags
+      environmentVariables
     });
 
     resetForm();
@@ -69,17 +68,18 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     setOperations([]);
     setInputParameters([]);
     setOutputParameters([]);
-    setTags([]);
-    setTagInput('');
+    setEnvironmentVariables([]);
   };
 
   const addOperation = () => {
     const newOperation: AutomationOperation = {
       id: Math.random().toString(36).substr(2, 9),
       order: operations.length + 1,
-      type: 'database_retrieve',
+      type: 'crud_operation',
+      name: `Operation ${operations.length + 1}`,
       config: {},
       inputMappings: [],
+      environmentVariables: [],
       outputParameters: []
     };
     setOperations([...operations, newOperation]);
@@ -93,6 +93,77 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     setOperations(operations.filter(op => op.id !== id).map((op, idx) => ({ ...op, order: idx + 1 })));
   };
 
+  // Input Mappings
+  const addInputMapping = (operationId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    const newMapping: OperationInputMapping = {
+      id: Math.random().toString(36).substr(2, 9),
+      targetParameter: '',
+      source: 'automation_input',
+      sourceParameter: ''
+    };
+
+    updateOperation(operationId, {
+      inputMappings: [...operation.inputMappings, newMapping]
+    });
+  };
+
+  const updateInputMapping = (operationId: string, mappingId: string, updates: Partial<OperationInputMapping>) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    updateOperation(operationId, {
+      inputMappings: operation.inputMappings.map(m => m.id === mappingId ? { ...m, ...updates } : m)
+    });
+  };
+
+  const removeInputMapping = (operationId: string, mappingId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    updateOperation(operationId, {
+      inputMappings: operation.inputMappings.filter(m => m.id !== mappingId)
+    });
+  };
+
+  // Operation Environment Variables
+  const addOperationEnvVar = (operationId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    const newEnvVar: EnvironmentVariable = {
+      id: Math.random().toString(36).substr(2, 9),
+      key: '',
+      value: '',
+      description: ''
+    };
+
+    updateOperation(operationId, {
+      environmentVariables: [...operation.environmentVariables, newEnvVar]
+    });
+  };
+
+  const updateOperationEnvVar = (operationId: string, envId: string, updates: Partial<EnvironmentVariable>) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    updateOperation(operationId, {
+      environmentVariables: operation.environmentVariables.map(e => e.id === envId ? { ...e, ...updates } : e)
+    });
+  };
+
+  const removeOperationEnvVar = (operationId: string, envId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    updateOperation(operationId, {
+      environmentVariables: operation.environmentVariables.filter(e => e.id !== envId)
+    });
+  };
+
+  // Operation Output Parameters
   const addOperationOutputParameter = (operationId: string) => {
     const operation = operations.find(op => op.id === operationId);
     if (!operation) return;
@@ -128,6 +199,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     });
   };
 
+  // Automation Input Parameters
   const addInputParameter = () => {
     const newParam: AutomationParameter = {
       id: Math.random().toString(36).substr(2, 9),
@@ -147,6 +219,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     setInputParameters(inputParameters.filter(p => p.id !== id));
   };
 
+  // Automation Output Parameters
   const addOutputParameter = () => {
     const newParam: AutomationParameter = {
       id: Math.random().toString(36).substr(2, 9),
@@ -166,20 +239,99 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     setOutputParameters(outputParameters.filter(p => p.id !== id));
   };
 
-  const addTag = () => {
-    if (tagInput && !tags.includes(tagInput)) {
-      setTags([...tags, tagInput]);
-      setTagInput('');
-    }
+  // Automation Environment Variables
+  const addEnvironmentVariable = () => {
+    const newEnvVar: EnvironmentVariable = {
+      id: Math.random().toString(36).substr(2, 9),
+      key: '',
+      value: '',
+      description: ''
+    };
+    setEnvironmentVariables([...environmentVariables, newEnvVar]);
   };
 
-  const removeTag = (tag: string) => {
-    setTags(tags.filter(t => t !== tag));
+  const updateEnvironmentVariable = (id: string, updates: Partial<EnvironmentVariable>) => {
+    setEnvironmentVariables(environmentVariables.map(e => e.id === id ? { ...e, ...updates } : e));
+  };
+
+  const removeEnvironmentVariable = (id: string) => {
+    setEnvironmentVariables(environmentVariables.filter(e => e.id !== id));
+  };
+
+  // CRUD Conditions
+  const addCondition = (operationId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    const newCondition = {
+      id: Math.random().toString(36).substr(2, 9),
+      field: '',
+      operator: '=',
+      value: '',
+      logicalOperator: 'AND' as 'AND' | 'OR'
+    };
+
+    updateOperation(operationId, {
+      config: {
+        ...operation.config,
+        conditions: [...(operation.config.conditions || []), newCondition]
+      }
+    });
+  };
+
+  const updateCondition = (operationId: string, conditionId: string, updates: any) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    updateOperation(operationId, {
+      config: {
+        ...operation.config,
+        conditions: (operation.config.conditions || []).map(c => c.id === conditionId ? { ...c, ...updates } : c)
+      }
+    });
+  };
+
+  const removeCondition = (operationId: string, conditionId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    updateOperation(operationId, {
+      config: {
+        ...operation.config,
+        conditions: (operation.config.conditions || []).filter(c => c.id !== conditionId)
+      }
+    });
+  };
+
+  // Column Management
+  const toggleColumn = (operationId: string, column: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+
+    const currentColumns = operation.config.columns || [];
+    let newColumns: string[];
+    
+    if (column === '*') {
+      newColumns = ['*'];
+    } else {
+      const filteredColumns = currentColumns.filter(c => c !== '*');
+      if (filteredColumns.includes(column)) {
+        newColumns = filteredColumns.filter(c => c !== column);
+      } else {
+        newColumns = [...filteredColumns, column];
+      }
+    }
+
+    updateOperation(operationId, {
+      config: {
+        ...operation.config,
+        columns: newColumns.length > 0 ? newColumns : undefined
+      }
+    });
   };
 
   const getOperationIcon = (type: string) => {
     switch (type) {
-      case 'database_retrieve':
       case 'crud_operation':
         return <Database className="h-4 w-4" />;
       case 'file_operation':
@@ -193,399 +345,131 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     }
   };
 
+  const getPreviousOperationsForMapping = (currentOperationId: string) => {
+    const currentIndex = operations.findIndex(op => op.id === currentOperationId);
+    return operations.slice(0, currentIndex);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Create New Automation</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Automation Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter automation name"
-              />
+        <ScrollArea className="h-[calc(90vh-140px)] pr-4">
+          <div className="space-y-6 py-4">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Automation Name *</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter automation name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe what this automation does"
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch checked={enabled} onCheckedChange={setEnabled} />
+                <Label>Enabled</Label>
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what this automation does"
-                rows={2}
-              />
-            </div>
+            <Separator />
 
-            <div className="flex items-center space-x-2">
-              <Switch checked={enabled} onCheckedChange={setEnabled} />
-              <Label>Enabled</Label>
-            </div>
-          </div>
+            {/* Environment Variables */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Environment Variables
+                </Label>
+                <Button type="button" variant="outline" size="sm" onClick={addEnvironmentVariable}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Variable
+                </Button>
+              </div>
 
-          <Separator />
-
-          {/* Automation Input Parameters */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Automation Input Parameters</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addInputParameter}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Input
-              </Button>
-            </div>
-
-            {inputParameters.map((param) => (
-              <Card key={param.id}>
-                <CardContent className="pt-4 space-y-3">
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="col-span-2">
-                      <Label>Name</Label>
-                      <Input
-                        value={param.name}
-                        onChange={(e) => updateInputParameter(param.id, { name: e.target.value })}
-                        placeholder="Parameter name"
-                      />
+              {environmentVariables.map((envVar) => (
+                <Card key={envVar.id}>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <Label>Key</Label>
+                        <Input
+                          value={envVar.key}
+                          onChange={(e) => updateEnvironmentVariable(envVar.id, { key: e.target.value })}
+                          placeholder="VAR_NAME"
+                        />
+                      </div>
+                      <div>
+                        <Label>Value</Label>
+                        <Input
+                          value={envVar.value}
+                          onChange={(e) => updateEnvironmentVariable(envVar.id, { value: e.target.value })}
+                          placeholder="value"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button variant="destructive" size="sm" onClick={() => removeEnvironmentVariable(envVar.id)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div>
-                      <Label>Type</Label>
-                      <Select value={param.type} onValueChange={(value: any) => updateInputParameter(param.id, { type: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="string">String</SelectItem>
-                          <SelectItem value="number">Number</SelectItem>
-                          <SelectItem value="boolean">Boolean</SelectItem>
-                          <SelectItem value="object">Object</SelectItem>
-                          <SelectItem value="array">Array</SelectItem>
-                          <SelectItem value="file">File</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>Description</Label>
+                      <Input
+                        value={envVar.description || ''}
+                        onChange={(e) => updateEnvironmentVariable(envVar.id, { description: e.target.value })}
+                        placeholder="Variable description"
+                      />
                     </div>
-                    <div className="flex items-end">
-                      <Button variant="destructive" size="sm" onClick={() => removeInputParameter(param.id)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Description</Label>
-                    <Input
-                      value={param.description || ''}
-                      onChange={(e) => updateInputParameter(param.id, { description: e.target.value })}
-                      placeholder="Parameter description"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch checked={param.required} onCheckedChange={(checked) => updateInputParameter(param.id, { required: checked })} />
-                    <Label>Required</Label>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <Separator />
-
-          {/* Operations */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Operations (Sequential)</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addOperation}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Operation
-              </Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
-            {operations.map((operation, index) => (
-              <Card key={operation.id} className="border-2">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      {getOperationIcon(operation.type)}
-                      Operation {index + 1}
-                      {index > 0 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                    </CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => removeOperation(operation.id)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Operation Type */}
-                  <div>
-                    <Label>Operation Type</Label>
-                    <Select value={operation.type} onValueChange={(value: any) => updateOperation(operation.id, { type: value, config: {} })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="database_retrieve">Database Retrieve</SelectItem>
-                        <SelectItem value="crud_operation">CRUD Operation</SelectItem>
-                        <SelectItem value="file_operation">File Operation</SelectItem>
-                        <SelectItem value="logical_operation">Logical Operation</SelectItem>
-                        <SelectItem value="mathematical_operation">Mathematical Operation</SelectItem>
-                        <SelectItem value="run_script">Run Script</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <Separator />
 
-                  {/* Type-specific Configuration */}
-                  {operation.type === 'database_retrieve' && (
-                    <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                      <div>
-                        <Label>Database</Label>
-                        <Select value={operation.config.database || ''} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, database: value, table: undefined } })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select database" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mockDatabases.map(db => (
-                              <SelectItem key={db} value={db}>{db}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {operation.config.database && (
-                        <>
-                          <div>
-                            <Label>Table</Label>
-                            <Select value={operation.config.table || ''} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, table: value } })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select table" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {mockTables[operation.config.database]?.map(table => (
-                                  <SelectItem key={table} value={table}>{table}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>Query</Label>
-                            <Textarea
-                              value={operation.config.query || ''}
-                              onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, query: e.target.value } })}
-                              placeholder="SELECT * FROM table WHERE..."
-                              rows={3}
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
+            {/* Automation Input Parameters */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Automation Input Parameters</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addInputParameter}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Input
+                </Button>
+              </div>
 
-                  {operation.type === 'crud_operation' && (
-                    <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                      <div>
-                        <Label>Database</Label>
-                        <Select value={operation.config.database || ''} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, database: value, table: undefined } })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select database" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {mockDatabases.map(db => (
-                              <SelectItem key={db} value={db}>{db}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {operation.config.database && (
-                        <>
-                          <div>
-                            <Label>Table</Label>
-                            <Select value={operation.config.table || ''} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, table: value } })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select table" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {mockTables[operation.config.database]?.map(table => (
-                                  <SelectItem key={table} value={table}>{table}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>Operation</Label>
-                            <Select value={operation.config.operation || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operation: value } })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select operation" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="create">Create</SelectItem>
-                                <SelectItem value="read">Read</SelectItem>
-                                <SelectItem value="update">Update</SelectItem>
-                                <SelectItem value="delete">Delete</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {operation.type === 'file_operation' && (
-                    <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                      <div>
-                        <Label>File Operation</Label>
-                        <Select value={operation.config.fileOperation || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, fileOperation: value } })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select file operation" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="download">Download</SelectItem>
-                            <SelectItem value="upload">Upload</SelectItem>
-                            <SelectItem value="delete">Delete</SelectItem>
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="write">Write</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>File Path</Label>
-                        <Input
-                          value={operation.config.filePath || ''}
-                          onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, filePath: e.target.value } })}
-                          placeholder="/path/to/file.txt"
-                        />
-                      </div>
-                      {(operation.config.fileOperation === 'write' || operation.config.fileOperation === 'upload') && (
-                        <div>
-                          <Label>Content/Source</Label>
-                          <Textarea
-                            value={operation.config.fileContent || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, fileContent: e.target.value } })}
-                            placeholder="File content or source"
-                            rows={3}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {operation.type === 'logical_operation' && (
-                    <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                      <div>
-                        <Label>Logical Operator</Label>
-                        <Select value={operation.config.logicalOperator || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, logicalOperator: value } })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select operator" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="and">AND</SelectItem>
-                            <SelectItem value="or">OR</SelectItem>
-                            <SelectItem value="not">NOT</SelectItem>
-                            <SelectItem value="if">IF</SelectItem>
-                            <SelectItem value="switch">SWITCH</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-
-                  {operation.type === 'mathematical_operation' && (
-                    <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                      <div>
-                        <Label>Mathematical Operator</Label>
-                        <Select value={operation.config.mathOperator || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, mathOperator: value } })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select operator" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="add">Add (+)</SelectItem>
-                            <SelectItem value="subtract">Subtract (-)</SelectItem>
-                            <SelectItem value="multiply">Multiply (×)</SelectItem>
-                            <SelectItem value="divide">Divide (÷)</SelectItem>
-                            <SelectItem value="modulo">Modulo (%)</SelectItem>
-                            <SelectItem value="power">Power (^)</SelectItem>
-                            <SelectItem value="sqrt">Square Root (√)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-
-                  {operation.type === 'run_script' && (
-                    <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                      <div>
-                        <Label>Script Language</Label>
-                        <Select value={operation.config.scriptLanguage || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, scriptLanguage: value } })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="python">Python</SelectItem>
-                            <SelectItem value="javascript">JavaScript</SelectItem>
-                            <SelectItem value="bash">Bash</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Upload Script File</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="file"
-                            accept=".py,.js,.sh"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                updateOperation(operation.id, { config: { ...operation.config, scriptFile: file, scriptFileName: file.name } });
-                              }
-                            }}
-                          />
-                          <Upload className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        {operation.config.scriptFileName && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Selected: {operation.config.scriptFileName}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Input Mappings */}
-                  {index > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Map Inputs From:</Label>
-                      <div className="bg-accent/30 p-3 rounded-lg space-y-2">
-                        <div className="flex items-center gap-2 text-xs">
-                          <Badge variant="outline">Automation Inputs</Badge>
-                          <span className="text-muted-foreground">or</span>
-                          <Badge variant="outline">Previous Operation Outputs</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Configure input mappings to use outputs from Operation {index}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Output Parameters */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Output Parameters</Label>
-                      <Button type="button" variant="outline" size="sm" onClick={() => addOperationOutputParameter(operation.id)}>
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add Output
-                      </Button>
-                    </div>
-                    {operation.outputParameters.map(param => (
-                      <div key={param.id} className="flex items-center gap-2 bg-muted/30 p-2 rounded">
+              {inputParameters.map((param) => (
+                <Card key={param.id}>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="col-span-2">
+                        <Label>Name</Label>
                         <Input
                           value={param.name}
-                          onChange={(e) => updateOperationOutputParameter(operation.id, param.id, { name: e.target.value })}
-                          placeholder="Output name"
-                          className="h-8"
+                          onChange={(e) => updateInputParameter(param.id, { name: e.target.value })}
+                          placeholder="Parameter name"
                         />
-                        <Select value={param.type} onValueChange={(value: any) => updateOperationOutputParameter(operation.id, param.id, { type: value })}>
-                          <SelectTrigger className="h-8 w-32">
+                      </div>
+                      <div>
+                        <Label>Type</Label>
+                        <Select value={param.type} onValueChange={(value: any) => updateInputParameter(param.id, { type: value })}>
+                          <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -597,102 +481,562 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             <SelectItem value="file">File</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button variant="ghost" size="sm" onClick={() => removeOperationOutputParameter(operation.id, param.id)}>
-                          <X className="h-3 w-3" />
+                      </div>
+                      <div className="flex items-end">
+                        <Button variant="destructive" size="sm" onClick={() => removeInputParameter(param.id)}>
+                          <X className="h-4 w-4" />
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <Separator />
-
-          {/* Automation Output Parameters */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Automation Output Parameters</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addOutputParameter}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Output
-              </Button>
-            </div>
-
-            {outputParameters.map((param) => (
-              <Card key={param.id}>
-                <CardContent className="pt-4 space-y-3">
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="col-span-2">
-                      <Label>Name</Label>
-                      <Input
-                        value={param.name}
-                        onChange={(e) => updateOutputParameter(param.id, { name: e.target.value })}
-                        placeholder="Parameter name"
-                      />
                     </div>
                     <div>
-                      <Label>Type</Label>
-                      <Select value={param.type} onValueChange={(value: any) => updateOutputParameter(param.id, { type: value })}>
+                      <Label>Description</Label>
+                      <Input
+                        value={param.description || ''}
+                        onChange={(e) => updateInputParameter(param.id, { description: e.target.value })}
+                        placeholder="Parameter description"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch checked={param.required} onCheckedChange={(checked) => updateInputParameter(param.id, { required: checked })} />
+                      <Label>Required</Label>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* Operations */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Operations (Sequential)</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addOperation}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Operation
+                </Button>
+              </div>
+
+              {operations.map((operation, index) => (
+                <Card key={operation.id} className="border-2">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        {getOperationIcon(operation.type)}
+                        Operation {index + 1}: {operation.name}
+                        {index > 0 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                      </CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => removeOperation(operation.id)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Operation Name */}
+                    <div>
+                      <Label>Operation Name</Label>
+                      <Input
+                        value={operation.name}
+                        onChange={(e) => updateOperation(operation.id, { name: e.target.value })}
+                        placeholder="Operation name"
+                      />
+                    </div>
+
+                    {/* Operation Type */}
+                    <div>
+                      <Label>Operation Type</Label>
+                      <Select value={operation.type} onValueChange={(value: any) => updateOperation(operation.id, { type: value, config: {} })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="string">String</SelectItem>
-                          <SelectItem value="number">Number</SelectItem>
-                          <SelectItem value="boolean">Boolean</SelectItem>
-                          <SelectItem value="object">Object</SelectItem>
-                          <SelectItem value="array">Array</SelectItem>
-                          <SelectItem value="file">File</SelectItem>
+                          <SelectItem value="crud_operation">CRUD Operation</SelectItem>
+                          <SelectItem value="file_operation">File Operation</SelectItem>
+                          <SelectItem value="logical_operation">Logical Operation</SelectItem>
+                          <SelectItem value="mathematical_operation">Mathematical Operation</SelectItem>
+                          <SelectItem value="run_script">Run Script</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-end">
-                      <Button variant="destructive" size="sm" onClick={() => removeOutputParameter(param.id)}>
-                        <X className="h-4 w-4" />
-                      </Button>
+
+                    {/* Type-specific Configuration */}
+                    {operation.type === 'crud_operation' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div>
+                          <Label>Database</Label>
+                          <Select value={operation.config.database || ''} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, database: value, table: undefined } })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select database" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockDatabases.map(db => (
+                                <SelectItem key={db} value={db}>{db}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {operation.config.database && (
+                          <>
+                            <div>
+                              <Label>Table</Label>
+                              <Select value={operation.config.table || ''} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, table: value } })}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select table" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {mockTables[operation.config.database]?.map(table => (
+                                    <SelectItem key={table} value={table}>{table}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Operation</Label>
+                              <Select value={operation.config.operation || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operation: value } })}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select operation" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="create">Create</SelectItem>
+                                  <SelectItem value="read">Read</SelectItem>
+                                  <SelectItem value="update">Update</SelectItem>
+                                  <SelectItem value="delete">Delete</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {operation.config.operation === 'read' && operation.config.table && (
+                              <div>
+                                <Label>Columns to Select</Label>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  <Button
+                                    type="button"
+                                    variant={(operation.config.columns || []).includes('*') ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => toggleColumn(operation.id, '*')}
+                                  >
+                                    * (All)
+                                  </Button>
+                                  {mockTables[operation.config.database]?.find(t => t === operation.config.table) && 
+                                    ['id', 'name', 'created_at', 'updated_at', 'status', 'data'].map(col => (
+                                      <Button
+                                        key={col}
+                                        type="button"
+                                        variant={(operation.config.columns || []).includes(col) ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => toggleColumn(operation.id, col)}
+                                        disabled={(operation.config.columns || []).includes('*')}
+                                      >
+                                        {col}
+                                      </Button>
+                                    ))
+                                  }
+                                </div>
+                              </div>
+                            )}
+
+                            {(operation.config.operation === 'read' || operation.config.operation === 'update' || operation.config.operation === 'delete') && (
+                              <div>
+                                <Label className="flex items-center justify-between">
+                                  Conditions
+                                  <Button type="button" variant="ghost" size="sm" onClick={() => addCondition(operation.id)}>
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add
+                                  </Button>
+                                </Label>
+                                <div className="space-y-2 mt-2">
+                                  {(operation.config.conditions || []).map((condition, idx) => (
+                                    <div key={condition.id} className="flex gap-2 items-center">
+                                      {idx > 0 && (
+                                        <Select value={condition.logicalOperator} onValueChange={(value: any) => updateCondition(operation.id, condition.id, { logicalOperator: value })}>
+                                          <SelectTrigger className="w-20">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="AND">AND</SelectItem>
+                                            <SelectItem value="OR">OR</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      )}
+                                      <Input
+                                        value={condition.field}
+                                        onChange={(e) => updateCondition(operation.id, condition.id, { field: e.target.value })}
+                                        placeholder="Field"
+                                        className="flex-1"
+                                      />
+                                      <Select value={condition.operator} onValueChange={(value) => updateCondition(operation.id, condition.id, { operator: value })}>
+                                        <SelectTrigger className="w-24">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="=">=</SelectItem>
+                                          <SelectItem value="!=">!=</SelectItem>
+                                          <SelectItem value=">">{">"}</SelectItem>
+                                          <SelectItem value="<">{"<"}</SelectItem>
+                                          <SelectItem value=">=">{">="}</SelectItem>
+                                          <SelectItem value="<=">{"<="}</SelectItem>
+                                          <SelectItem value="LIKE">LIKE</SelectItem>
+                                          <SelectItem value="IN">IN</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <Input
+                                        value={condition.value}
+                                        onChange={(e) => updateCondition(operation.id, condition.id, { value: e.target.value })}
+                                        placeholder="Value"
+                                        className="flex-1"
+                                      />
+                                      <Button type="button" variant="ghost" size="sm" onClick={() => removeCondition(operation.id, condition.id)}>
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {operation.type === 'file_operation' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div>
+                          <Label>File Operation</Label>
+                          <Select value={operation.config.fileOperation || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, fileOperation: value } })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select file operation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="download">Download</SelectItem>
+                              <SelectItem value="upload">Upload</SelectItem>
+                              <SelectItem value="delete">Delete</SelectItem>
+                              <SelectItem value="open">Open</SelectItem>
+                              <SelectItem value="write">Write</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>File Path</Label>
+                          <Input
+                            value={operation.config.filePath || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, filePath: e.target.value } })}
+                            placeholder="/path/to/file.txt"
+                          />
+                        </div>
+                        {(operation.config.fileOperation === 'write' || operation.config.fileOperation === 'upload') && (
+                          <div>
+                            <Label>Content/Source</Label>
+                            <Textarea
+                              value={operation.config.fileContent || ''}
+                              onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, fileContent: e.target.value } })}
+                              placeholder="File content or source"
+                              rows={3}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {operation.type === 'logical_operation' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div>
+                          <Label>Logical Operator</Label>
+                          <Select value={operation.config.logicalOperator || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, logicalOperator: value } })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select operator" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="and">AND</SelectItem>
+                              <SelectItem value="or">OR</SelectItem>
+                              <SelectItem value="not">NOT</SelectItem>
+                              <SelectItem value="if">IF</SelectItem>
+                              <SelectItem value="switch">SWITCH</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Condition</Label>
+                          <Input
+                            value={operation.config.condition || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, condition: e.target.value } })}
+                            placeholder="Enter condition"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {operation.type === 'mathematical_operation' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div>
+                          <Label>Math Operator</Label>
+                          <Select value={operation.config.mathOperator || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, mathOperator: value } })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select operator" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="add">Add (+)</SelectItem>
+                              <SelectItem value="subtract">Subtract (-)</SelectItem>
+                              <SelectItem value="multiply">Multiply (*)</SelectItem>
+                              <SelectItem value="divide">Divide (/)</SelectItem>
+                              <SelectItem value="modulo">Modulo (%)</SelectItem>
+                              <SelectItem value="power">Power (^)</SelectItem>
+                              <SelectItem value="sqrt">Square Root</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+
+                    {operation.type === 'run_script' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div>
+                          <Label>Script Language</Label>
+                          <Select value={operation.config.scriptLanguage || ''} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, scriptLanguage: value } })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="python">Python</SelectItem>
+                              <SelectItem value="javascript">JavaScript</SelectItem>
+                              <SelectItem value="bash">Bash</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Script Content</Label>
+                          <Textarea
+                            value={operation.config.scriptContent || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, scriptContent: e.target.value } })}
+                            placeholder="Enter your script here"
+                            rows={5}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Input Mappings */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold">Input Mappings</Label>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => addInputMapping(operation.id)}>
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Mapping
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {operation.inputMappings.map((mapping) => (
+                          <div key={mapping.id} className="flex gap-2 items-center bg-background p-2 rounded">
+                            <Input
+                              value={mapping.targetParameter}
+                              onChange={(e) => updateInputMapping(operation.id, mapping.id, { targetParameter: e.target.value })}
+                              placeholder="Target parameter"
+                              className="flex-1"
+                            />
+                            <Select value={mapping.source} onValueChange={(value: any) => updateInputMapping(operation.id, mapping.id, { source: value, sourceParameter: '', sourceOperationId: undefined })}>
+                              <SelectTrigger className="w-48">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="automation_input">Automation Input</SelectItem>
+                                <SelectItem value="previous_operation">Previous Operation</SelectItem>
+                                <SelectItem value="environment">Environment Variable</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {mapping.source === 'automation_input' && (
+                              <Select value={mapping.sourceParameter} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="Select input" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {inputParameters.map(param => (
+                                    <SelectItem key={param.id} value={param.name}>{param.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            {mapping.source === 'previous_operation' && (
+                              <>
+                                <Select value={mapping.sourceOperationId || ''} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceOperationId: value, sourceParameter: '' })}>
+                                  <SelectTrigger className="flex-1">
+                                    <SelectValue placeholder="Select operation" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {getPreviousOperationsForMapping(operation.id).map(op => (
+                                      <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {mapping.sourceOperationId && (
+                                  <Select value={mapping.sourceParameter} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
+                                    <SelectTrigger className="flex-1">
+                                      <SelectValue placeholder="Select output" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {operations.find(op => op.id === mapping.sourceOperationId)?.outputParameters.map(param => (
+                                        <SelectItem key={param.id} value={param.name}>{param.name}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </>
+                            )}
+                            {mapping.source === 'environment' && (
+                              <Select value={mapping.sourceParameter} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue placeholder="Select env var" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[...environmentVariables, ...operation.environmentVariables].map(env => (
+                                    <SelectItem key={env.id} value={env.key}>{env.key}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Button type="button" variant="ghost" size="sm" onClick={() => removeInputMapping(operation.id, mapping.id)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <Label>Description</Label>
-                    <Input
-                      value={param.description || ''}
-                      onChange={(e) => updateOutputParameter(param.id, { description: e.target.value })}
-                      placeholder="Parameter description"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
 
-          <Separator />
+                    {/* Operation Environment Variables */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold">Operation Environment Variables</Label>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => addOperationEnvVar(operation.id)}>
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Variable
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {operation.environmentVariables.map((envVar) => (
+                          <div key={envVar.id} className="flex gap-2 items-center bg-background p-2 rounded">
+                            <Input
+                              value={envVar.key}
+                              onChange={(e) => updateOperationEnvVar(operation.id, envVar.id, { key: e.target.value })}
+                              placeholder="KEY"
+                              className="flex-1"
+                            />
+                            <Input
+                              value={envVar.value}
+                              onChange={(e) => updateOperationEnvVar(operation.id, envVar.id, { value: e.target.value })}
+                              placeholder="value"
+                              className="flex-1"
+                            />
+                            <Button type="button" variant="ghost" size="sm" onClick={() => removeOperationEnvVar(operation.id, envVar.id)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex gap-2">
-              <Input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                placeholder="Add tag"
-              />
-              <Button type="button" variant="outline" onClick={addTag}>
-                <Plus className="h-4 w-4" />
-              </Button>
+                    {/* Output Parameters */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold">Output Parameters</Label>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => addOperationOutputParameter(operation.id)}>
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Output
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {operation.outputParameters.map((param) => (
+                          <div key={param.id} className="flex gap-2 items-center bg-background p-2 rounded">
+                            <Input
+                              value={param.name}
+                              onChange={(e) => updateOperationOutputParameter(operation.id, param.id, { name: e.target.value })}
+                              placeholder="Output name"
+                              className="flex-1"
+                            />
+                            <Select value={param.type} onValueChange={(value: any) => updateOperationOutputParameter(operation.id, param.id, { type: value })}>
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="string">String</SelectItem>
+                                <SelectItem value="number">Number</SelectItem>
+                                <SelectItem value="boolean">Boolean</SelectItem>
+                                <SelectItem value="object">Object</SelectItem>
+                                <SelectItem value="array">Array</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => removeOperationOutputParameter(operation.id, param.id)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {tags.map(tag => (
-                <Badge key={tag} variant="secondary" className="gap-1">
-                  {tag}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => removeTag(tag)} />
-                </Badge>
+
+            <Separator />
+
+            {/* Automation Output Parameters */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Automation Output Parameters</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addOutputParameter}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Output
+                </Button>
+              </div>
+
+              {outputParameters.map((param) => (
+                <Card key={param.id}>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="col-span-2">
+                        <Label>Name</Label>
+                        <Input
+                          value={param.name}
+                          onChange={(e) => updateOutputParameter(param.id, { name: e.target.value })}
+                          placeholder="Parameter name"
+                        />
+                      </div>
+                      <div>
+                        <Label>Type</Label>
+                        <Select value={param.type} onValueChange={(value: any) => updateOutputParameter(param.id, { type: value })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="string">String</SelectItem>
+                            <SelectItem value="number">Number</SelectItem>
+                            <SelectItem value="boolean">Boolean</SelectItem>
+                            <SelectItem value="object">Object</SelectItem>
+                            <SelectItem value="array">Array</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <Button variant="destructive" size="sm" onClick={() => removeOutputParameter(param.id)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Input
+                        value={param.description || ''}
+                        onChange={(e) => updateOutputParameter(param.id, { description: e.target.value })}
+                        placeholder="Parameter description"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch checked={param.required} onCheckedChange={(checked) => updateOutputParameter(param.id, { required: checked })} />
+                      <Label>Required</Label>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
-        </div>
+        </ScrollArea>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

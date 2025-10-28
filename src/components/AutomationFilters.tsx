@@ -21,8 +21,7 @@ export const AutomationFilters = ({ automations, onFilterChange }: AutomationFil
     if (searchTerm) {
       filtered = filtered.filter(automation =>
         automation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        automation.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        automation.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        automation.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -79,7 +78,6 @@ export const AutomationFilters = ({ automations, onFilterChange }: AutomationFil
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="database_retrieve">Database Retrieve</SelectItem>
               <SelectItem value="crud_operation">CRUD Operation</SelectItem>
               <SelectItem value="file_operation">File Operation</SelectItem>
               <SelectItem value="logical_operation">Logical Operation</SelectItem>

@@ -18,46 +18,61 @@ export interface AutomationParameter {
   defaultValue?: any;
 }
 
+export interface EnvironmentVariable {
+  id: string;
+  key: string;
+  value: string;
+  description?: string;
+}
+
+export interface OperationInputMapping {
+  id: string;
+  targetParameter: string;
+  source: 'automation_input' | 'previous_operation' | 'environment';
+  sourceParameter: string;
+  sourceOperationId?: string;
+}
+
 export interface AutomationOperation {
   id: string;
   order: number;
-  type: 'database_retrieve' | 'crud_operation' | 'run_script' | 'file_operation' | 'logical_operation' | 'mathematical_operation';
+  type: 'crud_operation' | 'file_operation' | 'logical_operation' | 'mathematical_operation' | 'run_script';
+  name: string;
+  inputMappings: OperationInputMapping[];
+  environmentVariables: EnvironmentVariable[];
   config: {
-    // For database_retrieve
-    database?: string;
-    query?: string;
-    table?: string;
-    
-    // For crud_operation
+    // CRUD operation
     operation?: 'create' | 'read' | 'update' | 'delete';
+    database?: string;
+    table?: string;
+    columns?: string[]; // For read operation - columns to select, ['*'] for all
+    conditions?: { 
+      id: string;
+      field: string; 
+      operator: string; 
+      value: string; 
+      logicalOperator?: 'AND' | 'OR' 
+    }[];
+    data?: { [key: string]: any };
     
-    fields?: string[];
-    
-    // For run_script
-    scriptFile?: File;
-    scriptFileName?: string;
-    scriptLanguage?: 'python' | 'javascript' | 'bash';
-    environment?: { [key: string]: string };
-    
-    // For file_operation
+    // File operation
     fileOperation?: 'download' | 'upload' | 'delete' | 'open' | 'write';
     filePath?: string;
     fileContent?: string;
     
-    // For logical_operation
+    // Logical operation
     logicalOperator?: 'and' | 'or' | 'not' | 'if' | 'switch';
-    conditions?: any[];
+    condition?: string;
+    cases?: { id: string; value: string; actions: string[] }[];
     
-    // For mathematical_operation
+    // Mathematical operation
     mathOperator?: 'add' | 'subtract' | 'multiply' | 'divide' | 'modulo' | 'power' | 'sqrt';
-    operands?: any[];
+    operands?: string[];
+    
+    // Script operation
+    scriptLanguage?: 'python' | 'javascript' | 'bash';
+    scriptContent?: string;
   };
-  inputMappings: {
-    parameterId: string;
-    source: 'automation_input' | 'previous_operation';
-    sourceOperationId?: string;
-    sourceParameterId?: string;
-  }[];
   outputParameters: AutomationParameter[];
 }
 
@@ -69,7 +84,7 @@ export interface Automation {
   operations: AutomationOperation[];
   inputParameters: AutomationParameter[];
   outputParameters: AutomationParameter[];
-  tags: string[];
+  environmentVariables: EnvironmentVariable[];
   createdAt: string;
   updatedAt: string;
 }
@@ -78,34 +93,73 @@ export const AutomationControlSystem = () => {
   const [automations, setAutomations] = useState<Automation[]>([
     {
       id: '1',
-      name: 'Fetch User Data',
-      description: 'Retrieve user information from the database',
+      name: 'Data Sync Workflow',
+      description: 'Syncs data between databases',
       enabled: true,
       operations: [
         {
           id: 'op1',
           order: 1,
-          type: 'database_retrieve',
-          config: {
-            database: 'users_db',
-            table: 'users',
-            query: 'SELECT * FROM users WHERE status = "active"'
-          },
+          type: 'crud_operation',
+          name: 'Read Source Data',
           inputMappings: [
-            { parameterId: 'p1', source: 'automation_input' }
+            { 
+              id: 'im1',
+              targetParameter: 'status_filter', 
+              source: 'automation_input', 
+              sourceParameter: 'filter_status' 
+            }
           ],
+          environmentVariables: [],
+          config: {
+            operation: 'read',
+            database: 'production_db',
+            table: 'orders',
+            columns: ['id', 'customer', 'total', 'status'],
+            conditions: [
+              { id: 'c1', field: 'status', operator: '=', value: 'pending', logicalOperator: 'AND' },
+              { id: 'c2', field: 'total', operator: '>', value: '100' }
+            ]
+          },
           outputParameters: [
-            { id: 'o1', name: 'users', type: 'array', required: true, description: 'List of users' }
+            { id: 'o1', name: 'orders', type: 'array', required: true }
           ]
+        },
+        {
+          id: 'op2',
+          order: 2,
+          type: 'crud_operation',
+          name: 'Write to Archive',
+          inputMappings: [
+            { 
+              id: 'im2',
+              targetParameter: 'data', 
+              source: 'previous_operation', 
+              sourceParameter: 'orders', 
+              sourceOperationId: 'op1' 
+            }
+          ],
+          environmentVariables: [],
+          config: {
+            operation: 'create',
+            database: 'archive_db',
+            table: 'orders_archive',
+            data: {}
+          },
+          outputParameters: []
         }
       ],
       inputParameters: [
-        { id: 'p1', name: 'status', type: 'string', required: true, description: 'User status filter' }
+        { id: 'p1', name: 'filter_status', type: 'string', required: true, description: 'Status to filter' },
+        { id: 'p2', name: 'date_from', type: 'string', required: true }
       ],
       outputParameters: [
-        { id: 'o1', name: 'users', type: 'array', required: true, description: 'List of users' }
+        { id: 'out1', name: 'synced_count', type: 'number', required: true },
+        { id: 'out2', name: 'status', type: 'string', required: true }
       ],
-      tags: ['database', 'users'],
+      environmentVariables: [
+        { id: 'env1', key: 'DB_CONNECTION_STRING', value: 'postgresql://localhost:5432', description: 'Database connection' }
+      ],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -199,8 +253,8 @@ export const AutomationControlSystem = () => {
           <CardContent>
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span>Database:</span>
-                <span className="font-medium">{automations.flatMap(a => a.operations).filter(o => o.type === 'database_retrieve').length}</span>
+                <span>CRUD:</span>
+                <span className="font-medium">{automations.flatMap(a => a.operations).filter(o => o.type === 'crud_operation').length}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>File:</span>

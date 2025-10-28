@@ -16,7 +16,6 @@ interface AutomationListProps {
 export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: AutomationListProps) => {
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'database_retrieve':
       case 'crud_operation':
         return <Database className="h-4 w-4" />;
       case 'file_operation':
@@ -34,7 +33,6 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      database_retrieve: 'Database Retrieve',
       crud_operation: 'CRUD Operation',
       file_operation: 'File Operation',
       logical_operation: 'Logical Operation',
@@ -128,16 +126,6 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
                 {automation.outputParameters.length > 2 && <p className="text-muted-foreground">+{automation.outputParameters.length - 2} more</p>}
               </div>
             </div>
-
-            {/* Tags */}
-            {automation.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                <Tag className="h-3 w-3 text-muted-foreground" />
-                {automation.tags.map(tag => (
-                  <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       ))}
