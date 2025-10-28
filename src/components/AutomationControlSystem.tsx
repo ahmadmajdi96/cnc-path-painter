@@ -59,6 +59,15 @@ export interface AutomationOperation {
     fileOperation?: 'download' | 'upload' | 'delete' | 'open' | 'write';
     filePath?: string;
     fileContent?: string;
+    downloadProtocol?: 'http' | 'tcp_ip' | 's3';
+    downloadUrl?: string;
+    httpMethod?: 'GET' | 'POST';
+    tcpHost?: string;
+    tcpPort?: string;
+    tcpTimeout?: string;
+    s3Bucket?: string;
+    s3Region?: string;
+    s3Key?: string;
     
     // Logic & Conditions operation (combines logical, mathematical, and conditional)
     operationType?: 'logical' | 'mathematical' | 'conditional';

@@ -404,10 +404,11 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
               {environmentVariables.map((envVar) => (
                 <Card key={envVar.id}>
                   <CardContent className="pt-4 space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <Label>Key</Label>
                         <Input
+                          className="w-full"
                           value={envVar.key}
                           onChange={(e) => updateEnvironmentVariable(envVar.id, { key: e.target.value })}
                           placeholder="VAR_NAME"
@@ -416,13 +417,14 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       <div>
                         <Label>Value</Label>
                         <Input
+                          className="w-full"
                           value={envVar.value}
                           onChange={(e) => updateEnvironmentVariable(envVar.id, { value: e.target.value })}
                           placeholder="value"
                         />
                       </div>
                       <div className="flex items-end">
-                        <Button variant="destructive" size="sm" onClick={() => removeEnvironmentVariable(envVar.id)}>
+                        <Button variant="destructive" size="sm" onClick={() => removeEnvironmentVariable(envVar.id)} className="w-full md:w-auto">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -455,10 +457,11 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
               {inputParameters.map((param) => (
                 <Card key={param.id}>
                   <CardContent className="pt-4 space-y-3">
-                    <div className="grid grid-cols-4 gap-3">
-                      <div className="col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div className="col-span-1 md:col-span-2">
                         <Label>Name</Label>
                         <Input
+                          className="w-full"
                           value={param.name}
                           onChange={(e) => updateInputParameter(param.id, { name: e.target.value })}
                           placeholder="Parameter name"
@@ -467,7 +470,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       <div>
                         <Label>Type</Label>
                         <Select value={param.type} onValueChange={(value: any) => updateInputParameter(param.id, { type: value })}>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -481,7 +484,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         </Select>
                       </div>
                       <div className="flex items-end">
-                        <Button variant="destructive" size="sm" onClick={() => removeInputParameter(param.id)}>
+                        <Button variant="destructive" size="sm" onClick={() => removeInputParameter(param.id)} className="w-full md:w-auto">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -697,33 +700,143 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
 
                     {operation.type === 'file_operation' && (
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                        <div>
-                          <Label>File Operation</Label>
-                          <Select value={operation.config.fileOperation} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, fileOperation: value } })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select file operation" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="download">Download</SelectItem>
-                              <SelectItem value="upload">Upload</SelectItem>
-                              <SelectItem value="delete">Delete</SelectItem>
-                              <SelectItem value="open">Open</SelectItem>
-                              <SelectItem value="write">Write</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label>File Operation</Label>
+                            <Select value={operation.config.fileOperation} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, fileOperation: value } })}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select file operation" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="download">Download</SelectItem>
+                                <SelectItem value="upload">Upload</SelectItem>
+                                <SelectItem value="delete">Delete</SelectItem>
+                                <SelectItem value="open">Open</SelectItem>
+                                <SelectItem value="write">Write</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {operation.config.fileOperation === 'download' && (
+                            <div>
+                              <Label>Download Protocol</Label>
+                              <Select value={operation.config.downloadProtocol} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, downloadProtocol: value } })}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select protocol" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="http">HTTP</SelectItem>
+                                  <SelectItem value="tcp_ip">TCP/IP</SelectItem>
+                                  <SelectItem value="s3">S3</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
                         </div>
                         <div>
                           <Label>File Path</Label>
                           <Input
+                            className="w-full"
                             value={operation.config.filePath || ''}
                             onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, filePath: e.target.value } })}
                             placeholder="/path/to/file.txt"
                           />
                         </div>
+                        {operation.config.fileOperation === 'download' && operation.config.downloadProtocol === 'http' && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>URL</Label>
+                              <Input
+                                className="w-full"
+                                value={operation.config.downloadUrl || ''}
+                                onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, downloadUrl: e.target.value } })}
+                                placeholder="https://example.com/file"
+                              />
+                            </div>
+                            <div>
+                              <Label>Method</Label>
+                              <Select value={operation.config.httpMethod || 'GET'} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, httpMethod: value } })}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="GET">GET</SelectItem>
+                                  <SelectItem value="POST">POST</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )}
+                        {operation.config.fileOperation === 'download' && operation.config.downloadProtocol === 'tcp_ip' && (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <Label>Host</Label>
+                              <Input
+                                className="w-full"
+                                value={operation.config.tcpHost || ''}
+                                onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, tcpHost: e.target.value } })}
+                                placeholder="192.168.1.1"
+                              />
+                            </div>
+                            <div>
+                              <Label>Port</Label>
+                              <Input
+                                className="w-full"
+                                type="number"
+                                value={operation.config.tcpPort || ''}
+                                onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, tcpPort: e.target.value } })}
+                                placeholder="8080"
+                              />
+                            </div>
+                            <div>
+                              <Label>Timeout (ms)</Label>
+                              <Input
+                                className="w-full"
+                                type="number"
+                                value={operation.config.tcpTimeout || '5000'}
+                                onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, tcpTimeout: e.target.value } })}
+                                placeholder="5000"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {operation.config.fileOperation === 'download' && operation.config.downloadProtocol === 's3' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label>Bucket Name</Label>
+                                <Input
+                                  className="w-full"
+                                  value={operation.config.s3Bucket || ''}
+                                  onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, s3Bucket: e.target.value } })}
+                                  placeholder="my-bucket"
+                                />
+                              </div>
+                              <div>
+                                <Label>Region</Label>
+                                <Input
+                                  className="w-full"
+                                  value={operation.config.s3Region || 'us-east-1'}
+                                  onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, s3Region: e.target.value } })}
+                                  placeholder="us-east-1"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label>Object Key</Label>
+                              <Input
+                                className="w-full"
+                                value={operation.config.s3Key || ''}
+                                onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, s3Key: e.target.value } })}
+                                placeholder="path/to/object.file"
+                              />
+                            </div>
+                          </div>
+                        )}
                         {(operation.config.fileOperation === 'write' || operation.config.fileOperation === 'upload') && (
                           <div>
                             <Label>Content/Source</Label>
                             <Textarea
+                              className="w-full"
                               value={operation.config.fileContent || ''}
                               onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, fileContent: e.target.value } })}
                               placeholder="File content or source"

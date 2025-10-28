@@ -389,41 +389,7 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Source Endpoint</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Protocol</Label>
-                  <Select
-                    value={formData.sourceEndpoint.protocol}
-                    onValueChange={(value) => {
-                      setFormData({
-                        ...formData,
-                        sourceEndpoint: { 
-                          ...formData.sourceEndpoint, 
-                          protocol: value
-                        }
-                      });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {protocols.map(protocol => (
-                        <SelectItem key={protocol} value={protocol}>
-                          {protocol.replace(/_/g, ' ')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
+          {formData.resultDestination === 'forward' && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Target Endpoint</CardTitle>
@@ -459,44 +425,62 @@ export const EditIntegrationDialog: React.FC<EditIntegrationDialogProps> = ({
                   </Select>
                 </div>
                 
-                <div>
-                  <Label>Host</Label>
-                  <Input
-                    value={formData.targetEndpoint.host}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      targetEndpoint: { ...formData.targetEndpoint, host: e.target.value }
-                    })}
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Host</Label>
+                    <Input
+                      value={formData.targetEndpoint.host}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        targetEndpoint: { ...formData.targetEndpoint, host: e.target.value }
+                      })}
+                      required={formData.resultDestination === 'forward'}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Port</Label>
+                    <Input
+                      type="number"
+                      value={formData.targetEndpoint.port}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        targetEndpoint: { ...formData.targetEndpoint, port: parseInt(e.target.value) }
+                      })}
+                      required={formData.resultDestination === 'forward'}
+                    />
+                  </div>
                 </div>
                 
                 <div>
-                  <Label>Port</Label>
-                  <Input
-                    type="number"
-                    value={formData.targetEndpoint.port}
-                    onChange={(e) => setFormData({
+                  <Label>Authentication</Label>
+                  <Select
+                    value={formData.targetEndpoint.auth.type}
+                    onValueChange={(value: typeof formData.targetEndpoint.auth.type) => setFormData({
                       ...formData,
-                      targetEndpoint: { ...formData.targetEndpoint, port: parseInt(e.target.value) }
+                      targetEndpoint: { 
+                        ...formData.targetEndpoint, 
+                        auth: { type: value, credentials: {} }
+                      }
                     })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label>Path (Optional)</Label>
-                  <Input
-                    value={formData.targetEndpoint.path || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      targetEndpoint: { ...formData.targetEndpoint, path: e.target.value }
-                    })}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="basic">Basic Auth</SelectItem>
+                      <SelectItem value="bearer">Bearer Token</SelectItem>
+                      <SelectItem value="oauth2">OAuth 2.0</SelectItem>
+                      <SelectItem value="api_key">API Key</SelectItem>
+                      <SelectItem value="certificate">Client Certificate</SelectItem>
+                      <SelectItem value="digest">Digest Auth</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
-          </div>
+          )}
 
           <Card>
             <CardHeader>

@@ -595,74 +595,7 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Source Endpoint</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Protocol</Label>
-                  <Select
-                    value={formData.sourceEndpoint.protocol}
-                    onValueChange={(value) => {
-                      setFormData({
-                        ...formData,
-                        sourceEndpoint: { 
-                          ...formData.sourceEndpoint, 
-                          protocol: value
-                        }
-                      });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select protocol" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {protocols.map(protocol => (
-                        <SelectItem key={protocol} value={protocol}>
-                          {protocol.replace(/_/g, ' ')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label>Authentication</Label>
-                  <Select
-                    value={formData.sourceEndpoint.auth.type}
-                    onValueChange={(value: typeof formData.sourceEndpoint.auth.type) => setFormData({
-                      ...formData,
-                      sourceEndpoint: { 
-                        ...formData.sourceEndpoint, 
-                        auth: { type: value, credentials: {} }
-                      }
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {authTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {formData.sourceEndpoint.auth.type !== 'none' && (
-                  <div className="p-3 bg-gray-50 rounded">
-                    <Label className="text-sm text-gray-600 mb-2 block">
-                      Authentication credentials will be configured after creation
-                    </Label>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
+          {formData.resultDestination === 'forward' && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Target Endpoint</CardTitle>
@@ -708,7 +641,7 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                         targetEndpoint: { ...formData.targetEndpoint, host: e.target.value }
                       })}
                       placeholder="hostname or IP address"
-                      required
+                      required={formData.resultDestination === 'forward'}
                     />
                   </div>
                   
@@ -721,21 +654,9 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                         ...formData,
                         targetEndpoint: { ...formData.targetEndpoint, port: parseInt(e.target.value) }
                       })}
-                      required
+                      required={formData.resultDestination === 'forward'}
                     />
                   </div>
-                </div>
-                
-                <div>
-                  <Label>Path (Optional)</Label>
-                  <Input
-                    value={formData.targetEndpoint.path}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      targetEndpoint: { ...formData.targetEndpoint, path: e.target.value }
-                    })}
-                    placeholder="/api/endpoint"
-                  />
                 </div>
                 
                 <div>
@@ -772,7 +693,7 @@ export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
                 )}
               </CardContent>
             </Card>
-          </div>
+          )}
 
           <Card>
             <CardHeader>
