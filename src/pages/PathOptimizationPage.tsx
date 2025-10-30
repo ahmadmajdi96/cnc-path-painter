@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import MapboxMap from '@/components/MapboxMap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Location {
   id: string;
@@ -31,16 +32,72 @@ const PathOptimizationPage = () => {
   const [multipleTrips, setMultipleTrips] = useState<Trip[]>([{ id: 'trip-1', startLocation: null, endLocation: null }]);
   const { toast } = useToast();
 
-  const handleMapLocationSelect = (lng: number, lat: number) => {
+  // Load locations from database on mount
+  useEffect(() => {
+    loadLocationsFromDB();
+  }, []);
+
+  const loadLocationsFromDB = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const dbLocations: Location[] = data.map(loc => ({
+          id: loc.id,
+          name: loc.name,
+          latitude: Number(loc.latitude),
+          longitude: Number(loc.longitude),
+          type: loc.type as 'start' | 'stop' | 'end'
+        }));
+
+        // Separate by type
+        const stops = dbLocations.filter(l => l.type === 'stop');
+        setSingleTripStops(stops);
+      }
+    } catch (error) {
+      console.error('Error loading locations:', error);
+    }
+  };
+
+  const saveLocationToDB = async (location: Location) => {
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .insert({
+          id: location.id,
+          name: location.name,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          type: location.type
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving location:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save location to database",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleMapLocationSelect = async (lng: number, lat: number) => {
     if (tripMode === 'single') {
       const newStop: Location = {
-        id: `stop-${Date.now()}`,
+        id: crypto.randomUUID(),
         name: `Stop ${singleTripStops.length + 1}`,
         latitude: lat,
         longitude: lng,
         type: 'stop'
       };
-      setSingleTripStops([...singleTripStops, newStop]);
+      setSingleTripStops(prev => [...prev, newStop]);
+      await saveLocationToDB(newStop);
       toast({
         title: "Stop Added",
         description: `Added stop at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
@@ -95,8 +152,22 @@ const PathOptimizationPage = () => {
     setMultipleTrips(multipleTrips.filter(trip => trip.id !== tripId));
   };
 
-  const removeStop = (stopId: string) => {
-    setSingleTripStops(singleTripStops.filter(stop => stop.id !== stopId));
+  const removeStop = async (stopId: string) => {
+    try {
+      await supabase.from('locations').delete().eq('id', stopId);
+      setSingleTripStops(singleTripStops.filter(stop => stop.id !== stopId));
+      toast({
+        title: "Stop Removed",
+        description: "Location removed successfully"
+      });
+    } catch (error) {
+      console.error('Error removing location:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove location",
+        variant: "destructive"
+      });
+    }
   };
 
   const getAllLocations = (): Location[] => {

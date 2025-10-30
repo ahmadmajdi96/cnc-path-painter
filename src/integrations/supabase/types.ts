@@ -1163,6 +1163,39 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       machine_status: {
         Row: {
           efficiency_percentage: number | null
@@ -1419,6 +1452,44 @@ export type Database = {
             columns: ["robotic_arm_id"]
             isOneToOne: false
             referencedRelation: "robotic_arms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      optimized_routes: {
+        Row: {
+          created_at: string
+          id: string
+          optimization_algorithm: string | null
+          route_data: Json
+          total_distance: number | null
+          total_duration: number | null
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          optimization_algorithm?: string | null
+          route_data?: Json
+          total_distance?: number | null
+          total_duration?: number | null
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          optimization_algorithm?: string | null
+          route_data?: Json
+          total_distance?: number | null
+          total_duration?: number | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "optimized_routes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -2460,6 +2531,90 @@ export type Database = {
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_stops: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string
+          stop_order: number
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id: string
+          stop_order: number
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string
+          stop_order?: number
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_stops_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_stops_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          created_at: string
+          end_location_id: string | null
+          id: string
+          name: string
+          start_location_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_location_id?: string | null
+          id?: string
+          name: string
+          start_location_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_location_id?: string | null
+          id?: string
+          name?: string
+          start_location_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_end_location_id_fkey"
+            columns: ["end_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_start_location_id_fkey"
+            columns: ["start_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
