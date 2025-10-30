@@ -21,109 +21,126 @@ const SpeechRecognitionPage = () => {
   };
 
   return (
-    <div className="container mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Speech Recognition</h1>
-        <p className="text-muted-foreground">
-          Convert speech to text using automatic speech recognition (ASR) with support for multiple languages
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="px-6 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Speech Recognition</h1>
+          <p className="text-muted-foreground">Convert speech to text using automatic speech recognition (ASR) with support for multiple languages</p>
+        </div>
 
-      {/* Recognition Interface */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Speech to Text</CardTitle>
-          <CardDescription>Upload audio files or use live microphone for speech recognition</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
-            <Mic className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Upload audio file or start live recording
-            </p>
-            <div className="flex gap-2 justify-center">
-              <Button disabled={!selectedModel}>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Audio
-              </Button>
-              <Button variant="outline" disabled={!selectedModel}>
-                <Mic className="w-4 h-4 mr-2" />
-                Live Recording
-              </Button>
-            </div>
-          </div>
-          {!selectedModel && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <AlertCircle className="w-4 h-4" />
-              Please select an AI model below to start recognition
-            </div>
-          )}
-          {selectedModel && (
-            <div className="text-sm text-muted-foreground">
-              Using model: <Badge variant="secondary">{selectedModel.name}</Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Recognition Interface */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mic className="w-5 h-5" />
+                Speech to Text
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <Mic className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">Upload audio file or start live recording</p>
+                  <div className="flex gap-2 justify-center">
+                    <Button disabled={!selectedModel}>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Audio
+                    </Button>
+                    <Button variant="outline" disabled={!selectedModel}>
+                      <Mic className="w-4 h-4 mr-2" />
+                      Live Recording
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedModel ? (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900">Selected Model:</p>
+                  <p className="text-sm text-blue-700">{selectedModel.name}</p>
+                </div>
+              ) : (
+                <div className="mt-4 p-3 bg-orange-50 rounded-lg">
+                  <p className="text-sm text-orange-700">Please select a speech recognition model below</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Transcription Results */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transcription Results</CardTitle>
-          <CardDescription>Speech transcriptions will appear here after processing</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No transcriptions yet. Upload audio or start recording to transcribe speech.</p>
-          </div>
-        </CardContent>
-      </Card>
+          {/* Transcription Results */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Transcription Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 p-4 rounded-lg min-h-[200px] flex items-center justify-center">
+                <div className="text-center">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400 opacity-50" />
+                  <p className="text-gray-500">No transcriptions yet. Upload audio or start recording.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Model and Dataset Management */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <AIModelManager 
-          modelType="speech_recognition"
-          title="AI Models"
-          description="Select or configure speech recognition models"
-          onModelSelect={setSelectedModel}
-        />
-        <AIModelDatasetSelector 
-          modelId={selectedModel?.id || null}
-          modelType="speech_recognition"
-        />
-      </div>
+        {/* Model and Dataset Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <AIModelManager 
+            modelType="speech_recognition"
+            title="Speech Recognition"
+            description="AI models for automatic speech recognition"
+            onModelSelect={setSelectedModel}
+            selectedModelId={selectedModel?.id}
+          />
+          <AIModelDatasetSelector 
+            modelId={selectedModel?.id || null}
+            modelType="speech_recognition"
+          />
+        </div>
 
-
-      {/* Performance Metrics */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Word Error Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">4.2%</div>
-            <p className="text-sm text-muted-foreground mt-1">Lower is better</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Real-time Factor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">0.3x</div>
-            <p className="text-sm text-muted-foreground mt-1">Processing speed</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Hours Transcribed</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">1,847</div>
-            <p className="text-sm text-muted-foreground mt-1">Total audio processed</p>
-          </CardContent>
-        </Card>
+        {/* Performance Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Word Error Rate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-primary">4.2%</div>
+              <p className="text-sm text-muted-foreground">Lower is better</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Real-time Factor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-primary">0.3x</div>
+              <p className="text-sm text-muted-foreground">Processing speed</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Hours Transcribed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-primary">1,847</div>
+              <p className="text-sm text-muted-foreground">Total audio processed</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Languages</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-primary">45</div>
+              <p className="text-sm text-muted-foreground">Supported languages</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
