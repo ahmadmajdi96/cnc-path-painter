@@ -1,8 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
 
 interface Location {
   id: string;
@@ -28,14 +26,12 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapboxToken, setMapboxToken] = useState('');
-  const [isTokenSet, setIsTokenSet] = useState(false);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   useEffect(() => {
-    if (!mapContainer.current || !isTokenSet || !mapboxToken) return;
+    if (!mapContainer.current) return;
 
-    mapboxgl.accessToken = mapboxToken;
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYS1zYWxhbWVoMTIzIiwiYSI6ImNtZWI3ZGRudTB6c2QycXF1anZ3NGllYnYifQ.gS3wGBHSqtmSXQT7TWjgnQ';
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -57,10 +53,10 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
       markersRef.current = [];
       map.current?.remove();
     };
-  }, [isTokenSet, mapboxToken]);
+  }, []);
 
   useEffect(() => {
-    if (!map.current || !isTokenSet || locations.length === 0) return;
+    if (!map.current || locations.length === 0) return;
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
@@ -106,43 +102,7 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
       });
       map.current?.fitBounds(bounds, { padding: 50 });
     }
-  }, [locations, isTokenSet]);
-
-  if (!isTokenSet) {
-    return (
-      <div className="space-y-4 p-6 bg-muted/50 rounded-lg border border-border">
-        <div>
-          <Label htmlFor="mapbox-token">Mapbox Access Token</Label>
-          <Input
-            id="mapbox-token"
-            type="password"
-            placeholder="Enter your Mapbox public token"
-            value={mapboxToken}
-            onChange={(e) => setMapboxToken(e.target.value)}
-            className="mt-2"
-          />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Get your free Mapbox token at{' '}
-          <a 
-            href="https://account.mapbox.com/access-tokens/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            mapbox.com
-          </a>
-        </p>
-        <button
-          onClick={() => setIsTokenSet(true)}
-          disabled={!mapboxToken}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Load Map
-        </button>
-      </div>
-    );
-  }
+  }, [locations]);
 
   return (
     <div className="relative w-full">
