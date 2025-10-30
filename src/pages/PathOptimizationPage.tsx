@@ -31,7 +31,7 @@ const PathOptimizationPage = () => {
   const [multipleTrips, setMultipleTrips] = useState<Trip[]>([{ id: 'trip-1', startLocation: null, endLocation: null }]);
   const { toast } = useToast();
 
-  const handleMapLocationSelect = (lng: number, lat: number, tripId?: string, locationType?: 'start' | 'end' | 'stop') => {
+  const handleMapLocationSelect = (lng: number, lat: number) => {
     if (tripMode === 'single') {
       const newStop: Location = {
         id: `stop-${Date.now()}`,
@@ -45,7 +45,20 @@ const PathOptimizationPage = () => {
         title: "Stop Added",
         description: `Added stop at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
       });
-    } else if (tripMode === 'multiple' && tripId && locationType) {
+    } else if (tripMode === 'multiple') {
+      // Find the first trip that needs a location (missing start or end)
+      const tripNeedingLocation = multipleTrips.find(trip => !trip.startLocation || !trip.endLocation);
+      
+      if (!tripNeedingLocation) {
+        toast({
+          title: "All trips complete",
+          description: "Add a new trip to set more locations",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const locationType = !tripNeedingLocation.startLocation ? 'start' : 'end';
       const newLocation: Location = {
         id: `${locationType}-${Date.now()}`,
         name: locationType === 'start' ? 'Start Point' : 'End Point',
@@ -55,7 +68,7 @@ const PathOptimizationPage = () => {
       };
       
       setMultipleTrips(multipleTrips.map(trip => 
-        trip.id === tripId 
+        trip.id === tripNeedingLocation.id 
           ? { 
               ...trip, 
               [locationType === 'start' ? 'startLocation' : 'endLocation']: newLocation 
@@ -65,7 +78,7 @@ const PathOptimizationPage = () => {
       
       toast({
         title: `${locationType === 'start' ? 'Start' : 'End'} Point Set`,
-        description: `Set at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        description: `Set for Trip ${multipleTrips.indexOf(tripNeedingLocation) + 1} at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
       });
     }
   };
