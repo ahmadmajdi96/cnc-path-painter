@@ -11,6 +11,7 @@ import DatasetBuilderPage from './DatasetBuilderPage';
 import RulesDatasetPage from './RulesDatasetPage';
 import QuestionDatasetPage from './QuestionDatasetPage';
 import DatasetsCombinerPage from './DatasetsCombinerPage';
+import LocationsDatasetPage from './LocationsDatasetPage';
 import VehicleDetectionPage from './VehicleDetectionPage';
 import VehicleRecognitionPage from './VehicleRecognitionPage';
 import PlateDetectionPage from './PlateDetectionPage';
@@ -59,6 +60,7 @@ const AIPortal = () => {
           <Route path="/rules-dataset" element={<RulesDatasetPage />} />
           <Route path="/question-dataset" element={<QuestionDatasetPage />} />
           <Route path="/datasets-combiner" element={<DatasetsCombinerPage />} />
+          <Route path="/locations-dataset" element={<LocationsDatasetPage />} />
           
           {/* Language AI */}
           <Route path="/nlp" element={<NLPPage />} />

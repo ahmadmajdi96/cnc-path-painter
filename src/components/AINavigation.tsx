@@ -45,6 +45,7 @@ const dataTools = [
   { title: "Rules Dataset", to: "/ai/rules-dataset", description: "Create and manage rules with sub-rules and prompts" },
   { title: "Question Dataset", to: "/ai/question-dataset", description: "Create questions with answers and sub-questions" },
   { title: "Datasets Combiner", to: "/ai/datasets-combiner", description: "Select and combine multiple datasets" },
+  { title: "Locations Dataset", to: "/ai/locations-dataset", description: "Create and manage location datasets with coordinates" },
 ];
 
 const languageAI = [
