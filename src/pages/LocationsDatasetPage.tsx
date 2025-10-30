@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Upload, Plus, Trash2, Download, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MapboxMap from '@/components/MapboxMap';
 
 interface Location {
   id: string;
@@ -65,6 +66,21 @@ const LocationsDatasetPage = () => {
       type: 'stop'
     };
     setLocations([...locations, newLocation]);
+  };
+
+  const handleMapLocationSelect = (lng: number, lat: number) => {
+    const newLocation: Location = {
+      id: `loc-${Date.now()}`,
+      name: `Location ${locations.length + 1}`,
+      latitude: lat,
+      longitude: lng,
+      type: 'stop'
+    };
+    setLocations([...locations, newLocation]);
+    toast({
+      title: "Location Added",
+      description: `Added location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    });
   };
 
   const updateLocation = (id: string, field: keyof Location, value: any) => {
@@ -239,6 +255,21 @@ const LocationsDatasetPage = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Map View */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Map View</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MapboxMap 
+              locations={locations}
+              onLocationSelect={handleMapLocationSelect}
+              interactive={true}
+              height="h-[500px]"
+            />
+          </CardContent>
+        </Card>
 
         {/* Locations List */}
         <Card>
