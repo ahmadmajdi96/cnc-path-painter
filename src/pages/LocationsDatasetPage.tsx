@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Upload, Plus, Trash2, Download, Save, FolderOpen } from 'lucide-react';
+import { MapPin, Upload, Plus, Trash2, Download, Save, FolderOpen, FilePlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MapboxMap from '@/components/MapboxMap';
@@ -373,6 +373,16 @@ const LocationsDatasetPage = () => {
     }
   };
 
+  const newDataset = () => {
+    setLocations([]);
+    setDatasetName('');
+    setCurrentDatasetId(null);
+    toast({
+      title: "New Dataset",
+      description: "Started a new dataset. Add locations to begin."
+    });
+  };
+
   const exportDataset = () => {
     if (locations.length === 0) {
       toast({
@@ -484,9 +494,13 @@ const LocationsDatasetPage = () => {
                 </Tabs>
 
                 <div className="flex gap-2">
+                  <Button onClick={newDataset} variant="outline" className="flex-1">
+                    <FilePlus className="w-4 h-4 mr-2" />
+                    New
+                  </Button>
                   <Button onClick={saveDataset} className="flex-1">
                     <Save className="w-4 h-4 mr-2" />
-                    Save Dataset
+                    Save
                   </Button>
                   <Button onClick={exportDataset} variant="outline">
                     <Download className="w-4 h-4 mr-2" />
