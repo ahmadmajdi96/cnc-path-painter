@@ -16,13 +16,15 @@ interface MapboxMapProps {
   onLocationSelect?: (lng: number, lat: number) => void;
   interactive?: boolean;
   height?: string;
+  route?: any;
 }
 
 const MapboxMap: React.FC<MapboxMapProps> = ({ 
   locations = [], 
   onLocationSelect,
   interactive = true,
-  height = "h-[500px]"
+  height = "h-[500px]",
+  route
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -103,6 +105,54 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
       map.current?.fitBounds(bounds, { padding: 50 });
     }
   }, [locations]);
+
+  // Update route when it changes
+  useEffect(() => {
+    if (!map.current || !route) return;
+
+    const addRouteToMap = () => {
+      if (!map.current) return;
+
+      // Remove existing route layer if it exists
+      if (map.current.getLayer('route')) {
+        map.current.removeLayer('route');
+      }
+      if (map.current.getSource('route')) {
+        map.current.removeSource('route');
+      }
+
+      // Add route source and layer
+      map.current.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: route.routes[0].geometry
+        }
+      });
+
+      map.current.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 5,
+          'line-opacity': 0.75
+        }
+      });
+    };
+
+    if (map.current.isStyleLoaded()) {
+      addRouteToMap();
+    } else {
+      map.current.on('load', addRouteToMap);
+    }
+  }, [route]);
 
   return (
     <div className="relative w-full">

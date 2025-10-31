@@ -30,6 +30,8 @@ const PathOptimizationPage = () => {
   const [tripMode, setTripMode] = useState<'single' | 'multiple'>('single');
   const [singleTripStops, setSingleTripStops] = useState<Location[]>([]);
   const [multipleTrips, setMultipleTrips] = useState<Trip[]>([{ id: 'trip-1', startLocation: null, endLocation: null }]);
+  const [optimizedRoute, setOptimizedRoute] = useState<any>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
 
   // Load locations from database on mount
@@ -180,6 +182,52 @@ const PathOptimizationPage = () => {
     }
   };
 
+  const calculateOptimalRoute = async () => {
+    if (tripMode === 'single' && singleTripStops.length < 2) {
+      toast({
+        title: "Not enough stops",
+        description: "Add at least 2 stops to calculate a route",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCalculating(true);
+    try {
+      const mapboxToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'; // This should be replaced with actual token
+      
+      if (tripMode === 'single') {
+        // Build coordinates string for waypoints
+        const coordinates = singleTripStops
+          .map(stop => `${stop.longitude},${stop.latitude}`)
+          .join(';');
+        
+        const response = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&access_token=${mapboxToken}`
+        );
+        
+        if (!response.ok) throw new Error('Failed to calculate route');
+        
+        const data = await response.json();
+        setOptimizedRoute(data);
+        
+        toast({
+          title: "Route Calculated",
+          description: `Total distance: ${(data.routes[0].distance / 1000).toFixed(2)} km, Duration: ${Math.round(data.routes[0].duration / 60)} min`
+        });
+      }
+    } catch (error) {
+      console.error('Error calculating route:', error);
+      toast({
+        title: "Error",
+        description: "Failed to calculate optimal route",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
   return (
     <div className="container mx-auto space-y-6">
       <div>
@@ -188,6 +236,27 @@ const PathOptimizationPage = () => {
           Optimize vehicle routing and paths using AI-powered algorithms for traffic flow and efficiency
         </p>
       </div>
+
+      {/* Map View */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Map View</CardTitle>
+          <CardDescription>
+            {tripMode === 'single' 
+              ? 'Click on the map to add stops to your route'
+              : 'Select a trip and click on the map to set start/end points'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MapboxMap 
+            locations={getAllLocations()}
+            onLocationSelect={(lng, lat) => handleMapLocationSelect(lng, lat)}
+            interactive={true}
+            height="h-[600px]"
+            route={optimizedRoute}
+          />
+        </CardContent>
+      </Card>
 
       {/* Route Planning */}
       <Card>
@@ -221,9 +290,12 @@ const PathOptimizationPage = () => {
                   ))}
                 </div>
               )}
-              <Button disabled={!selectedModel || singleTripStops.length < 2}>
+              <Button 
+                disabled={!selectedModel || singleTripStops.length < 2 || isCalculating}
+                onClick={calculateOptimalRoute}
+              >
                 <Navigation className="w-4 h-4 mr-2" />
-                Calculate Optimal Route
+                {isCalculating ? 'Calculating...' : 'Calculate Optimal Route'}
               </Button>
             </TabsContent>
             
@@ -272,26 +344,6 @@ const PathOptimizationPage = () => {
         </CardContent>
       </Card>
 
-      {/* Map View */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Map View</CardTitle>
-          <CardDescription>
-            {tripMode === 'single' 
-              ? 'Click on the map to add stops to your route'
-              : 'Select a trip and click on the map to set start/end points'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MapboxMap 
-            locations={getAllLocations()}
-            onLocationSelect={(lng, lat) => handleMapLocationSelect(lng, lat)}
-            interactive={true}
-            height="h-[600px]"
-          />
-        </CardContent>
-      </Card>
-
       {/* Optimized Routes */}
       <Card>
         <CardHeader>
@@ -299,10 +351,33 @@ const PathOptimizationPage = () => {
           <CardDescription>Route optimization results will appear here after calculation</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No routes calculated yet. Enter start and end locations to generate optimal routes.</p>
-          </div>
+          {optimizedRoute ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Total Distance</p>
+                  <p className="text-2xl font-bold">{(optimizedRoute.routes[0].distance / 1000).toFixed(2)} km</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Duration</p>
+                  <p className="text-2xl font-bold">{Math.round(optimizedRoute.routes[0].duration / 60)} min</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Stops</p>
+                  <p className="text-2xl font-bold">{singleTripStops.length}</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Optimization</p>
+                  <p className="text-2xl font-bold text-primary">Active</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No routes calculated yet. Add stops and click "Calculate Optimal Route".</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
