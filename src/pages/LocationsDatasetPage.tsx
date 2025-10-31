@@ -94,30 +94,24 @@ const LocationsDatasetPage = () => {
 
   const addManualLocation = async () => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('locations')
         .insert([{
           name: `Location ${locations.length + 1}`,
           latitude: 0,
           longitude: 0,
           type: 'stop'
-        }])
-        .select()
-        .single();
+        }]);
 
       if (error) throw error;
 
-      if (data) {
-        const newLocation: Location = {
-          id: data.id,
-          name: data.name,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          address: data.address || undefined,
-          type: (data.type as 'start' | 'stop' | 'end') || 'stop'
-        };
-        setLocations([...locations, newLocation]);
-      }
+      // Reload all locations from database
+      await loadLocations();
+      
+      toast({
+        title: "Location Added",
+        description: "New location added successfully"
+      });
     } catch (error: any) {
       toast({
         title: "Error Adding Location",
@@ -129,34 +123,24 @@ const LocationsDatasetPage = () => {
 
   const handleMapLocationSelect = async (lng: number, lat: number) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('locations')
         .insert([{
           name: `Location ${locations.length + 1}`,
           latitude: lat,
           longitude: lng,
           type: 'stop'
-        }])
-        .select()
-        .single();
+        }]);
 
       if (error) throw error;
 
-      if (data) {
-        const newLocation: Location = {
-          id: data.id,
-          name: data.name,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          address: data.address || undefined,
-          type: (data.type as 'start' | 'stop' | 'end') || 'stop'
-        };
-        setLocations([...locations, newLocation]);
-        toast({
-          title: "Location Added",
-          description: `Added location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
-        });
-      }
+      // Reload all locations from database
+      await loadLocations();
+      
+      toast({
+        title: "Location Added",
+        description: `Added location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      });
     } catch (error: any) {
       toast({
         title: "Error Adding Location",
