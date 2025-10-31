@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { MapPin, Upload, Plus, Trash2, Download, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MapboxMap from '@/components/MapboxMap';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Location {
   id: string;
@@ -22,6 +23,40 @@ const LocationsDatasetPage = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [datasetName, setDatasetName] = useState('');
   const { toast } = useToast();
+
+  // Load locations from database on mount
+  useEffect(() => {
+    loadLocations();
+  }, []);
+
+  const loadLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedLocations: Location[] = data.map(loc => ({
+          id: loc.id,
+          name: loc.name,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          address: loc.address || undefined,
+          type: (loc.type as 'start' | 'stop' | 'end') || 'stop'
+        }));
+        setLocations(formattedLocations);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error Loading Locations",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -57,40 +92,122 @@ const LocationsDatasetPage = () => {
     }
   };
 
-  const addManualLocation = () => {
-    const newLocation: Location = {
-      id: `loc-${Date.now()}`,
-      name: `Location ${locations.length + 1}`,
-      latitude: 0,
-      longitude: 0,
-      type: 'stop'
-    };
-    setLocations([...locations, newLocation]);
+  const addManualLocation = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .insert([{
+          name: `Location ${locations.length + 1}`,
+          latitude: 0,
+          longitude: 0,
+          type: 'stop'
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newLocation: Location = {
+          id: data.id,
+          name: data.name,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.address || undefined,
+          type: (data.type as 'start' | 'stop' | 'end') || 'stop'
+        };
+        setLocations([...locations, newLocation]);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error Adding Location",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleMapLocationSelect = (lng: number, lat: number) => {
-    const newLocation: Location = {
-      id: `loc-${Date.now()}`,
-      name: `Location ${locations.length + 1}`,
-      latitude: lat,
-      longitude: lng,
-      type: 'stop'
-    };
-    setLocations([...locations, newLocation]);
-    toast({
-      title: "Location Added",
-      description: `Added location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
-    });
+  const handleMapLocationSelect = async (lng: number, lat: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .insert([{
+          name: `Location ${locations.length + 1}`,
+          latitude: lat,
+          longitude: lng,
+          type: 'stop'
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newLocation: Location = {
+          id: data.id,
+          name: data.name,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.address || undefined,
+          type: (data.type as 'start' | 'stop' | 'end') || 'stop'
+        };
+        setLocations([...locations, newLocation]);
+        toast({
+          title: "Location Added",
+          description: `Added location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error Adding Location",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
-  const updateLocation = (id: string, field: keyof Location, value: any) => {
-    setLocations(locations.map(loc => 
-      loc.id === id ? { ...loc, [field]: value } : loc
-    ));
+  const updateLocation = async (id: string, field: keyof Location, value: any) => {
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .update({ [field]: value })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setLocations(locations.map(loc => 
+        loc.id === id ? { ...loc, [field]: value } : loc
+      ));
+    } catch (error: any) {
+      toast({
+        title: "Error Updating Location",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
-  const removeLocation = (id: string) => {
-    setLocations(locations.filter(loc => loc.id !== id));
+  const removeLocation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setLocations(locations.filter(loc => loc.id !== id));
+      toast({
+        title: "Location Deleted",
+        description: "Location removed successfully"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error Deleting Location",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   const saveDataset = () => {
@@ -154,6 +271,21 @@ const LocationsDatasetPage = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">Locations Dataset</h1>
           <p className="text-muted-foreground">Create and manage location datasets with coordinates for path optimization and routing</p>
         </div>
+
+        {/* Map View - Moved to top */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Map View</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MapboxMap 
+              locations={locations}
+              onLocationSelect={handleMapLocationSelect}
+              interactive={true}
+              height="h-[500px]"
+            />
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Dataset Configuration */}
@@ -255,21 +387,6 @@ const LocationsDatasetPage = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Map View */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Map View</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MapboxMap 
-              locations={locations}
-              onLocationSelect={handleMapLocationSelect}
-              interactive={true}
-              height="h-[500px]"
-            />
-          </CardContent>
-        </Card>
 
         {/* Locations List */}
         <Card>
