@@ -1163,6 +1163,69 @@ export type Database = {
           },
         ]
       }
+      location_dataset_items: {
+        Row: {
+          created_at: string
+          dataset_id: string
+          id: string
+          location_id: string
+        }
+        Insert: {
+          created_at?: string
+          dataset_id: string
+          id?: string
+          location_id: string
+        }
+        Update: {
+          created_at?: string
+          dataset_id?: string
+          id?: string
+          location_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_dataset_items_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "location_datasets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_dataset_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_datasets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          location_count: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_count?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_count?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           address: string | null

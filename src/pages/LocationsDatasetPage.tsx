@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Upload, Plus, Trash2, Download, Save } from 'lucide-react';
+import { MapPin, Upload, Plus, Trash2, Download, Save, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MapboxMap from '@/components/MapboxMap';
@@ -19,14 +19,26 @@ interface Location {
   type?: 'start' | 'stop' | 'end';
 }
 
+interface LocationDataset {
+  id: string;
+  name: string;
+  description?: string;
+  location_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 const LocationsDatasetPage = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [datasetName, setDatasetName] = useState('');
+  const [savedDatasets, setSavedDatasets] = useState<LocationDataset[]>([]);
+  const [currentDatasetId, setCurrentDatasetId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Load locations from database on mount
+  // Load locations and datasets from database on mount
   useEffect(() => {
     loadLocations();
+    loadSavedDatasets();
   }, []);
 
   const loadLocations = async () => {
@@ -194,7 +206,81 @@ const LocationsDatasetPage = () => {
     }
   };
 
-  const saveDataset = () => {
+  const loadSavedDatasets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('location_datasets')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setSavedDatasets(data);
+    } catch (error: any) {
+      toast({
+        title: "Error Loading Datasets",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const loadDataset = async (datasetId: string) => {
+    try {
+      // Get dataset info
+      const { data: dataset, error: datasetError } = await supabase
+        .from('location_datasets')
+        .select('*')
+        .eq('id', datasetId)
+        .single();
+
+      if (datasetError) throw datasetError;
+
+      // Get locations for this dataset
+      const { data: items, error: itemsError } = await supabase
+        .from('location_dataset_items')
+        .select('location_id')
+        .eq('dataset_id', datasetId);
+
+      if (itemsError) throw itemsError;
+
+      if (items && items.length > 0) {
+        const locationIds = items.map(item => item.location_id);
+        const { data: locs, error: locsError } = await supabase
+          .from('locations')
+          .select('*')
+          .in('id', locationIds);
+
+        if (locsError) throw locsError;
+
+        if (locs) {
+          const formattedLocations: Location[] = locs.map(loc => ({
+            id: loc.id,
+            name: loc.name,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            address: loc.address || undefined,
+            type: (loc.type as 'start' | 'stop' | 'end') || 'stop'
+          }));
+          setLocations(formattedLocations);
+          setDatasetName(dataset.name);
+          setCurrentDatasetId(datasetId);
+          
+          toast({
+            title: "Dataset Loaded",
+            description: `Loaded "${dataset.name}" with ${locs.length} locations`
+          });
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error Loading Dataset",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const saveDataset = async () => {
     if (!datasetName) {
       toast({
         title: "Dataset Name Required",
@@ -213,11 +299,78 @@ const LocationsDatasetPage = () => {
       return;
     }
 
-    // Here you would save to database/backend
-    toast({
-      title: "Dataset Saved",
-      description: `Dataset "${datasetName}" saved with ${locations.length} locations`
-    });
+    try {
+      if (currentDatasetId) {
+        // Update existing dataset
+        const { error: updateError } = await supabase
+          .from('location_datasets')
+          .update({
+            name: datasetName,
+            location_count: locations.length
+          })
+          .eq('id', currentDatasetId);
+
+        if (updateError) throw updateError;
+
+        // Delete old items
+        await supabase
+          .from('location_dataset_items')
+          .delete()
+          .eq('dataset_id', currentDatasetId);
+
+        // Insert new items
+        const items = locations.map(loc => ({
+          dataset_id: currentDatasetId,
+          location_id: loc.id
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('location_dataset_items')
+          .insert(items);
+
+        if (itemsError) throw itemsError;
+
+      } else {
+        // Create new dataset
+        const { data: dataset, error: datasetError } = await supabase
+          .from('location_datasets')
+          .insert([{
+            name: datasetName,
+            location_count: locations.length
+          }])
+          .select()
+          .single();
+
+        if (datasetError) throw datasetError;
+
+        // Insert location items
+        const items = locations.map(loc => ({
+          dataset_id: dataset.id,
+          location_id: loc.id
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('location_dataset_items')
+          .insert(items);
+
+        if (itemsError) throw itemsError;
+
+        setCurrentDatasetId(dataset.id);
+      }
+
+      await loadSavedDatasets();
+      
+      toast({
+        title: "Dataset Saved",
+        description: `Dataset "${datasetName}" saved with ${locations.length} locations`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error Saving Dataset",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   const exportDataset = () => {
@@ -446,48 +599,44 @@ const LocationsDatasetPage = () => {
           </CardContent>
         </Card>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Datasets Created</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">24</div>
-              <p className="text-sm text-muted-foreground">Total location datasets</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Locations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">1,847</div>
-              <p className="text-sm text-muted-foreground">Across all datasets</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Countries</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">12</div>
-              <p className="text-sm text-muted-foreground">Geographic coverage</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Used in Routes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">456</div>
-              <p className="text-sm text-muted-foreground">Optimized routes</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Saved Datasets */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderOpen className="w-5 h-5" />
+              Saved Datasets ({savedDatasets.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {savedDatasets.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No saved datasets yet. Create and save your first dataset.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {savedDatasets.map((dataset) => (
+                  <Card key={dataset.id} className="cursor-pointer hover:border-primary transition-colors" onClick={() => loadDataset(dataset.id)}>
+                    <CardHeader>
+                      <CardTitle className="text-lg">{dataset.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Locations</span>
+                          <Badge variant="secondary">{dataset.location_count}</Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Updated: {new Date(dataset.updated_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
