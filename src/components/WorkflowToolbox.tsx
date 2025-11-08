@@ -12,14 +12,7 @@ import {
   Eye, 
   Truck, 
   MessageSquare,
-  Cog,
   Database,
-  User,
-  Timer,
-  GitBranch,
-  Circle,
-  RotateCcw,
-  Square,
   Link,
   RefreshCw
 } from 'lucide-react';
@@ -41,24 +34,17 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
   const { toast } = useToast();
 
   const componentTypes = [
-    { id: 'cnc', label: 'CNC Machine', icon: Wrench, color: 'bg-blue-500', table: 'cnc_machines' },
-    { id: 'laser', label: 'Laser System', icon: Zap, color: 'bg-red-500', table: 'laser_machines' },
-    { id: 'printer3d', label: '3D Printer', icon: Printer, color: 'bg-green-500', table: 'printer_3d' },
-    { id: 'robotic_arm', label: 'Robotic Arm', icon: Bot, color: 'bg-purple-500', table: 'robotic_arms' },
-    { id: 'conveyor', label: 'Conveyor Belt', icon: Truck, color: 'bg-orange-500', table: 'conveyor_belts' },
-    { id: 'vision_system', label: 'Vision System', icon: Eye, color: 'bg-indigo-500', table: 'hardware', filter: { type: 'vision_system' } },
-    { id: 'chatbot', label: 'Chatbot', icon: MessageSquare, color: 'bg-pink-500', table: 'chatbots' },
-    { id: 'integration', label: 'Integration', icon: Database, color: 'bg-cyan-500', table: 'software' },
+    { id: 'cnc', label: 'CNC Machine', icon: Wrench, color: 'bg-blue-500', table: 'cnc_machines', portal: 'hardware' },
+    { id: 'laser', label: 'Laser System', icon: Zap, color: 'bg-red-500', table: 'laser_machines', portal: 'hardware' },
+    { id: 'printer3d', label: '3D Printer', icon: Printer, color: 'bg-green-500', table: 'printer_3d', portal: 'hardware' },
+    { id: 'robotic_arm', label: 'Robotic Arm', icon: Bot, color: 'bg-purple-500', table: 'robotic_arms', portal: 'hardware' },
+    { id: 'conveyor', label: 'Conveyor Belt', icon: Truck, color: 'bg-orange-500', table: 'conveyor_belts', portal: 'hardware' },
+    { id: 'vision_system', label: 'Vision System', icon: Eye, color: 'bg-indigo-500', table: 'hardware', filter: { type: 'vision_system' }, portal: 'hardware' },
+    { id: 'chatbot', label: 'Chatbot', icon: MessageSquare, color: 'bg-pink-500', table: 'chatbots', portal: 'ai' },
+    { id: 'integration', label: 'Integration', icon: Database, color: 'bg-cyan-500', table: 'software', portal: 'software' },
   ];
 
-  const nodeTypes = [
-    { id: 'trigger', label: 'Trigger', icon: Circle, description: 'Start workflow', color: 'bg-green-100 text-green-700' },
-    { id: 'action', label: 'Action', icon: Square, description: 'Perform operation', color: 'bg-blue-100 text-blue-700' },
-    { id: 'condition', label: 'Condition', icon: GitBranch, description: 'Branch logic', color: 'bg-yellow-100 text-yellow-700' },
-    { id: 'delay', label: 'Delay', icon: Timer, description: 'Wait period', color: 'bg-purple-100 text-purple-700' },
-    { id: 'loop', label: 'Loop', icon: RotateCcw, description: 'Repeat operations', color: 'bg-indigo-100 text-indigo-700' },
-    { id: 'end', label: 'End', icon: Circle, description: 'End workflow', color: 'bg-red-100 text-red-700' },
-  ];
+  const [selectedPortal, setSelectedPortal] = useState<'hardware' | 'software' | 'ai'>('hardware');
 
   const fetchComponentCounts = async () => {
     setLoading(true);
@@ -130,6 +116,8 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
     fetchComponentCounts();
   }, []);
 
+  const filteredComponents = componentTypes.filter(comp => comp.portal === selectedPortal);
+
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
@@ -151,14 +139,20 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        <Tabs defaultValue="components" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="components">Components</TabsTrigger>
-            <TabsTrigger value="nodes">Nodes</TabsTrigger>
-          </TabsList>
+        {/* Portal Filter */}
+        <div className="mb-4">
+          <Tabs value={selectedPortal} onValueChange={(value) => setSelectedPortal(value as 'hardware' | 'software' | 'ai')} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="hardware">Hardware</TabsTrigger>
+              <TabsTrigger value="software">Software</TabsTrigger>
+              <TabsTrigger value="ai">AI</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-          <TabsContent value="components" className="space-y-2 mt-0">
-            {componentTypes.map((component) => {
+        {/* Components List */}
+        <div className="space-y-2">
+          {filteredComponents.map((component) => {
               const Icon = component.icon;
               const count = componentCounts[component.id];
               const hasComponents = count && count.total > 0;
@@ -196,83 +190,29 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onAddNode('action', component.id)}
-                          className="h-7 text-xs"
-                        >
-                          New
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onAddNode('action', 'existing', component.id)}
-                          disabled={!hasComponents}
-                          className="h-7 text-xs"
-                        >
-                          <Link className="w-3 h-3 mr-1" />
-                          Existing
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAddNode('action', 'existing', component.id)}
+                        disabled={!hasComponents}
+                        className="h-7 text-xs w-full"
+                      >
+                        <Link className="w-3 h-3 mr-1" />
+                        Add to Workflow
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
-          </TabsContent>
-
-          <TabsContent value="nodes" className="space-y-2 mt-0">
-            {nodeTypes.map((nodeType) => {
-              const Icon = nodeType.icon;
-              return (
-                <Card
-                  key={nodeType.id}
-                  className="cursor-pointer hover:shadow-md transition-all duration-200 hover:border-primary group"
-                  onClick={() => onAddNode(nodeType.id, 'manual')}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${nodeType.color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-sm group-hover:text-primary transition-colors">
-                          {nodeType.label}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {nodeType.description}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </TabsContent>
-        </Tabs>
-
-        {/* Manual Task Option */}
-        <Card className="mt-3 border-dashed">
-          <CardContent className="p-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => onAddNode('action', 'manual')}
-            >
-              <User className="w-4 h-4 mr-2" />
-              Add Manual Task
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
 
         {/* Quick Help */}
-        <Card className="mt-3 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+        <Card className="mt-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <CardContent className="p-3">
             <div className="text-xs space-y-1.5 text-foreground/80">
               <p className="font-semibold text-foreground">Quick Tips:</p>
+              <p>• Select components from {selectedPortal} portal</p>
               <p>• <kbd className="px-1.5 py-0.5 text-xs bg-background rounded border">Delete</kbd> to remove nodes</p>
               <p>• <kbd className="px-1.5 py-0.5 text-xs bg-background rounded border">Shift</kbd> for multi-select</p>
               <p>• Drag from handles to connect</p>
