@@ -148,10 +148,20 @@ export const WorkflowDesigner = () => {
 
   const handleAddNodeRequest = (nodeType: string, componentType: string) => {
     if (componentType === 'existing') {
-      setPendingNodeType({ nodeType, componentType });
+      // Show the dialog to select from existing components
+      setPendingNodeType({ nodeType, componentType: 'cnc' }); // Default to cnc, will be updated by toolbox
       setShowComponentDialog(true);
     } else {
       addNode(nodeType, componentType);
+    }
+  };
+
+  const handleAddNodeRequestWithComponentType = (nodeType: string, componentType: string, specificType?: string) => {
+    if (componentType === 'existing' && specificType) {
+      setPendingNodeType({ nodeType, componentType: specificType });
+      setShowComponentDialog(true);
+    } else {
+      handleAddNodeRequest(nodeType, componentType);
     }
   };
 
@@ -213,18 +223,21 @@ export const WorkflowDesigner = () => {
       {/* Main Designer */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-background to-primary/5 border-b px-6 py-4 flex items-center justify-between shadow-sm">
           <div>
-            <h1 className="text-xl font-semibold">
+            <h1 className="text-2xl font-bold text-foreground">
               {workflow?.name || 'New Workflow'}
             </h1>
-            <p className="text-sm text-gray-600">
-              {workflow?.description || 'Design your workflow'}
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {workflow?.description || 'Design your automated workflow'}
             </p>
           </div>
           <div className="flex items-center gap-2">
             {workflow && (
-              <Badge className={workflow.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+              <Badge 
+                variant={workflow.status === 'active' ? 'default' : 'secondary'}
+                className={workflow.status === 'active' ? 'bg-green-500' : ''}
+              >
                 {workflow.status}
               </Badge>
             )}
@@ -232,7 +245,7 @@ export const WorkflowDesigner = () => {
               <Button 
                 variant="outline" 
                 onClick={deleteSelectedNodes}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete ({selectedNodes.length})
@@ -242,7 +255,7 @@ export const WorkflowDesigner = () => {
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Saving...' : 'Save'}
             </Button>
-            <Button onClick={() => console.log('Execute workflow')}>
+            <Button onClick={() => console.log('Execute workflow')} className="bg-gradient-to-r from-primary to-primary/80">
               <Play className="w-4 h-4 mr-2" />
               Execute
             </Button>
@@ -250,7 +263,7 @@ export const WorkflowDesigner = () => {
         </div>
 
         {/* Flow Canvas */}
-        <div className="flex-1">
+        <div className="flex-1 bg-gradient-to-br from-background via-primary/5 to-background">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -260,20 +273,34 @@ export const WorkflowDesigner = () => {
             onSelectionChange={onSelectionChange}
             nodeTypes={nodeTypes}
             fitView
-            className="bg-gray-50"
             multiSelectionKeyCode="Shift"
             deleteKeyCode="Delete"
+            className="workflow-canvas"
           >
-            <Controls />
-            <MiniMap />
-            <Background gap={12} size={1} />
+            <Controls className="bg-background border rounded-lg shadow-lg" />
+            <MiniMap 
+              className="bg-background border rounded-lg shadow-lg" 
+              nodeColor={(node) => {
+                if (node.selected) return 'hsl(var(--primary))';
+                switch (node.data.nodeType) {
+                  case 'trigger': return 'hsl(142, 76%, 36%)';
+                  case 'action': return 'hsl(221, 83%, 53%)';
+                  case 'condition': return 'hsl(48, 96%, 53%)';
+                  case 'delay': return 'hsl(271, 76%, 53%)';
+                  case 'loop': return 'hsl(239, 84%, 67%)';
+                  case 'end': return 'hsl(0, 84%, 60%)';
+                  default: return 'hsl(var(--muted))';
+                }
+              }}
+            />
+            <Background gap={16} size={1} className="opacity-30" />
           </ReactFlow>
         </div>
       </div>
 
       {/* Toolbox Sidebar */}
-      <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
-        <WorkflowToolbox onAddNode={handleAddNodeRequest} />
+      <div className="w-80 bg-background border-l shadow-lg overflow-hidden">
+        <WorkflowToolbox onAddNode={handleAddNodeRequestWithComponentType} />
       </div>
 
       {/* Component Selection Dialog */}

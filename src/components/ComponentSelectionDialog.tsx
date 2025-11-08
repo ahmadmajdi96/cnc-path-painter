@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Search, Wrench, Zap, Printer, Bot, Eye, Truck } from 'lucide-react';
+import { Search, Wrench, Zap, Printer, Bot, Eye, Truck, MessageSquare, Cog, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -41,6 +41,8 @@ const componentTypeMapping = {
   robotic_arm: { table: 'robotic_arms' as const, icon: Bot, label: 'Robotic Arms' },
   conveyor: { table: 'conveyor_belts' as const, icon: Truck, label: 'Conveyor Belts' },
   vision_system: { table: 'hardware' as const, icon: Eye, label: 'Vision Systems' },
+  chatbot: { table: 'chatbots' as const, icon: MessageSquare, label: 'Chatbots' },
+  integration: { table: 'software' as const, icon: Database, label: 'Integrations' },
 };
 
 export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> = ({
@@ -99,6 +101,12 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
           break;
         case 'hardware':
           ({ data, error } = await supabase.from('hardware').select('*').eq('type', 'vision_system').order('name'));
+          break;
+        case 'chatbots':
+          ({ data, error } = await supabase.from('chatbots').select('*').order('name'));
+          break;
+        case 'software':
+          ({ data, error } = await supabase.from('software').select('*').order('name'));
           break;
         default:
           return;
@@ -189,36 +197,39 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
                 {filteredComponents.map((component) => (
                   <Card
                     key={component.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    className="cursor-pointer hover:shadow-lg hover:border-primary transition-all duration-200 group"
                     onClick={() => handleComponentSelect(component)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Icon className="w-5 h-5 text-blue-600" />
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="p-2 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg group-hover:from-primary/20 group-hover:to-primary/10 transition-colors">
+                            <Icon className="w-5 h-5 text-primary" />
                           </div>
-                          <div>
-                            <h3 className="font-medium">{component.name}</h3>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              {component.model && <span>{component.model}</span>}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                              {component.name}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              {component.model && <span className="truncate">{component.model}</span>}
                               {component.manufacturer && (
                                 <>
                                   {component.model && <span>•</span>}
-                                  <span>{component.manufacturer}</span>
+                                  <span className="truncate">{component.manufacturer}</span>
                                 </>
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 ml-2">
                           <Badge 
                             variant={component.status === 'active' || component.status === 'idle' ? 'default' : 'secondary'}
+                            className="capitalize"
                           >
                             {component.status}
                           </Badge>
                           {(component.ip_address || component.endpoint_url) && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                               Connected
                             </Badge>
                           )}

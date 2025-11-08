@@ -65,17 +65,17 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
 
   const getNodeColor = () => {
     if (selected) {
-      return 'border-blue-500 bg-blue-50 shadow-md';
+      return 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/20';
     }
     
     switch (data.nodeType) {
-      case 'trigger': return 'border-green-300 bg-green-50';
-      case 'action': return 'border-blue-300 bg-blue-50';
-      case 'condition': return 'border-yellow-300 bg-yellow-50';
-      case 'delay': return 'border-purple-300 bg-purple-50';
-      case 'loop': return 'border-indigo-300 bg-indigo-50';
-      case 'end': return 'border-red-300 bg-red-50';
-      default: return 'border-gray-300 bg-gray-50';
+      case 'trigger': return 'border-green-400 bg-gradient-to-br from-green-50 to-green-100';
+      case 'action': return 'border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100';
+      case 'condition': return 'border-yellow-400 bg-gradient-to-br from-yellow-50 to-yellow-100';
+      case 'delay': return 'border-purple-400 bg-gradient-to-br from-purple-50 to-purple-100';
+      case 'loop': return 'border-indigo-400 bg-gradient-to-br from-indigo-50 to-indigo-100';
+      case 'end': return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100';
+      default: return 'border-border bg-background';
     }
   };
 
@@ -83,18 +83,22 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
   const ComponentIcon = getComponentIcon();
 
   return (
-    <Card className={`w-48 ${getNodeColor()} border-2 shadow-sm hover:shadow-md transition-shadow`}>
-      <CardContent className="p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <NodeIcon className="w-4 h-4 text-gray-600" />
-            <span className="font-medium text-sm truncate">{data.label}</span>
+    <Card className={`w-56 ${getNodeColor()} border-2 shadow-md hover:shadow-xl transition-all duration-200`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="p-1.5 rounded-md bg-background/50 backdrop-blur-sm border">
+              <NodeIcon className="w-4 h-4 text-foreground" />
+            </div>
+            <span className="font-semibold text-sm truncate text-foreground">{data.label}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <ComponentIcon className="w-4 h-4 text-gray-500" />
+          <div className="flex items-center gap-1 ml-2">
+            <div className="p-1 rounded bg-background/50 backdrop-blur-sm border">
+              <ComponentIcon className="w-3.5 h-3.5 text-muted-foreground" />
+            </div>
             {data.existingComponentId && (
-              <div className="w-3 h-3 text-blue-500">
-                <Link className="w-3 h-3" />
+              <div className="p-1 rounded bg-primary/10 backdrop-blur-sm border border-primary/20">
+                <Link className="w-3 h-3 text-primary" />
               </div>
             )}
           </div>
@@ -102,33 +106,33 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
         
         <div className="space-y-2">
           <div className="flex flex-wrap gap-1">
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs bg-background/50 backdrop-blur-sm">
               {data.nodeType}
             </Badge>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs bg-background/50 backdrop-blur-sm">
               {data.componentType}
             </Badge>
             {data.existingComponentId && (
-              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+              <Badge className="text-xs bg-primary text-primary-foreground">
                 Linked
               </Badge>
             )}
           </div>
           
           {data.description && (
-            <p className="text-xs text-gray-600 line-clamp-2">
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
               {data.description}
             </p>
           )}
 
           {data.config && data.config.status && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background/50 backdrop-blur-sm border">
               <div className={`w-2 h-2 rounded-full ${
                 data.config.status === 'active' || data.config.status === 'idle' 
-                  ? 'bg-green-500' 
-                  : 'bg-gray-400'
+                  ? 'bg-green-500 animate-pulse' 
+                  : 'bg-muted-foreground'
               }`} />
-              <span className="text-xs text-gray-500">{data.config.status}</span>
+              <span className="text-xs font-medium text-foreground capitalize">{data.config.status}</span>
             </div>
           )}
         </div>
@@ -139,7 +143,7 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
         <Handle
           type="source"
           position={Position.Right}
-          className="w-3 h-3 bg-blue-500 border-2 border-white"
+          className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
         />
       )}
       
@@ -147,7 +151,7 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
         <Handle
           type="target"
           position={Position.Left}
-          className="w-3 h-3 bg-blue-500 border-2 border-white"
+          className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
         />
       )}
     </Card>
