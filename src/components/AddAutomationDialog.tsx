@@ -634,7 +634,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
                         <div>
                           <Label>Database</Label>
-                          <Select value={operation.config.database} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, database: value, table: undefined } })}>
+                          <Select value={operation.config.database || undefined} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, database: value, table: undefined } })}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select database" />
                             </SelectTrigger>
@@ -649,7 +649,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                           <>
                             <div>
                             <Label>Table</Label>
-                            <Select value={operation.config.table} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, table: value } })}>
+                            <Select value={operation.config.table || undefined} onValueChange={(value) => updateOperation(operation.id, { config: { ...operation.config, table: value } })}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select table" />
                               </SelectTrigger>
@@ -662,7 +662,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             </div>
                             <div>
                             <Label>Operation</Label>
-                            <Select value={operation.config.operation} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operation: value } })}>
+                            <Select value={operation.config.operation || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operation: value } })}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select operation" />
                               </SelectTrigger>
@@ -773,7 +773,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <Label>File Operation</Label>
-                            <Select value={operation.config.fileOperation} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, fileOperation: value } })}>
+                            <Select value={operation.config.fileOperation || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, fileOperation: value } })}>
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select file operation" />
                               </SelectTrigger>
@@ -789,7 +789,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                           {operation.config.fileOperation === 'download' && (
                             <div>
                               <Label>Download Protocol</Label>
-                              <Select value={operation.config.downloadProtocol} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, downloadProtocol: value } })}>
+                              <Select value={operation.config.downloadProtocol || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, downloadProtocol: value } })}>
                                 <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Select protocol" />
                                 </SelectTrigger>
@@ -921,7 +921,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
                         <div>
                           <Label>Operation Type</Label>
-                          <Select value={operation.config.operationType} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operationType: value, logicalOperator: undefined, mathOperator: undefined, conditionalOperator: undefined } })}>
+                          <Select value={operation.config.operationType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operationType: value, logicalOperator: undefined, mathOperator: undefined, conditionalOperator: undefined } })}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select operation type" />
                             </SelectTrigger>
@@ -936,7 +936,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         {operation.config.operationType === 'logical' && (
                           <div>
                             <Label>Logical Operator</Label>
-                            <Select value={operation.config.logicalOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, logicalOperator: value } })}>
+                            <Select value={operation.config.logicalOperator || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, logicalOperator: value } })}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select operator" />
                               </SelectTrigger>
@@ -953,7 +953,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         {operation.config.operationType === 'mathematical' && (
                           <div>
                             <Label>Mathematical Operator</Label>
-                            <Select value={operation.config.mathOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, mathOperator: value } })}>
+                            <Select value={operation.config.mathOperator || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, mathOperator: value } })}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select operator" />
                               </SelectTrigger>
@@ -974,7 +974,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         {operation.config.operationType === 'conditional' && (
                           <div>
                             <Label>Conditional Operator</Label>
-                            <Select value={operation.config.conditionalOperator} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, conditionalOperator: value } })}>
+                            <Select value={operation.config.conditionalOperator || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, conditionalOperator: value } })}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select operator" />
                               </SelectTrigger>
@@ -1048,7 +1048,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
                         <div>
                           <Label>Script Language</Label>
-                          <Select value={operation.config.scriptLanguage} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, scriptLanguage: value } })}>
+                          <Select value={operation.config.scriptLanguage || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, scriptLanguage: value } })}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select language" />
                             </SelectTrigger>
@@ -1100,7 +1100,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                               </SelectContent>
                             </Select>
                             {mapping.source === 'automation_input' && (
-                              <Select value={mapping.sourceParameter} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
+                              <Select value={mapping.sourceParameter || undefined} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
                                 <SelectTrigger className="flex-1">
                                   <SelectValue placeholder="Select input" />
                                 </SelectTrigger>
@@ -1113,7 +1113,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             )}
                             {mapping.source === 'previous_operation' && (
                               <>
-                                <Select value={mapping.sourceOperationId} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceOperationId: value, sourceParameter: '' })}>
+                                <Select value={mapping.sourceOperationId || undefined} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceOperationId: value, sourceParameter: '' })}>
                                   <SelectTrigger className="flex-1">
                                     <SelectValue placeholder="Select operation" />
                                   </SelectTrigger>
@@ -1124,7 +1124,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                   </SelectContent>
                                 </Select>
                                 {mapping.sourceOperationId && (
-                                  <Select value={mapping.sourceParameter} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
+                                  <Select value={mapping.sourceParameter || undefined} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
                                     <SelectTrigger className="flex-1">
                                       <SelectValue placeholder="Select output" />
                                     </SelectTrigger>
@@ -1138,7 +1138,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                               </>
                             )}
                             {mapping.source === 'environment' && (
-                              <Select value={mapping.sourceParameter} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
+                              <Select value={mapping.sourceParameter || undefined} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
                                 <SelectTrigger className="flex-1">
                                   <SelectValue placeholder="Select env var" />
                                 </SelectTrigger>
@@ -1260,7 +1260,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             <div>
                               <Label className="text-xs">Target Operation</Label>
                               <Select 
-                                value={operation.onSuccess?.targetOperationId} 
+                                value={operation.onSuccess?.targetOperationId || undefined} 
                                 onValueChange={(value) => updateOperation(operation.id, { 
                                   onSuccess: { ...operation.onSuccess, action: 'goto', targetOperationId: value } 
                                 })}
@@ -1311,7 +1311,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             <div>
                               <Label className="text-xs">Target Operation</Label>
                               <Select 
-                                value={operation.onFailure?.targetOperationId} 
+                                value={operation.onFailure?.targetOperationId || undefined} 
                                 onValueChange={(value) => updateOperation(operation.id, { 
                                   onFailure: { ...operation.onFailure, action: 'goto', targetOperationId: value } 
                                 })}
