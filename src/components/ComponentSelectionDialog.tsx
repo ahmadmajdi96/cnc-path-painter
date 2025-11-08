@@ -21,6 +21,7 @@ interface ComponentSelectionDialogProps {
   onOpenChange: (open: boolean) => void;
   onComponentSelected: (component: any) => void;
   componentType: string;
+  filterType?: string; // For filtering AI models by type
 }
 
 interface Component {
@@ -51,6 +52,7 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
   onOpenChange,
   onComponentSelected,
   componentType,
+  filterType,
 }) => {
   const [components, setComponents] = useState<Component[]>([]);
   const [filteredComponents, setFilteredComponents] = useState<Component[]>([]);
@@ -64,7 +66,7 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
     if (open && componentConfig) {
       fetchComponents();
     }
-  }, [open, componentType]);
+  }, [open, componentType, filterType]);
 
   useEffect(() => {
     const filtered = components.filter(component =>
@@ -107,7 +109,11 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
           ({ data, error } = await supabase.from('chatbots').select('*').order('name'));
           break;
         case 'datasets':
-          ({ data, error } = await supabase.from('datasets').select('*').order('name'));
+          if (filterType && filterType !== 'all') {
+            ({ data, error } = await supabase.from('datasets').select('*').eq('type', filterType).order('name'));
+          } else {
+            ({ data, error } = await supabase.from('datasets').select('*').order('name'));
+          }
           break;
         case 'software':
           ({ data, error } = await supabase.from('software').select('*').order('name'));
@@ -167,9 +173,17 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
           <DialogTitle className="flex items-center gap-2">
             <Icon className="w-5 h-5" />
             Select {componentConfig.label}
+            {filterType && filterType !== 'all' && (
+              <Badge variant="secondary" className="ml-2 text-xs">
+                {filterType}
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Choose an existing component to add to your workflow
+            {filterType && filterType !== 'all' 
+              ? `Choose from ${componentConfig.label.toLowerCase()} of type "${filterType}"`
+              : `Choose an existing component to add to your workflow`
+            }
           </DialogDescription>
         </DialogHeader>
 

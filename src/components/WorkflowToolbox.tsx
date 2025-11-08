@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface WorkflowToolboxProps {
-  onAddNode: (nodeType: string, componentType: string, specificType?: string) => void;
+  onAddNode: (nodeType: string, componentType: string, specificType?: string, filterType?: string) => void;
 }
 
 interface ComponentCount {
@@ -97,28 +97,21 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
             count = totalCount || 0;
             activeCount = count; // All datasets are considered active for now
             
-            // Get AI model type filters based on name patterns
+            // Get AI model type filters based on actual type field from datasets
             if (data) {
               const typeGroups = data.reduce((acc, item) => {
-                let type = 'other';
-                const name = (item.name || '').toLowerCase();
-                
-                // Categorize by name patterns
-                if (name.includes('urban') || name.includes('city')) type = 'urban';
-                else if (name.includes('car') || name.includes('vehicle')) type = 'vehicle_detection';
-                else if (name.includes('language') || name.includes('nlp') || name.includes('text')) type = 'language_ai';
-                else if (name.includes('chatbot') || name.includes('chat')) type = 'chatbot';
-                else if (name.includes('face') || name.includes('person')) type = 'face_recognition';
-                else if (name.includes('object')) type = 'object_detection';
-                
+                const type = item.type || 'other';
                 acc[type] = (acc[type] || 0) + 1;
                 return acc;
               }, {} as Record<string, number>);
               
-              const filters = Object.entries(typeGroups).map(([type, count]) => ({
-                type,
-                count
-              }));
+              const filters = Object.entries(typeGroups)
+                .map(([type, count]) => ({
+                  type,
+                  count
+                }))
+                .sort((a, b) => b.count - a.count); // Sort by count descending
+              
               setAiModelFilters(filters);
             }
           } else if (component.table === 'software') {
@@ -305,7 +298,7 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onAddNode('action', 'existing', 'ai_model')}
+                    onClick={() => onAddNode('action', 'existing', 'ai_model', selectedAIModelType)}
                     disabled={!componentCounts.ai_model || componentCounts.ai_model.total === 0}
                     className="h-7 text-xs w-full"
                   >

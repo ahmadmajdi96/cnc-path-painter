@@ -12,11 +12,13 @@ import {
   Edge,
   Node,
   MarkerType,
+  EdgeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, Play, Settings, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -35,10 +37,12 @@ export const WorkflowDesigner = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+  const [edgeType, setEdgeType] = useState<'smoothstep' | 'default' | 'straight' | 'step'>('smoothstep');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showComponentDialog, setShowComponentDialog] = useState(false);
-  const [pendingNodeType, setPendingNodeType] = useState<{ nodeType: string; componentType: string } | null>(null);
+  const [pendingNodeType, setPendingNodeType] = useState<{ nodeType: string; componentType: string; filterType?: string } | null>(null);
   const { toast } = useToast();
 
   const fetchWorkflowData = async () => {
@@ -102,7 +106,7 @@ export const WorkflowDesigner = () => {
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({
       ...params,
-      type: 'smoothstep',
+      type: edgeType,
       animated: true,
       style: { stroke: 'hsl(var(--primary))' },
       markerEnd: {
@@ -110,10 +114,18 @@ export const WorkflowDesigner = () => {
         color: 'hsl(var(--primary))',
       },
     }, eds)),
-    [setEdges]
+    [setEdges, edgeType]
   );
 
-  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+  // Update edge types when edgeType changes
+  const updateEdgeTypes = useCallback(() => {
+    setEdges((eds) => 
+      eds.map((edge) => ({
+        ...edge,
+        type: edgeType,
+      }))
+    );
+  }, [edgeType, setEdges]);
 
   const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[], edges: Edge[] }) => {
     setSelectedNodes(selectedNodes.map(node => node.id));
@@ -177,9 +189,9 @@ export const WorkflowDesigner = () => {
     }
   };
 
-  const handleAddNodeRequestWithComponentType = (nodeType: string, componentType: string, specificType?: string) => {
+  const handleAddNodeRequestWithComponentType = (nodeType: string, componentType: string, specificType?: string, filterType?: string) => {
     if (componentType === 'existing' && specificType) {
-      setPendingNodeType({ nodeType, componentType: specificType });
+      setPendingNodeType({ nodeType, componentType: specificType, filterType });
       setShowComponentDialog(true);
     } else {
       handleAddNodeRequest(nodeType, componentType);
@@ -254,6 +266,31 @@ export const WorkflowDesigner = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Edge Type Control */}
+            <div className="flex items-center gap-2 border-r pr-3">
+              <label className="text-sm text-muted-foreground">Line Style:</label>
+              <Select value={edgeType} onValueChange={(value: any) => setEdgeType(value)}>
+                <SelectTrigger className="w-32 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="smoothstep">Curved</SelectItem>
+                  <SelectItem value="default">Bezier</SelectItem>
+                  <SelectItem value="straight">Straight</SelectItem>
+                  <SelectItem value="step">Step</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={updateEdgeTypes}
+                className="h-8 text-xs"
+                disabled={edges.length === 0}
+              >
+                Apply to All
+              </Button>
+            </div>
+
             {workflow && (
               <Badge 
                 variant={workflow.status === 'active' ? 'default' : 'secondary'}
@@ -296,7 +333,7 @@ export const WorkflowDesigner = () => {
             multiSelectionKeyCode="Shift"
             deleteKeyCode={['Delete', 'Backspace']}
             defaultEdgeOptions={{
-              type: 'smoothstep',
+              type: edgeType,
               animated: true,
               style: { stroke: 'hsl(var(--primary))' },
               markerEnd: {
@@ -338,6 +375,7 @@ export const WorkflowDesigner = () => {
         onOpenChange={setShowComponentDialog}
         onComponentSelected={handleComponentSelected}
         componentType={pendingNodeType?.componentType || ''}
+        filterType={pendingNodeType?.filterType}
       />
     </div>
   );
