@@ -1207,7 +1207,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                               placeholder="Output name"
                               className="flex-1"
                             />
-                            <Select value={param.type} onValueChange={(value: any) => updateOperationOutputParameter(operation.id, param.id, { type: value })}>
+                            <Select value={param.type || "string"} onValueChange={(value: any) => updateOperationOutputParameter(operation.id, param.id, { type: value })}>
                               <SelectTrigger className="w-32">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1217,6 +1217,9 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                 <SelectItem value="boolean">Boolean</SelectItem>
                                 <SelectItem value="object">Object</SelectItem>
                                 <SelectItem value="array">Array</SelectItem>
+                                <SelectItem value="list">List</SelectItem>
+                                <SelectItem value="dict">Dict</SelectItem>
+                                <SelectItem value="file">File</SelectItem>
                               </SelectContent>
                             </Select>
                             <Button type="button" variant="ghost" size="sm" onClick={() => removeOperationOutputParameter(operation.id, param.id)}>
