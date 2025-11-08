@@ -93,14 +93,24 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
             count = totalCount || 0;
             activeCount = data?.filter(item => item.status === 'active').length || 0;
           } else if (component.table === 'datasets') {
-            const { data, count: totalCount } = await supabase.from('datasets').select('id, type, status', { count: 'exact' });
+            const { data, count: totalCount } = await supabase.from('datasets').select('id, name, type', { count: 'exact' });
             count = totalCount || 0;
-            activeCount = data?.filter(item => item.status === 'active').length || 0;
+            activeCount = count; // All datasets are considered active for now
             
-            // Get AI model type filters
+            // Get AI model type filters based on name patterns
             if (data) {
               const typeGroups = data.reduce((acc, item) => {
-                const type = item.type || 'other';
+                let type = 'other';
+                const name = (item.name || '').toLowerCase();
+                
+                // Categorize by name patterns
+                if (name.includes('urban') || name.includes('city')) type = 'urban';
+                else if (name.includes('car') || name.includes('vehicle')) type = 'vehicle_detection';
+                else if (name.includes('language') || name.includes('nlp') || name.includes('text')) type = 'language_ai';
+                else if (name.includes('chatbot') || name.includes('chat')) type = 'chatbot';
+                else if (name.includes('face') || name.includes('person')) type = 'face_recognition';
+                else if (name.includes('object')) type = 'object_detection';
+                
                 acc[type] = (acc[type] || 0) + 1;
                 return acc;
               }, {} as Record<string, number>);

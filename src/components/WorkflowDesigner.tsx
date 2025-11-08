@@ -100,28 +100,49 @@ export const WorkflowDesigner = () => {
   }, [workflowId]);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds) => addEdge({
+      ...params,
+      type: 'smoothstep',
+      animated: true,
+      style: { stroke: 'hsl(var(--primary))' },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: 'hsl(var(--primary))',
+      },
+    }, eds)),
     [setEdges]
   );
 
-  const onSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+
+  const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[], edges: Edge[] }) => {
     setSelectedNodes(selectedNodes.map(node => node.id));
+    setSelectedEdges(selectedEdges.map(edge => edge.id));
   }, []);
 
   const deleteSelectedNodes = useCallback(() => {
-    if (selectedNodes.length === 0) return;
+    if (selectedNodes.length === 0 && selectedEdges.length === 0) return;
 
-    setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)));
-    setEdges((eds) => eds.filter((edge) => 
-      !selectedNodes.includes(edge.source) && !selectedNodes.includes(edge.target)
-    ));
+    if (selectedNodes.length > 0) {
+      setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)));
+      setEdges((eds) => eds.filter((edge) => 
+        !selectedNodes.includes(edge.source) && !selectedNodes.includes(edge.target)
+      ));
+    }
+    
+    if (selectedEdges.length > 0) {
+      setEdges((eds) => eds.filter((edge) => !selectedEdges.includes(edge.id)));
+    }
+    
+    const totalDeleted = selectedNodes.length + selectedEdges.length;
     setSelectedNodes([]);
+    setSelectedEdges([]);
     
     toast({
       title: "Success",
-      description: `Deleted ${selectedNodes.length} node(s)`,
+      description: `Deleted ${totalDeleted} item(s)`,
     });
-  }, [selectedNodes, setNodes, setEdges, toast]);
+  }, [selectedNodes, selectedEdges, setNodes, setEdges, toast]);
 
   const saveWorkflow = async () => {
     if (!workflowId || workflowId === 'new') return;
@@ -197,7 +218,7 @@ export const WorkflowDesigner = () => {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedNodes.length > 0) {
+      if ((event.key === 'Delete' || event.key === 'Backspace') && (selectedNodes.length > 0 || selectedEdges.length > 0)) {
         event.preventDefault();
         deleteSelectedNodes();
       }
@@ -205,7 +226,7 @@ export const WorkflowDesigner = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodes, deleteSelectedNodes]);
+  }, [selectedNodes, selectedEdges, deleteSelectedNodes]);
 
   if (loading) {
     return (
@@ -240,14 +261,14 @@ export const WorkflowDesigner = () => {
                 {workflow.status}
               </Badge>
             )}
-            {selectedNodes.length > 0 && (
+            {(selectedNodes.length > 0 || selectedEdges.length > 0) && (
               <Button 
                 variant="outline" 
                 onClick={deleteSelectedNodes}
                 className="text-destructive hover:bg-destructive/10"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete ({selectedNodes.length})
+                Delete ({selectedNodes.length + selectedEdges.length})
               </Button>
             )}
             <Button variant="outline" onClick={saveWorkflow} disabled={saving}>
@@ -273,7 +294,16 @@ export const WorkflowDesigner = () => {
             nodeTypes={nodeTypes}
             fitView
             multiSelectionKeyCode="Shift"
-            deleteKeyCode="Delete"
+            deleteKeyCode={['Delete', 'Backspace']}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              animated: true,
+              style: { stroke: 'hsl(var(--primary))' },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: 'hsl(var(--primary))',
+              },
+            }}
             className="workflow-canvas"
           >
             <Controls className="bg-card border rounded-lg shadow-md" />
