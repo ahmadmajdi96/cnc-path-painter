@@ -247,7 +247,7 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
                             {component.status}
                           </Badge>
                           {(component.ip_address || component.endpoint_url) && (
-                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            <Badge variant="outline" className="text-xs bg-[hsl(142,76%,96%)] text-[hsl(142,76%,36%)] border-[hsl(142,76%,80%)]">
                               Connected
                             </Badge>
                           )}

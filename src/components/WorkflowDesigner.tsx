@@ -65,27 +65,77 @@ export const WorkflowDesigner = () => {
         return;
       }
       
-      // Map the database workflow to our Workflow type with proper defaults
+      // Map the database workflow to our Workflow type
       if (workflowData) {
         const mappedWorkflow: Workflow = {
           id: workflowData.id,
           name: workflowData.name,
           description: workflowData.description || '',
-          status: workflowData.is_active ? 'active' : 'draft',
-          trigger_type: 'manual',
-          trigger_config: {},
+          status: (workflowData.status || 'draft') as 'draft' | 'active' | 'paused' | 'completed' | 'error',
+          trigger_type: (workflowData.trigger_type || 'manual') as 'manual' | 'schedule' | 'webhook' | 'event' | 'file_change',
+          trigger_config: workflowData.trigger_config || {},
           created_at: workflowData.created_at,
           updated_at: workflowData.updated_at,
-          run_count: 0,
-          success_count: 0,
-          error_count: 0,
+          last_run: workflowData.last_run,
+          next_run: workflowData.next_run,
+          run_count: workflowData.run_count || 0,
+          success_count: workflowData.success_count || 0,
+          error_count: workflowData.error_count || 0,
           is_active: workflowData.is_active
         };
         setWorkflow(mappedWorkflow);
       }
 
-      // For now, skip fetching nodes and connections since the tables don't exist yet
-      // This will be implemented once the proper database schema is in place
+      // Fetch workflow nodes
+      const { data: nodesData, error: nodesError } = await supabase
+        .from('workflow_nodes')
+        .select('*')
+        .eq('workflow_id', workflowId);
+
+      if (nodesError) {
+        console.error('Error fetching nodes:', nodesError);
+      } else if (nodesData && nodesData.length > 0) {
+        const flowNodes = nodesData.map(node => ({
+          id: node.id,
+          type: 'workflowNode',
+          position: { x: Number(node.position_x), y: Number(node.position_y) },
+          data: {
+            label: node.name,
+            nodeType: node.node_type,
+            componentType: node.component_type,
+            config: node.config || {},
+            description: node.description,
+            existingComponentId: node.component_id,
+          },
+        }));
+        setNodes(flowNodes);
+      }
+
+      // Fetch workflow connections
+      const { data: connectionsData, error: connectionsError } = await supabase
+        .from('workflow_connections')
+        .select('*')
+        .eq('workflow_id', workflowId);
+
+      if (connectionsError) {
+        console.error('Error fetching connections:', connectionsError);
+      } else if (connectionsData && connectionsData.length > 0) {
+        const flowEdges = connectionsData.map(conn => ({
+          id: conn.id,
+          source: conn.source_node_id,
+          target: conn.target_node_id,
+          sourceHandle: conn.source_handle,
+          targetHandle: conn.target_handle,
+          type: conn.edge_type || edgeType,
+          animated: true,
+          style: { stroke: 'hsl(var(--primary))' },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: 'hsl(var(--primary))',
+          },
+        }));
+        setEdges(flowEdges);
+      }
       
     } catch (error) {
       console.error('Error fetching workflow data:', error);
@@ -161,8 +211,51 @@ export const WorkflowDesigner = () => {
 
     setSaving(true);
     try {
-      // For now, just show a success message
-      // Actual saving will be implemented once the proper database schema is in place
+      // Delete existing nodes and connections for this workflow
+      await supabase.from('workflow_nodes').delete().eq('workflow_id', workflowId);
+      await supabase.from('workflow_connections').delete().eq('workflow_id', workflowId);
+
+      // Save nodes
+      if (nodes.length > 0) {
+        const nodesToInsert = nodes.map(node => ({
+          id: node.id,
+          workflow_id: workflowId,
+          node_type: node.data.nodeType,
+          component_type: node.data.componentType,
+          component_id: node.data.existingComponentId || null,
+          position_x: node.position.x,
+          position_y: node.position.y,
+          config: node.data.config || {},
+          name: node.data.label,
+          description: node.data.description || null,
+        }));
+
+        const { error: nodesError } = await supabase
+          .from('workflow_nodes')
+          .insert(nodesToInsert);
+
+        if (nodesError) throw nodesError;
+      }
+
+      // Save connections
+      if (edges.length > 0) {
+        const connectionsToInsert = edges.map(edge => ({
+          workflow_id: workflowId,
+          source_node_id: edge.source,
+          target_node_id: edge.target,
+          source_handle: edge.sourceHandle || 'output',
+          target_handle: edge.targetHandle || 'input',
+          edge_type: edge.type || edgeType,
+          condition_type: edge.sourceHandle === 'failure' ? 'error' : edge.sourceHandle === 'success' ? 'success' : 'always',
+        }));
+
+        const { error: connectionsError } = await supabase
+          .from('workflow_connections')
+          .insert(connectionsToInsert);
+
+        if (connectionsError) throw connectionsError;
+      }
+
       toast({
         title: "Success",
         description: "Workflow saved successfully",

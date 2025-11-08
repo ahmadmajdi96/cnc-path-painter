@@ -69,12 +69,12 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
     }
     
     switch (data.nodeType) {
-      case 'trigger': return 'border-green-400 bg-gradient-to-br from-green-50 to-green-100';
-      case 'action': return 'border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100';
-      case 'condition': return 'border-yellow-400 bg-gradient-to-br from-yellow-50 to-yellow-100';
-      case 'delay': return 'border-purple-400 bg-gradient-to-br from-purple-50 to-purple-100';
-      case 'loop': return 'border-indigo-400 bg-gradient-to-br from-indigo-50 to-indigo-100';
-      case 'end': return 'border-red-400 bg-gradient-to-br from-red-50 to-red-100';
+      case 'trigger': return 'border-[hsl(142,76%,36%)] bg-gradient-to-br from-[hsl(142,76%,96%)] to-[hsl(142,76%,92%)]';
+      case 'action': return 'border-[hsl(221,83%,53%)] bg-gradient-to-br from-[hsl(221,83%,96%)] to-[hsl(221,83%,92%)]';
+      case 'condition': return 'border-[hsl(48,96%,53%)] bg-gradient-to-br from-[hsl(48,96%,96%)] to-[hsl(48,96%,92%)]';
+      case 'delay': return 'border-[hsl(271,76%,53%)] bg-gradient-to-br from-[hsl(271,76%,96%)] to-[hsl(271,76%,92%)]';
+      case 'loop': return 'border-[hsl(239,84%,67%)] bg-gradient-to-br from-[hsl(239,84%,96%)] to-[hsl(239,84%,92%)]';
+      case 'end': return 'border-[hsl(0,84%,60%)] bg-gradient-to-br from-[hsl(0,84%,96%)] to-[hsl(0,84%,92%)]';
       default: return 'border-border bg-background';
     }
   };
@@ -132,7 +132,7 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background/50 backdrop-blur-sm border">
               <div className={`w-2 h-2 rounded-full ${
                 data.config.status === 'active' || data.config.status === 'idle' 
-                  ? 'bg-green-500 animate-pulse' 
+                  ? 'bg-[hsl(142,76%,50%)] animate-pulse' 
                   : 'bg-muted-foreground'
               }`} />
               <span className="text-xs font-medium text-foreground capitalize">{data.config.status}</span>
@@ -155,7 +155,7 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
         type="target" 
         position={Position.Bottom} 
         id="return"
-        className="w-3 h-3 !bg-yellow-500 border-2 border-background shadow-md"
+        className="w-3 h-3 !bg-[hsl(48,96%,53%)] border-2 border-background shadow-md"
         style={{ left: '25%' }}
       />
       
@@ -168,9 +168,9 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
               position={Position.Right}
               id="success"
               style={{ top: '35%' }}
-              className="w-3 h-3 !bg-green-500 border-2 border-background shadow-md"
+              className="w-3 h-3 !bg-[hsl(142,76%,50%)] border-2 border-background shadow-md"
             />
-            <div className="absolute right-[-48px] text-[10px] font-medium text-green-600" style={{ top: 'calc(35% - 10px)' }}>
+            <div className="absolute right-[-48px] text-[10px] font-medium text-[hsl(142,76%,36%)]" style={{ top: 'calc(35% - 10px)' }}>
               Success
             </div>
             <Handle
@@ -178,9 +178,9 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
               position={Position.Right}
               id="failure"
               style={{ top: '65%' }}
-              className="w-3 h-3 !bg-red-500 border-2 border-background shadow-md"
+              className="w-3 h-3 !bg-[hsl(0,84%,60%)] border-2 border-background shadow-md"
             />
-            <div className="absolute right-[-45px] text-[10px] font-medium text-red-600" style={{ top: 'calc(65% - 10px)' }}>
+            <div className="absolute right-[-45px] text-[10px] font-medium text-[hsl(0,84%,50%)]" style={{ top: 'calc(65% - 10px)' }}>
               Failure
             </div>
           </>
@@ -199,7 +199,7 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
               type="source" 
               position={Position.Bottom} 
               id="return-output"
-              className="w-3 h-3 !bg-yellow-500 border-2 border-background shadow-md"
+              className="w-3 h-3 !bg-[hsl(48,96%,53%)] border-2 border-background shadow-md"
               style={{ left: '75%' }}
             />
           </>

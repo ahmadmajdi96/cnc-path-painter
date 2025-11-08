@@ -20,25 +20,33 @@ export const WorkflowExecutions = () => {
 
   const fetchExecutions = async () => {
     try {
-      // For now, we'll use mock data since the workflow_executions table doesn't exist yet
-      // This will be replaced with actual Supabase queries once the schema is implemented
-      const mockExecutions: WorkflowExecution[] = [
-        {
-          id: '1',
-          workflow_id: 'workflow-1',
-          status: 'completed',
-          started_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-          execution_data: {},
-          duration_ms: 5000,
-          workflow: {
-            name: 'Sample Production Workflow',
-            description: 'A sample workflow for demonstration'
-          }
-        }
-      ];
-      
-      setExecutions(mockExecutions);
+      const { data: executionsData, error } = await supabase
+        .from('workflow_executions')
+        .select(`
+          *,
+          workflows!inner(name, description)
+        `)
+        .order('started_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      const mappedExecutions: WorkflowExecution[] = (executionsData || []).map(exec => ({
+        id: exec.id,
+        workflow_id: exec.workflow_id,
+        status: exec.status as 'running' | 'completed' | 'failed' | 'cancelled',
+        started_at: exec.started_at,
+        completed_at: exec.completed_at || undefined,
+        error_message: exec.error_message || undefined,
+        execution_data: exec.execution_data || {},
+        duration_ms: exec.duration_ms || undefined,
+        workflow: {
+          name: (exec.workflows as any)?.name || 'Unknown Workflow',
+          description: (exec.workflows as any)?.description || undefined,
+        },
+      }));
+
+      setExecutions(mappedExecutions);
     } catch (error) {
       console.error('Error fetching executions:', error);
       toast({
@@ -58,21 +66,21 @@ export const WorkflowExecutions = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'running': return <Clock className="w-4 h-4 text-blue-600" />;
-      case 'completed': return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'failed': return <XCircle className="w-4 h-4 text-red-600" />;
-      case 'cancelled': return <Square className="w-4 h-4 text-gray-600" />;
-      default: return <AlertCircle className="w-4 h-4 text-yellow-600" />;
+      case 'running': return <Clock className="w-4 h-4 text-[hsl(221,83%,53%)]" />;
+      case 'completed': return <CheckCircle className="w-4 h-4 text-[hsl(142,76%,36%)]" />;
+      case 'failed': return <XCircle className="w-4 h-4 text-[hsl(0,84%,50%)]" />;
+      case 'cancelled': return <Square className="w-4 h-4 text-muted-foreground" />;
+      default: return <AlertCircle className="w-4 h-4 text-[hsl(48,96%,53%)]" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'running': return 'bg-blue-500/10 text-blue-700 border-blue-200';
-      case 'completed': return 'bg-green-500/10 text-green-700 border-green-200';
-      case 'failed': return 'bg-red-500/10 text-red-700 border-red-200';
+      case 'running': return 'bg-[hsl(221,83%,92%)] text-[hsl(221,83%,36%)] border-[hsl(221,83%,80%)]';
+      case 'completed': return 'bg-[hsl(142,76%,92%)] text-[hsl(142,76%,36%)] border-[hsl(142,76%,80%)]';
+      case 'failed': return 'bg-[hsl(0,84%,92%)] text-[hsl(0,84%,36%)] border-[hsl(0,84%,80%)]';
       case 'cancelled': return 'bg-muted text-muted-foreground border-border';
-      default: return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
+      default: return 'bg-[hsl(48,96%,92%)] text-[hsl(48,96%,36%)] border-[hsl(48,96%,80%)]';
     }
   };
 
@@ -100,7 +108,7 @@ export const WorkflowExecutions = () => {
       <div className="p-6">
         <div className="animate-pulse space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-24 bg-gray-200 rounded-lg" />
+            <div key={i} className="h-24 bg-muted/50 rounded-lg" />
           ))}
         </div>
       </div>
@@ -136,7 +144,7 @@ export const WorkflowExecutions = () => {
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
-          <SelectContent>
+            <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="running">Running</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>

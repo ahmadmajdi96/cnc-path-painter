@@ -190,15 +190,11 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
               className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
             >
               <option value="all">All Types ({componentCounts.ai_model?.total || 0})</option>
-              <option value="computer_vision">Computer Vision</option>
-              <option value="ocr">OCR</option>
-              <option value="quality_control">Quality Control</option>
-              <option value="object_detection">Object Detection</option>
-              <option value="object_recognition">Object Recognition</option>
-              <option value="face_recognition">Face Recognition</option>
-              <option value="plate_recognition">Plate Recognition</option>
-              <option value="nlp">NLP</option>
-              <option value="chatbots">Chat Bots</option>
+              {aiModelFilters.map((filter) => (
+                <option key={filter.type} value={filter.type}>
+                  {filter.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} ({filter.count})
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -242,7 +238,7 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
                           </div>
                         </div>
                         {!loading && count && count.active > 0 && (
-                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                          <Badge variant="secondary" className="text-xs bg-[hsl(142,76%,92%)] text-[hsl(142,76%,36%)]">
                             {count.active} active
                           </Badge>
                         )}
@@ -293,7 +289,7 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
                       </div>
                     </div>
                     {!loading && componentCounts.ai_model && componentCounts.ai_model.active > 0 && (
-                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                      <Badge variant="secondary" className="text-xs bg-[hsl(142,76%,92%)] text-[hsl(142,76%,36%)]">
                         {componentCounts.ai_model.active} active
                       </Badge>
                     )}

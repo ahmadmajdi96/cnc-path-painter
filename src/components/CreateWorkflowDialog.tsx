@@ -50,6 +50,7 @@ export const CreateWorkflowDialog: React.FC<CreateWorkflowDialogProps> = ({
           description: formData.description || null,
           trigger_type: formData.trigger_type,
           status: 'draft',
+          is_active: false,
         }])
         .select()
         .single();
