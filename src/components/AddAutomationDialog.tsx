@@ -30,11 +30,15 @@ const mockTables: Record<string, string[]> = {
 export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, onOpenChange, onAdd }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [enabled, setEnabled] = useState(true);
   const [operations, setOperations] = useState<AutomationOperation[]>([]);
   const [inputParameters, setInputParameters] = useState<AutomationParameter[]>([]);
   const [outputParameters, setOutputParameters] = useState<AutomationParameter[]>([]);
   const [environmentVariables, setEnvironmentVariables] = useState<EnvironmentVariable[]>([]);
+  const [returnType, setReturnType] = useState('');
+  const [complexityLevel, setComplexityLevel] = useState<'simple' | 'intermediate' | 'advanced'>('simple');
+  const [preferredLibraries, setPreferredLibraries] = useState<string>('');
 
   const handleSubmit = () => {
     if (!name) {
@@ -50,11 +54,17 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     onAdd({
       name,
       description,
+      category,
       enabled,
       operations,
       inputParameters,
       outputParameters,
-      environmentVariables
+      environmentVariables,
+      metadata: {
+        returnType: returnType || undefined,
+        complexityLevel,
+        preferredLibraries: preferredLibraries ? preferredLibraries.split(',').map(lib => lib.trim()) : []
+      }
     });
 
     resetForm();
@@ -64,11 +74,15 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
   const resetForm = () => {
     setName('');
     setDescription('');
+    setCategory('');
     setEnabled(true);
     setOperations([]);
     setInputParameters([]);
     setOutputParameters([]);
     setEnvironmentVariables([]);
+    setReturnType('');
+    setComplexityLevel('simple');
+    setPreferredLibraries('');
   };
 
   const addOperation = () => {
@@ -173,7 +187,8 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
       name: '',
       type: 'string',
       required: false,
-      description: ''
+      description: '',
+      exampleValue: ''
     };
 
     updateOperation(operationId, {
@@ -206,7 +221,8 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
       name: '',
       type: 'string',
       required: false,
-      description: ''
+      description: '',
+      exampleValue: ''
     };
     setInputParameters([...inputParameters, newParam]);
   };
@@ -226,7 +242,8 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
       name: '',
       type: 'string',
       required: false,
-      description: ''
+      description: '',
+      exampleValue: ''
     };
     setOutputParameters([...outputParameters, newParam]);
   };
@@ -357,18 +374,37 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
 
         <ScrollArea className="h-[calc(95vh-140px)] pr-4">
           <div className="space-y-6 py-4">
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Automation Name *</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter automation name"
-                    className="w-full"
-                  />
+            {/* 1. Basic Information */}
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</span>
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Automation Name *</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g., Download Sales Report"
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="category">Category / Tag</Label>
+                    <Input
+                      id="category"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      placeholder="e.g., Data Processing, AI, API Integration"
+                      className="w-full"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -377,104 +413,113 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe what this automation does"
+                    placeholder="Explain what this automation does (e.g., Fetches daily sales data from the S3 bucket and stores it in the database)"
                     rows={3}
                     className="w-full"
                   />
                 </div>
-              </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch checked={enabled} onCheckedChange={setEnabled} />
-                <Label>Enabled</Label>
-              </div>
-            </div>
+                <div className="flex items-center space-x-2">
+                  <Switch checked={enabled} onCheckedChange={setEnabled} />
+                  <Label>Status: {enabled ? 'Enabled' : 'Disabled'}</Label>
+                </div>
+              </CardContent>
+            </Card>
 
             <Separator />
 
-            {/* Environment Variables */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Environment Variables
-                </Label>
-                <Button type="button" variant="outline" size="sm" onClick={addEnvironmentVariable}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Variable
-                </Button>
-              </div>
+            {/* 2. Environment Variables */}
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</span>
+                    Environment Variables
+                  </CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={addEnvironmentVariable}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Variable
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Define reusable variables like API keys, tokens, and global settings</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
 
-              {environmentVariables.map((envVar) => (
-                <Card key={envVar.id}>
-                  <CardContent className="pt-4 space-y-3">
+                {environmentVariables.map((envVar) => (
+                  <div key={envVar.id} className="border rounded-lg p-3 space-y-3 bg-muted/30">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
-                        <Label>Key</Label>
+                        <Label className="text-xs">Key</Label>
                         <Input
-                          className="w-full"
+                          className="w-full h-8"
                           value={envVar.key}
                           onChange={(e) => updateEnvironmentVariable(envVar.id, { key: e.target.value })}
-                          placeholder="VAR_NAME"
+                          placeholder="API_KEY"
                         />
                       </div>
                       <div>
-                        <Label>Value</Label>
+                        <Label className="text-xs">Value</Label>
                         <Input
-                          className="w-full"
+                          className="w-full h-8"
                           value={envVar.value}
                           onChange={(e) => updateEnvironmentVariable(envVar.id, { value: e.target.value })}
-                          placeholder="value"
+                          placeholder="your-api-key-here"
                         />
                       </div>
                       <div className="flex items-end">
-                        <Button variant="destructive" size="sm" onClick={() => removeEnvironmentVariable(envVar.id)} className="w-full md:w-auto">
+                        <Button variant="ghost" size="sm" onClick={() => removeEnvironmentVariable(envVar.id)} className="w-full md:w-auto h-8">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                     <div>
-                      <Label>Description</Label>
+                      <Label className="text-xs">Description</Label>
                       <Input
+                        className="h-8"
                         value={envVar.description || ''}
                         onChange={(e) => updateEnvironmentVariable(envVar.id, { description: e.target.value })}
-                        placeholder="Variable description"
+                        placeholder="What is this variable for?"
                       />
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
 
             <Separator />
 
-            {/* Automation Input Parameters */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Automation Input Parameters</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addInputParameter}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Input
-                </Button>
-              </div>
-
-              {inputParameters.map((param) => (
-                <Card key={param.id}>
-                  <CardContent className="pt-4 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <div className="col-span-1 md:col-span-2">
-                        <Label>Name</Label>
+            {/* 3. Input Parameters */}
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</span>
+                    Input Parameters
+                  </CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={addInputParameter}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Input
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Define what the automation needs to run</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {inputParameters.map((param) => (
+                  <div key={param.id} className="border rounded-lg p-3 space-y-3 bg-muted/30">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <div>
+                        <Label className="text-xs">Name *</Label>
                         <Input
-                          className="w-full"
+                          className="w-full h-8"
                           value={param.name}
                           onChange={(e) => updateInputParameter(param.id, { name: e.target.value })}
-                          placeholder="Parameter name"
+                          placeholder="file_url"
                         />
                       </div>
                       <div>
-                        <Label>Type</Label>
+                        <Label className="text-xs">Type</Label>
                         <Select value={param.type} onValueChange={(value: any) => updateInputParameter(param.id, { type: value })}>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full h-8">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -483,44 +528,65 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             <SelectItem value="boolean">Boolean</SelectItem>
                             <SelectItem value="object">Object</SelectItem>
                             <SelectItem value="array">Array</SelectItem>
+                            <SelectItem value="list">List</SelectItem>
+                            <SelectItem value="dict">Dict</SelectItem>
                             <SelectItem value="file">File</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Description</Label>
+                        <Input
+                          className="h-8"
+                          value={param.description || ''}
+                          onChange={(e) => updateInputParameter(param.id, { description: e.target.value })}
+                          placeholder="What this parameter represents"
+                        />
+                      </div>
                       <div className="flex items-end">
-                        <Button variant="destructive" size="sm" onClick={() => removeInputParameter(param.id)} className="w-full md:w-auto">
+                        <Button variant="ghost" size="sm" onClick={() => removeInputParameter(param.id)} className="w-full md:w-auto h-8">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Input
-                        value={param.description || ''}
-                        onChange={(e) => updateInputParameter(param.id, { description: e.target.value })}
-                        placeholder="Parameter description"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Example Value</Label>
+                        <Input
+                          className="h-8"
+                          value={param.exampleValue || ''}
+                          onChange={(e) => updateInputParameter(param.id, { exampleValue: e.target.value })}
+                          placeholder="https://example.com/data.csv"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch checked={param.required} onCheckedChange={(checked) => updateInputParameter(param.id, { required: checked })} />
+                        <Label className="text-xs">Required</Label>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch checked={param.required} onCheckedChange={(checked) => updateInputParameter(param.id, { required: checked })} />
-                      <Label>Required</Label>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
 
             <Separator />
 
-            {/* Operations */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Operations (Sequential)</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addOperation}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Operation
-                </Button>
-              </div>
+            {/* 4. Operations (Sequential Logic) */}
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</span>
+                    Operations (Sequential Logic)
+                  </CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={addOperation}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Operation
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Add sequential steps that the automation performs</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
 
               {operations.map((operation, index) => (
                 <Card key={operation.id} className="border-2">
@@ -1278,36 +1344,43 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                   </CardContent>
                 </Card>
               ))}
-            </div>
+            </CardContent>
+          </Card>
 
             <Separator />
 
-            {/* Automation Output Parameters */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Automation Output Parameters</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addOutputParameter}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Output
-                </Button>
-              </div>
-
-              {outputParameters.map((param) => (
-                <Card key={param.id}>
-                  <CardContent className="pt-4 space-y-3">
-                    <div className="grid grid-cols-4 gap-3">
-                      <div className="col-span-2">
-                        <Label>Name</Label>
+            {/* 5. Output Parameters */}
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">5</span>
+                    Output Parameters
+                  </CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={addOutputParameter}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Output
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Define what the automation returns or produces</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {outputParameters.map((param) => (
+                  <div key={param.id} className="border rounded-lg p-3 space-y-3 bg-muted/30">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <div>
+                        <Label className="text-xs">Name *</Label>
                         <Input
+                          className="w-full h-8"
                           value={param.name}
                           onChange={(e) => updateOutputParameter(param.id, { name: e.target.value })}
-                          placeholder="Parameter name"
+                          placeholder="summary_report"
                         />
                       </div>
                       <div>
-                        <Label>Type</Label>
+                        <Label className="text-xs">Type</Label>
                         <Select value={param.type} onValueChange={(value: any) => updateOutputParameter(param.id, { type: value })}>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full h-8">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1316,31 +1389,95 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             <SelectItem value="boolean">Boolean</SelectItem>
                             <SelectItem value="object">Object</SelectItem>
                             <SelectItem value="array">Array</SelectItem>
+                            <SelectItem value="list">List</SelectItem>
+                            <SelectItem value="dict">Dict</SelectItem>
+                            <SelectItem value="file">File</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Description</Label>
+                        <Input
+                          className="h-8"
+                          value={param.description || ''}
+                          onChange={(e) => updateOutputParameter(param.id, { description: e.target.value })}
+                          placeholder="What this output contains"
+                        />
+                      </div>
                       <div className="flex items-end">
-                        <Button variant="destructive" size="sm" onClick={() => removeOutputParameter(param.id)}>
+                        <Button variant="ghost" size="sm" onClick={() => removeOutputParameter(param.id)} className="w-full md:w-auto h-8">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Input
-                        value={param.description || ''}
-                        onChange={(e) => updateOutputParameter(param.id, { description: e.target.value })}
-                        placeholder="Parameter description"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Example Value</Label>
+                        <Input
+                          className="h-8"
+                          value={param.exampleValue || ''}
+                          onChange={(e) => updateOutputParameter(param.id, { exampleValue: e.target.value })}
+                          placeholder='{"status": "success", "count": 42}'
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch checked={param.required} onCheckedChange={(checked) => updateOutputParameter(param.id, { required: checked })} />
+                        <Label className="text-xs">Required</Label>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch checked={param.required} onCheckedChange={(checked) => updateOutputParameter(param.id, { required: checked })} />
-                      <Label>Required</Label>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Separator />
+
+            {/* 7. Function Metadata (Optional) */}
+            <Card className="border-2 border-primary/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">7</span>
+                  Function Metadata (Optional)
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-2">Add descriptive metadata for documentation and reference</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="returnType">Return Type</Label>
+                    <Input
+                      id="returnType"
+                      value={returnType}
+                      onChange={(e) => setReturnType(e.target.value)}
+                      placeholder="e.g., list, dict, file"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="complexityLevel">Complexity Level</Label>
+                    <Select value={complexityLevel} onValueChange={(value: any) => setComplexityLevel(value)}>
+                      <SelectTrigger id="complexityLevel">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simple">Simple</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="preferredLibraries">Preferred Libraries</Label>
+                    <Input
+                      id="preferredLibraries"
+                      value={preferredLibraries}
+                      onChange={(e) => setPreferredLibraries(e.target.value)}
+                      placeholder="e.g., requests, pandas, boto3"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Comma-separated list</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </ScrollArea>
 

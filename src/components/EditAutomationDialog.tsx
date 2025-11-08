@@ -24,12 +24,14 @@ interface EditAutomationDialogProps {
 export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }: EditAutomationDialogProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [enabled, setEnabled] = useState(true);
 
   useEffect(() => {
     if (automation) {
       setName(automation.name);
       setDescription(automation.description || '');
+      setCategory(automation.category || '');
       setEnabled(automation.enabled);
     }
   }, [automation]);
@@ -41,6 +43,7 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
       ...automation,
       name: name.trim(),
       description: description.trim(),
+      category: category.trim(),
       enabled,
       updatedAt: new Date().toISOString()
     };
@@ -69,13 +72,14 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
                 placeholder="Enter automation name"
               />
             </div>
-            <div className="flex items-center space-x-2 pt-6">
-              <Switch
-                id="enabled"
-                checked={enabled}
-                onCheckedChange={setEnabled}
+            <div>
+              <Label htmlFor="category">Category / Tag</Label>
+              <Input
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="e.g., Data Processing"
               />
-              <Label htmlFor="enabled">Enabled</Label>
             </div>
           </div>
 
@@ -89,12 +93,31 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
             />
           </div>
 
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="enabled"
+              checked={enabled}
+              onCheckedChange={setEnabled}
+            />
+            <Label htmlFor="enabled">Enabled</Label>
+          </div>
+
           <div className="bg-muted/50 p-4 rounded-lg">
             <h4 className="font-medium mb-2">Function Configuration</h4>
             <div className="text-sm text-muted-foreground space-y-1">
               <p><strong>Operations:</strong> {automation.operations.length}</p>
               <p><strong>Input Parameters:</strong> {automation.inputParameters.length}</p>
               <p><strong>Output Parameters:</strong> {automation.outputParameters.length}</p>
+              <p><strong>Environment Variables:</strong> {automation.environmentVariables.length}</p>
+              {automation.metadata && (
+                <>
+                  {automation.metadata.returnType && <p><strong>Return Type:</strong> {automation.metadata.returnType}</p>}
+                  {automation.metadata.complexityLevel && <p><strong>Complexity:</strong> {automation.metadata.complexityLevel}</p>}
+                  {automation.metadata.preferredLibraries && automation.metadata.preferredLibraries.length > 0 && (
+                    <p><strong>Libraries:</strong> {automation.metadata.preferredLibraries.join(', ')}</p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

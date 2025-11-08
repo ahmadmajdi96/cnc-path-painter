@@ -12,9 +12,10 @@ import { toast } from 'sonner';
 export interface AutomationParameter {
   id: string;
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'file';
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'file' | 'list' | 'dict';
   required: boolean;
   description?: string;
+  exampleValue?: string;
   defaultValue?: any;
 }
 
@@ -106,11 +107,17 @@ export interface Automation {
   id: string;
   name: string;
   description?: string;
+  category?: string;
   enabled: boolean;
   operations: AutomationOperation[];
   inputParameters: AutomationParameter[];
   outputParameters: AutomationParameter[];
   environmentVariables: EnvironmentVariable[];
+  metadata?: {
+    returnType?: string;
+    complexityLevel?: 'simple' | 'intermediate' | 'advanced';
+    preferredLibraries?: string[];
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -121,6 +128,7 @@ export const AutomationControlSystem = () => {
       id: '1',
       name: 'Data Sync Workflow',
       description: 'Syncs data between databases',
+      category: 'Data Processing',
       enabled: true,
       operations: [
         {
@@ -148,7 +156,7 @@ export const AutomationControlSystem = () => {
             ]
           },
           outputParameters: [
-            { id: 'o1', name: 'orders', type: 'array', required: true }
+            { id: 'o1', name: 'orders', type: 'array', required: true, exampleValue: '[{...}]' }
           ]
         },
         {
@@ -176,16 +184,21 @@ export const AutomationControlSystem = () => {
         }
       ],
       inputParameters: [
-        { id: 'p1', name: 'filter_status', type: 'string', required: true, description: 'Status to filter' },
-        { id: 'p2', name: 'date_from', type: 'string', required: true }
+        { id: 'p1', name: 'filter_status', type: 'string', required: true, description: 'Status to filter', exampleValue: 'pending' },
+        { id: 'p2', name: 'date_from', type: 'string', required: true, exampleValue: '2024-01-01' }
       ],
       outputParameters: [
-        { id: 'out1', name: 'synced_count', type: 'number', required: true },
-        { id: 'out2', name: 'status', type: 'string', required: true }
+        { id: 'out1', name: 'synced_count', type: 'number', required: true, exampleValue: '150' },
+        { id: 'out2', name: 'status', type: 'string', required: true, exampleValue: 'success' }
       ],
       environmentVariables: [
         { id: 'env1', key: 'DB_CONNECTION_STRING', value: 'postgresql://localhost:5432', description: 'Database connection' }
       ],
+      metadata: {
+        returnType: 'dict',
+        complexityLevel: 'intermediate',
+        preferredLibraries: ['psycopg2', 'pandas']
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }

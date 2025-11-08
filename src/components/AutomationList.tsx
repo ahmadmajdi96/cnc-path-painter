@@ -62,8 +62,28 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
                   <Badge variant={automation.enabled ? 'default' : 'secondary'}>
                     {automation.enabled ? 'Enabled' : 'Disabled'}
                   </Badge>
+                  {automation.category && (
+                    <Badge variant="outline" className="gap-1">
+                      <Tag className="h-3 w-3" />
+                      {automation.category}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{automation.description}</p>
+                {automation.metadata && (
+                  <div className="flex gap-2 text-xs text-muted-foreground mb-2">
+                    {automation.metadata.complexityLevel && (
+                      <span className="bg-muted px-2 py-1 rounded">
+                        {automation.metadata.complexityLevel.charAt(0).toUpperCase() + automation.metadata.complexityLevel.slice(1)}
+                      </span>
+                    )}
+                    {automation.metadata.returnType && (
+                      <span className="bg-muted px-2 py-1 rounded">
+                        Returns: {automation.metadata.returnType}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-2">
