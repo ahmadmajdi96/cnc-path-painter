@@ -350,34 +350,38 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh]">
+      <DialogContent className="max-w-7xl max-h-[95vh] w-[95vw]">
         <DialogHeader>
           <DialogTitle>Create New Automation</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="h-[calc(90vh-140px)] pr-4">
+        <ScrollArea className="h-[calc(95vh-140px)] pr-4">
           <div className="space-y-6 py-4">
             {/* Basic Information */}
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Automation Name *</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter automation name"
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Automation Name *</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter automation name"
+                    className="w-full"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe what this automation does"
-                  rows={2}
-                />
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe what this automation does"
+                    rows={3}
+                    className="w-full"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center space-x-2">

@@ -86,16 +86,16 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
   const isIntegrationNode = data.componentType === 'integration';
 
   return (
-    <Card className={`w-56 ${getNodeColor()} border-2 shadow-md hover:shadow-xl transition-all duration-200`}>
+    <Card className={`min-w-[350px] max-w-[350px] ${getNodeColor()} border-2 shadow-md hover:shadow-xl transition-all duration-200`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className="p-1.5 rounded-md bg-background/50 backdrop-blur-sm border">
               <NodeIcon className="w-4 h-4 text-foreground" />
             </div>
-            <span className="font-semibold text-sm truncate text-foreground">{data.label}</span>
+            <span className="font-semibold text-sm text-foreground break-words">{data.label}</span>
           </div>
-          <div className="flex items-center gap-1 ml-2">
+          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
             <div className="p-1 rounded bg-background/50 backdrop-blur-sm border">
               <ComponentIcon className="w-3.5 h-3.5 text-muted-foreground" />
             </div>
@@ -141,7 +141,25 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
         </div>
       </CardContent>
 
-      {/* Handles for connections - Integration nodes have success/failure, others have single */}
+      {/* Handles for connections - Integration nodes have success/failure, others have all handles */}
+      {/* Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="input"
+        className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
+      />
+      
+      {/* Return/Loop Back Handle - positioned at bottom left */}
+      <Handle 
+        type="target" 
+        position={Position.Bottom} 
+        id="return"
+        className="w-3 h-3 !bg-yellow-500 border-2 border-background shadow-md"
+        style={{ left: '25%' }}
+      />
+      
+      {/* Output Handles */}
       {data.nodeType !== 'end' && (
         isIntegrationNode ? (
           <>
@@ -167,20 +185,25 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
             </div>
           </>
         ) : (
-          <Handle
-            type="source"
-            position={Position.Right}
-            className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
-          />
+          <>
+            {/* Main output */}
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="output"
+              className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
+            />
+            
+            {/* Return/Loop output - positioned at bottom right */}
+            <Handle 
+              type="source" 
+              position={Position.Bottom} 
+              id="return-output"
+              className="w-3 h-3 !bg-yellow-500 border-2 border-background shadow-md"
+              style={{ left: '75%' }}
+            />
+          </>
         )
-      )}
-      
-      {data.nodeType !== 'trigger' && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
-        />
       )}
     </Card>
   );

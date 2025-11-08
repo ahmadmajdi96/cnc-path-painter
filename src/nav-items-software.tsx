@@ -1,4 +1,4 @@
-import { Settings, Zap, Code, GitBranch, Link as LinkIcon, Layout } from "lucide-react";
+import { Zap, GitBranch, Link as LinkIcon, Layout } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -9,12 +9,6 @@ export interface NavItem {
 }
 
 export const softwareNavItems: NavItem[] = [
-  {
-    title: "Services",
-    to: "/software/services",
-    icon: Settings,
-    page: "ServicesPage",
-  },
   {
     title: "Integrations",
     to: "/software/integrations",
@@ -32,12 +26,6 @@ export const softwareNavItems: NavItem[] = [
     to: "/software/automation",
     icon: Zap,
     page: "AutomationPage",
-  },
-  {
-    title: "App Builder",
-    to: "/software/app-builder",
-    icon: Code,
-    page: "AppBuilderPage",
   },
   {
     title: "Workflows",
