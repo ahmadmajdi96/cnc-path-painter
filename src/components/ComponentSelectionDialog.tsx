@@ -42,6 +42,7 @@ const componentTypeMapping = {
   conveyor: { table: 'conveyor_belts' as const, icon: Truck, label: 'Conveyor Belts' },
   vision_system: { table: 'hardware' as const, icon: Eye, label: 'Vision Systems' },
   chatbot: { table: 'chatbots' as const, icon: MessageSquare, label: 'Chatbots' },
+  ai_model: { table: 'datasets' as const, icon: MessageSquare, label: 'AI Models' },
   integration: { table: 'software' as const, icon: Database, label: 'Integrations' },
 };
 
@@ -104,6 +105,9 @@ export const ComponentSelectionDialog: React.FC<ComponentSelectionDialogProps> =
           break;
         case 'chatbots':
           ({ data, error } = await supabase.from('chatbots').select('*').order('name'));
+          break;
+        case 'datasets':
+          ({ data, error } = await supabase.from('datasets').select('*').order('name'));
           break;
         case 'software':
           ({ data, error } = await supabase.from('software').select('*').order('name'));

@@ -28,8 +28,15 @@ interface ComponentCount {
   active: number;
 }
 
+interface AIModelFilter {
+  type: string;
+  count: number;
+}
+
 export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) => {
   const [componentCounts, setComponentCounts] = useState<Record<string, ComponentCount>>({});
+  const [aiModelFilters, setAiModelFilters] = useState<AIModelFilter[]>([]);
+  const [selectedAIModelType, setSelectedAIModelType] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -41,6 +48,7 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
     { id: 'conveyor', label: 'Conveyor Belt', icon: Truck, color: 'bg-orange-500', table: 'conveyor_belts', portal: 'hardware' },
     { id: 'vision_system', label: 'Vision System', icon: Eye, color: 'bg-indigo-500', table: 'hardware', filter: { type: 'vision_system' }, portal: 'hardware' },
     { id: 'chatbot', label: 'Chatbot', icon: MessageSquare, color: 'bg-pink-500', table: 'chatbots', portal: 'ai' },
+    { id: 'ai_model', label: 'AI Model', icon: MessageSquare, color: 'bg-violet-500', table: 'datasets', portal: 'ai' },
     { id: 'integration', label: 'Integration', icon: Database, color: 'bg-cyan-500', table: 'software', portal: 'software' },
   ];
 
@@ -84,6 +92,25 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
             const { data, count: totalCount } = await supabase.from('chatbots').select('id, status', { count: 'exact' });
             count = totalCount || 0;
             activeCount = data?.filter(item => item.status === 'active').length || 0;
+          } else if (component.table === 'datasets') {
+            const { data, count: totalCount } = await supabase.from('datasets').select('id, type, status', { count: 'exact' });
+            count = totalCount || 0;
+            activeCount = data?.filter(item => item.status === 'active').length || 0;
+            
+            // Get AI model type filters
+            if (data) {
+              const typeGroups = data.reduce((acc, item) => {
+                const type = item.type || 'other';
+                acc[type] = (acc[type] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              
+              const filters = Object.entries(typeGroups).map(([type, count]) => ({
+                type,
+                count
+              }));
+              setAiModelFilters(filters);
+            }
           } else if (component.table === 'software') {
             const { data, count: totalCount } = await supabase.from('software').select('id, status', { count: 'exact' });
             count = totalCount || 0;
@@ -150,12 +177,36 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
           </Tabs>
         </div>
 
+        {/* AI Model Type Filter */}
+        {selectedPortal === 'ai' && aiModelFilters.length > 0 && (
+          <div className="mb-4">
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">AI Model Type</label>
+            <select 
+              value={selectedAIModelType}
+              onChange={(e) => setSelectedAIModelType(e.target.value)}
+              className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+            >
+              <option value="all">All Types ({componentCounts.ai_model?.total || 0})</option>
+              {aiModelFilters.map(filter => (
+                <option key={filter.type} value={filter.type}>
+                  {filter.type} ({filter.count})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Components List */}
         <div className="space-y-2">
           {filteredComponents.map((component) => {
               const Icon = component.icon;
               const count = componentCounts[component.id];
               const hasComponents = count && count.total > 0;
+              
+              // Skip AI model filter display if it's the generic ai_model entry
+              if (component.id === 'ai_model' && selectedPortal === 'ai') {
+                return null;
+              }
 
               return (
                 <Card 
@@ -205,7 +256,57 @@ export const WorkflowToolbox: React.FC<WorkflowToolboxProps> = ({ onAddNode }) =
                 </Card>
               );
             })}
-          </div>
+          
+          {/* AI Models Card when portal is AI */}
+          {selectedPortal === 'ai' && (
+            <Card 
+              className="overflow-hidden hover:shadow-md transition-all duration-200 group border-l-4 border-l-violet-500"
+            >
+              <CardContent className="p-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="p-1.5 bg-violet-500 text-white rounded-md">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm text-foreground truncate">
+                          AI Models
+                        </h3>
+                        {loading ? (
+                          <div className="h-3 w-12 bg-muted animate-pulse rounded" />
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            {selectedAIModelType === 'all' 
+                              ? `${componentCounts.ai_model?.total || 0} available`
+                              : `${aiModelFilters.find(f => f.type === selectedAIModelType)?.count || 0} available`
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {!loading && componentCounts.ai_model && componentCounts.ai_model.active > 0 && (
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                        {componentCounts.ai_model.active} active
+                      </Badge>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAddNode('action', 'existing', 'ai_model')}
+                    disabled={!componentCounts.ai_model || componentCounts.ai_model.total === 0}
+                    className="h-7 text-xs w-full"
+                  >
+                    <Link className="w-3 h-3 mr-1" />
+                    Add to Workflow
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Quick Help */}
         <Card className="mt-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">

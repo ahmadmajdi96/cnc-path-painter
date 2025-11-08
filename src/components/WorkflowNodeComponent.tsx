@@ -81,6 +81,9 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
 
   const NodeIcon = getNodeIcon();
   const ComponentIcon = getComponentIcon();
+  
+  // Check if this is an integration node to show success/failure handles
+  const isIntegrationNode = data.componentType === 'integration';
 
   return (
     <Card className={`w-56 ${getNodeColor()} border-2 shadow-md hover:shadow-xl transition-all duration-200`}>
@@ -138,13 +141,38 @@ export const WorkflowNodeComponent: React.FC<WorkflowNodeComponentProps> = ({ da
         </div>
       </CardContent>
 
-      {/* Handles for connections */}
+      {/* Handles for connections - Integration nodes have success/failure, others have single */}
       {data.nodeType !== 'end' && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
-        />
+        isIntegrationNode ? (
+          <>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="success"
+              style={{ top: '35%' }}
+              className="w-3 h-3 !bg-green-500 border-2 border-background shadow-md"
+            />
+            <div className="absolute right-[-48px] text-[10px] font-medium text-green-600" style={{ top: 'calc(35% - 10px)' }}>
+              Success
+            </div>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id="failure"
+              style={{ top: '65%' }}
+              className="w-3 h-3 !bg-red-500 border-2 border-background shadow-md"
+            />
+            <div className="absolute right-[-45px] text-[10px] font-medium text-red-600" style={{ top: 'calc(65% - 10px)' }}>
+              Failure
+            </div>
+          </>
+        ) : (
+          <Handle
+            type="source"
+            position={Position.Right}
+            className="w-3 h-3 !bg-primary border-2 border-background shadow-md"
+          />
+        )
       )}
       
       {data.nodeType !== 'trigger' && (

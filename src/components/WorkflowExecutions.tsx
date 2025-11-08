@@ -66,11 +66,11 @@ export const WorkflowExecutions = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'running': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+      case 'running': return 'bg-blue-500/10 text-blue-700 border-blue-200';
+      case 'completed': return 'bg-green-500/10 text-green-700 border-green-200';
+      case 'failed': return 'bg-red-500/10 text-red-700 border-red-200';
+      case 'cancelled': return 'bg-muted text-muted-foreground border-border';
+      default: return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
     }
   };
 
@@ -104,12 +104,12 @@ export const WorkflowExecutions = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-background">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Workflow Executions</h1>
-          <p className="text-gray-600">Monitor and track workflow execution history</p>
+          <h1 className="text-3xl font-bold text-foreground">Workflow Executions</h1>
+          <p className="text-muted-foreground mt-1">Monitor and track workflow execution history</p>
         </div>
         <Button onClick={fetchExecutions}>
           <Play className="w-4 h-4 mr-2" />
@@ -119,12 +119,12 @@ export const WorkflowExecutions = () => {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
           placeholder="Search executions..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
+          className="pl-10 bg-background"
         />
       </div>
 
@@ -137,53 +137,53 @@ export const WorkflowExecutions = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     {getStatusIcon(execution.status)}
-                    <h3 className="text-lg font-semibold">
+                    <h3 className="text-lg font-semibold text-foreground">
                       {execution.workflow?.name || 'Unknown Workflow'}
                     </h3>
-                    <Badge className={getStatusColor(execution.status)}>
+                    <Badge variant="outline" className={getStatusColor(execution.status)}>
                       {execution.status}
                     </Badge>
                   </div>
                   
-                  <p className="text-sm text-gray-600 mb-3">
+                  <p className="text-sm text-muted-foreground mb-3">
                     {execution.workflow?.description || 'No description'}
                   </p>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-500">Started:</span>
-                      <div className="font-medium">
+                      <span className="text-muted-foreground">Started:</span>
+                      <div className="font-medium text-foreground">
                         {format(new Date(execution.started_at), 'MMM dd, HH:mm')}
                       </div>
                     </div>
                     
                     <div>
-                      <span className="text-gray-500">Duration:</span>
-                      <div className="font-medium">
+                      <span className="text-muted-foreground">Duration:</span>
+                      <div className="font-medium text-foreground">
                         {formatDuration(execution.duration_ms)}
                       </div>
                     </div>
                     
                     {execution.completed_at && (
                       <div>
-                        <span className="text-gray-500">Completed:</span>
-                        <div className="font-medium">
+                        <span className="text-muted-foreground">Completed:</span>
+                        <div className="font-medium text-foreground">
                           {format(new Date(execution.completed_at), 'MMM dd, HH:mm')}
                         </div>
                       </div>
                     )}
                     
                     <div>
-                      <span className="text-gray-500">Execution ID:</span>
-                      <div className="font-medium font-mono text-xs">
+                      <span className="text-muted-foreground">Execution ID:</span>
+                      <div className="font-medium font-mono text-xs text-foreground">
                         {execution.id.slice(0, 8)}...
                       </div>
                     </div>
                   </div>
                   
                   {execution.error_message && (
-                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
-                      <span className="text-sm text-red-800">
+                    <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                      <span className="text-sm text-destructive">
                         <strong>Error:</strong> {execution.error_message}
                       </span>
                     </div>
@@ -203,9 +203,9 @@ export const WorkflowExecutions = () => {
 
       {filteredExecutions.length === 0 && (
         <div className="text-center py-12">
-          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No executions found</h3>
-          <p className="text-gray-600">
+          <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No executions found</h3>
+          <p className="text-muted-foreground">
             {searchTerm ? 'Try adjusting your search terms' : 'Execute some workflows to see their history here'}
           </p>
         </div>

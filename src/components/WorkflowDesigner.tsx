@@ -223,12 +223,12 @@ export const WorkflowDesigner = () => {
       {/* Main Designer */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-background to-primary/5 border-b px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="border-b bg-background px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
               {workflow?.name || 'New Workflow'}
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground mt-1">
               {workflow?.description || 'Design your automated workflow'}
             </p>
           </div>
@@ -236,7 +236,6 @@ export const WorkflowDesigner = () => {
             {workflow && (
               <Badge 
                 variant={workflow.status === 'active' ? 'default' : 'secondary'}
-                className={workflow.status === 'active' ? 'bg-green-500' : ''}
               >
                 {workflow.status}
               </Badge>
@@ -245,7 +244,7 @@ export const WorkflowDesigner = () => {
               <Button 
                 variant="outline" 
                 onClick={deleteSelectedNodes}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="text-destructive hover:bg-destructive/10"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete ({selectedNodes.length})
@@ -255,7 +254,7 @@ export const WorkflowDesigner = () => {
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Saving...' : 'Save'}
             </Button>
-            <Button onClick={() => console.log('Execute workflow')} className="bg-gradient-to-r from-primary to-primary/80">
+            <Button onClick={() => console.log('Execute workflow')}>
               <Play className="w-4 h-4 mr-2" />
               Execute
             </Button>
@@ -263,7 +262,7 @@ export const WorkflowDesigner = () => {
         </div>
 
         {/* Flow Canvas */}
-        <div className="flex-1 bg-gradient-to-br from-background via-primary/5 to-background">
+        <div className="flex-1 bg-muted/20">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -277,9 +276,9 @@ export const WorkflowDesigner = () => {
             deleteKeyCode="Delete"
             className="workflow-canvas"
           >
-            <Controls className="bg-background border rounded-lg shadow-lg" />
+            <Controls className="bg-card border rounded-lg shadow-md" />
             <MiniMap 
-              className="bg-background border rounded-lg shadow-lg" 
+              className="bg-card border rounded-lg shadow-md" 
               nodeColor={(node) => {
                 if (node.selected) return 'hsl(var(--primary))';
                 switch (node.data.nodeType) {
@@ -293,13 +292,13 @@ export const WorkflowDesigner = () => {
                 }
               }}
             />
-            <Background gap={16} size={1} className="opacity-30" />
+            <Background gap={16} size={1} color="hsl(var(--muted-foreground) / 0.15)" />
           </ReactFlow>
         </div>
       </div>
 
       {/* Toolbox Sidebar */}
-      <div className="w-80 bg-background border-l shadow-lg overflow-hidden">
+      <div className="w-80 bg-background border-l overflow-hidden">
         <WorkflowToolbox onAddNode={handleAddNodeRequestWithComponentType} />
       </div>
 

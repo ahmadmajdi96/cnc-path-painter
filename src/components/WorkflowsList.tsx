@@ -129,12 +129,12 @@ export const WorkflowsList = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'error': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-500/10 text-green-700 border-green-200';
+      case 'paused': return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
+      case 'draft': return 'bg-muted text-muted-foreground border-border';
+      case 'error': return 'bg-red-500/10 text-red-700 border-red-200';
+      case 'completed': return 'bg-blue-500/10 text-blue-700 border-blue-200';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -151,12 +151,12 @@ export const WorkflowsList = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-background">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Workflows</h1>
-          <p className="text-gray-600">Create and manage automated workflows</p>
+          <h1 className="text-3xl font-bold text-foreground">Workflows</h1>
+          <p className="text-muted-foreground mt-1">Create and manage automated workflows</p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -166,12 +166,12 @@ export const WorkflowsList = () => {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
           placeholder="Search workflows..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
+          className="pl-10 bg-background"
         />
       </div>
 
@@ -182,10 +182,10 @@ export const WorkflowsList = () => {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-lg font-semibold">{workflow.name}</CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">{workflow.description}</p>
+                  <CardTitle className="text-lg font-semibold text-foreground">{workflow.name}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">{workflow.description}</p>
                 </div>
-                <Badge className={getStatusColor(workflow.status)}>
+                <Badge variant="outline" className={getStatusColor(workflow.status)}>
                   {workflow.status}
                 </Badge>
               </div>
@@ -195,12 +195,12 @@ export const WorkflowsList = () => {
               {/* Stats */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">Runs: {workflow.run_count || 0}</span>
+                  <Activity className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground">Runs: {workflow.run_count || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground">
                     Success: {workflow.success_count || 0}
                   </span>
                 </div>
@@ -208,7 +208,7 @@ export const WorkflowsList = () => {
 
               {/* Trigger Type */}
               <div>
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Trigger: {workflow.trigger_type}
                 </span>
               </div>
@@ -226,7 +226,7 @@ export const WorkflowsList = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => toggleWorkflowStatus(workflow)}
-                  className={workflow.status === 'active' ? 'text-yellow-600' : 'text-green-600'}
+                  className={workflow.status === 'active' ? 'text-yellow-600 hover:bg-yellow-50' : 'text-green-600 hover:bg-green-50'}
                 >
                   {workflow.status === 'active' ? (
                     <>
@@ -245,7 +245,7 @@ export const WorkflowsList = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => deleteWorkflow(workflow.id)}
-                  className="text-red-600 hover:bg-red-50"
+                  className="text-destructive hover:bg-destructive/10"
                 >
                   <Trash2 className="w-3 h-3" />
                 </Button>
@@ -257,9 +257,9 @@ export const WorkflowsList = () => {
 
       {filteredWorkflows.length === 0 && (
         <div className="text-center py-12">
-          <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No workflows found</h3>
-          <p className="text-gray-600 mb-4">
+          <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No workflows found</h3>
+          <p className="text-muted-foreground mb-4">
             {searchTerm ? 'Try adjusting your search terms' : 'Create your first workflow to get started'}
           </p>
           {!searchTerm && (
