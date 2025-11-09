@@ -62,28 +62,8 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
                   <Badge variant={automation.enabled ? 'default' : 'secondary'}>
                     {automation.enabled ? 'Enabled' : 'Disabled'}
                   </Badge>
-                  {automation.category && (
-                    <Badge variant="outline" className="gap-1">
-                      <Tag className="h-3 w-3" />
-                      {automation.category}
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{automation.description}</p>
-                {automation.metadata && (
-                  <div className="flex gap-2 text-xs text-muted-foreground mb-2">
-                    {automation.metadata.complexityLevel && (
-                      <span className="bg-muted px-2 py-1 rounded">
-                        {automation.metadata.complexityLevel.charAt(0).toUpperCase() + automation.metadata.complexityLevel.slice(1)}
-                      </span>
-                    )}
-                    {automation.metadata.returnType && (
-                      <span className="bg-muted px-2 py-1 rounded">
-                        Returns: {automation.metadata.returnType}
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
               
               <div className="flex gap-2">
@@ -142,7 +122,7 @@ export const AutomationList = ({ automations, onEdit, onDelete, onToggle }: Auto
               <div className="bg-muted/30 p-2 rounded">
                 <p className="font-medium mb-1">Automation Outputs: {automation.outputParameters.length}</p>
                 {automation.outputParameters.slice(0, 2).map(param => (
-                  <p key={param.id} className="text-muted-foreground truncate">• {param.name} ({param.type})</p>
+                  <p key={param.id} className="text-muted-foreground truncate">• Output {param.type}</p>
                 ))}
                 {automation.outputParameters.length > 2 && <p className="text-muted-foreground">+{automation.outputParameters.length - 2} more</p>}
               </div>

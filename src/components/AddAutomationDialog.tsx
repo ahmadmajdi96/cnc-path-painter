@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AutomationVisualFlow } from './AutomationVisualFlow';
 import { OperationTemplateDialog } from './OperationTemplateDialog';
 import { OperationTestDialog } from './OperationTestDialog';
-import type { Automation, AutomationOperation, AutomationParameter, OperationInputMapping, EnvironmentVariable } from './AutomationControlSystem';
+import type { Automation, AutomationOperation, AutomationParameter, OperationInputMapping, DynamicOutputParameter } from './AutomationControlSystem';
 import { toast } from 'sonner';
 
 interface AddAutomationDialogProps {
@@ -35,15 +35,15 @@ const mockTables: Record<string, string[]> = {
 export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, onOpenChange, onAdd }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
   const [enabled, setEnabled] = useState(true);
   const [operations, setOperations] = useState<AutomationOperation[]>([]);
   const [inputParameters, setInputParameters] = useState<AutomationParameter[]>([]);
-  const [outputParameters, setOutputParameters] = useState<AutomationParameter[]>([]);
-  const [environmentVariables, setEnvironmentVariables] = useState<EnvironmentVariable[]>([]);
-  const [returnType, setReturnType] = useState('');
-  const [complexityLevel, setComplexityLevel] = useState<'simple' | 'intermediate' | 'advanced'>('simple');
-  const [preferredLibraries, setPreferredLibraries] = useState<string>('');
+  const [outputParameters, setOutputParameters] = useState<DynamicOutputParameter[]>([]);
+  const [onFailureAction, setOnFailureAction] = useState<'retry' | 'fail' | 'goto_operation' | 'goto_integration'>('fail');
+  const [failureRetryCount, setFailureRetryCount] = useState(3);
+  const [failureRetryDelay, setFailureRetryDelay] = useState(5);
+  const [failureTargetOperationId, setFailureTargetOperationId] = useState<string>('');
+  const [failureTargetIntegrationId, setFailureTargetIntegrationId] = useState<string>('');
   
   // Problem 2: Visual flow representation
   const [viewMode, setViewMode] = useState<'list' | 'visual'>('list');
@@ -70,16 +70,16 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
     onAdd({
       name,
       description,
-      category,
       enabled,
       operations,
       inputParameters,
       outputParameters,
-      environmentVariables,
-      metadata: {
-        returnType: returnType || undefined,
-        complexityLevel,
-        preferredLibraries: preferredLibraries ? preferredLibraries.split(',').map(lib => lib.trim()) : []
+      onFailure: {
+        action: onFailureAction,
+        retryCount: onFailureAction === 'retry' ? failureRetryCount : undefined,
+        retryDelay: onFailureAction === 'retry' ? failureRetryDelay : undefined,
+        targetOperationId: onFailureAction === 'goto_operation' ? failureTargetOperationId : undefined,
+        targetIntegrationId: onFailureAction === 'goto_integration' ? failureTargetIntegrationId : undefined
       }
     });
 
@@ -90,15 +90,15 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
   const resetForm = () => {
     setName('');
     setDescription('');
-    setCategory('');
     setEnabled(true);
     setOperations([]);
     setInputParameters([]);
     setOutputParameters([]);
-    setEnvironmentVariables([]);
-    setReturnType('');
-    setComplexityLevel('simple');
-    setPreferredLibraries('');
+    setOnFailureAction('fail');
+    setFailureRetryCount(3);
+    setFailureRetryDelay(5);
+    setFailureTargetOperationId('');
+    setFailureTargetIntegrationId('');
   };
 
   const addOperation = () => {
@@ -107,12 +107,11 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
       order: operations.length + 1,
       type: 'crud_operation',
       name: `Operation ${operations.length + 1}`,
-      description: '', // Problem 7
+      description: '',
       config: {},
       inputMappings: [],
-      environmentVariables: [],
       outputParameters: [],
-      validationStatus: 'untested' // Problem 3
+      validationStatus: 'untested'
     };
     setOperations([...operations, newOperation]);
   };
@@ -199,7 +198,6 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
 
     const newMapping: OperationInputMapping = {
       id: Math.random().toString(36).substr(2, 9),
-      targetParameter: '',
       source: 'automation_input',
       sourceParameter: ''
     };
@@ -228,39 +226,10 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
   };
 
   // Operation Environment Variables
-  const addOperationEnvVar = (operationId: string) => {
-    const operation = operations.find(op => op.id === operationId);
-    if (!operation) return;
-
-    const newEnvVar: EnvironmentVariable = {
-      id: Math.random().toString(36).substr(2, 9),
-      key: '',
-      value: '',
-      description: ''
-    };
-
-    updateOperation(operationId, {
-      environmentVariables: [...operation.environmentVariables, newEnvVar]
-    });
-  };
-
-  const updateOperationEnvVar = (operationId: string, envId: string, updates: Partial<EnvironmentVariable>) => {
-    const operation = operations.find(op => op.id === operationId);
-    if (!operation) return;
-
-    updateOperation(operationId, {
-      environmentVariables: operation.environmentVariables.map(e => e.id === envId ? { ...e, ...updates } : e)
-    });
-  };
-
-  const removeOperationEnvVar = (operationId: string, envId: string) => {
-    const operation = operations.find(op => op.id === operationId);
-    if (!operation) return;
-
-    updateOperation(operationId, {
-      environmentVariables: operation.environmentVariables.filter(e => e.id !== envId)
-    });
-  };
+  // Operation Environment Variables - removed per requirements
+  const addOperationEnvVar = (operationId: string) => {};
+  const updateOperationEnvVar = (operationId: string, envId: string, updates: any) => {};
+  const removeOperationEnvVar = (operationId: string, envId: string) => {};
 
   // Operation Output Parameters
   const addOperationOutputParameter = (operationId: string) => {
@@ -322,42 +291,20 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
 
   // Automation Output Parameters
   const addOutputParameter = () => {
-    const newParam: AutomationParameter = {
+    const newParam: DynamicOutputParameter = {
       id: Math.random().toString(36).substr(2, 9),
-      name: '',
-      type: 'string',
-      required: false,
-      description: '',
-      exampleValue: ''
+      type: 'boolean',
+      booleanValue: true
     };
     setOutputParameters([...outputParameters, newParam]);
   };
 
-  const updateOutputParameter = (id: string, updates: Partial<AutomationParameter>) => {
+  const updateOutputParameter = (id: string, updates: Partial<DynamicOutputParameter>) => {
     setOutputParameters(outputParameters.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
   const removeOutputParameter = (id: string) => {
     setOutputParameters(outputParameters.filter(p => p.id !== id));
-  };
-
-  // Automation Environment Variables
-  const addEnvironmentVariable = () => {
-    const newEnvVar: EnvironmentVariable = {
-      id: Math.random().toString(36).substr(2, 9),
-      key: '',
-      value: '',
-      description: ''
-    };
-    setEnvironmentVariables([...environmentVariables, newEnvVar]);
-  };
-
-  const updateEnvironmentVariable = (id: string, updates: Partial<EnvironmentVariable>) => {
-    setEnvironmentVariables(environmentVariables.map(e => e.id === id ? { ...e, ...updates } : e));
-  };
-
-  const removeEnvironmentVariable = (id: string) => {
-    setEnvironmentVariables(environmentVariables.filter(e => e.id !== id));
   };
 
   // CRUD Conditions
@@ -492,16 +439,6 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="category">Category / Tag</Label>
-                    <Input
-                      id="category"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      placeholder="e.g., Data Processing, AI, API Integration"
-                      className="w-full"
-                    />
-                  </div>
                 </div>
 
                 <div>
@@ -524,64 +461,6 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
             </Card>
 
             <Separator />
-
-            {/* 2. Environment Variables */}
-            <Card className="border-2 border-primary/20">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</span>
-                    Environment Variables
-                  </CardTitle>
-                  <Button type="button" variant="outline" size="sm" onClick={addEnvironmentVariable}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Variable
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">Define reusable variables like API keys, tokens, and global settings</p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-
-                {environmentVariables.map((envVar) => (
-                  <div key={envVar.id} className="border rounded-lg p-3 space-y-3 bg-muted/30">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div>
-                        <Label className="text-xs">Key</Label>
-                        <Input
-                          className="w-full h-8"
-                          value={envVar.key}
-                          onChange={(e) => updateEnvironmentVariable(envVar.id, { key: e.target.value })}
-                          placeholder="API_KEY"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Value</Label>
-                        <Input
-                          className="w-full h-8"
-                          value={envVar.value}
-                          onChange={(e) => updateEnvironmentVariable(envVar.id, { value: e.target.value })}
-                          placeholder="your-api-key-here"
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <Button variant="ghost" size="sm" onClick={() => removeEnvironmentVariable(envVar.id)} className="w-full md:w-auto h-8">
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-xs">Description</Label>
-                      <Input
-                        className="h-8"
-                        value={envVar.description || ''}
-                        onChange={(e) => updateEnvironmentVariable(envVar.id, { description: e.target.value })}
-                        placeholder="What is this variable for?"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
 
             <Separator />
 
@@ -794,7 +673,6 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                           <SelectItem value="data_transformation">Data Transformation</SelectItem>
                           <SelectItem value="messaging">Messaging (Email/Slack/SMS)</SelectItem>
                           <SelectItem value="conditional_logic">Conditional Logic Block</SelectItem>
-                          <SelectItem value="ai_model">AI Model Execution</SelectItem>
                           <SelectItem value="delay">Delay / Wait</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1489,58 +1367,6 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       </div>
                     )}
 
-                    {/* Problem 1: AI Model operation */}
-                    {operation.type === 'ai_model' && (
-                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>AI Model Type</Label>
-                            <Select value={operation.config.aiModelType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, aiModelType: value } })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select AI task" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="text_generation">Text Generation</SelectItem>
-                                <SelectItem value="image_analysis">Image Analysis</SelectItem>
-                                <SelectItem value="sentiment">Sentiment Analysis</SelectItem>
-                                <SelectItem value="classification">Classification</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>Provider</Label>
-                            <Select value={operation.config.aiModelProvider || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, aiModelProvider: value } })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select provider" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="openai">OpenAI</SelectItem>
-                                <SelectItem value="anthropic">Anthropic</SelectItem>
-                                <SelectItem value="google">Google</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Model Name</Label>
-                          <Input
-                            value={operation.config.aiModelName || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, aiModelName: e.target.value } })}
-                            placeholder="gpt-4, claude-3, gemini-pro"
-                          />
-                        </div>
-                        <div>
-                          <Label>Prompt</Label>
-                          <Textarea
-                            value={operation.config.aiPrompt || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, aiPrompt: e.target.value } })}
-                            placeholder="Enter your AI prompt here"
-                            rows={4}
-                          />
-                        </div>
-                      </div>
-                    )}
-
                     {/* Problem 1: Delay operation */}
                     {operation.type === 'delay' && (
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
@@ -1583,20 +1409,13 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       <div className="space-y-2">
                         {operation.inputMappings.map((mapping) => (
                           <div key={mapping.id} className="flex gap-2 items-center bg-background p-2 rounded">
-                            <Input
-                              value={mapping.targetParameter}
-                              onChange={(e) => updateInputMapping(operation.id, mapping.id, { targetParameter: e.target.value })}
-                              placeholder="Target parameter"
-                              className="flex-1"
-                            />
                             <Select value={mapping.source} onValueChange={(value: any) => updateInputMapping(operation.id, mapping.id, { source: value, sourceParameter: '', sourceOperationId: undefined })}>
                               <SelectTrigger className="w-48">
-                                <SelectValue />
+                                <SelectValue placeholder="Select source" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="automation_input">Automation Input</SelectItem>
                                 <SelectItem value="previous_operation">Previous Operation</SelectItem>
-                                <SelectItem value="environment">Environment Variable</SelectItem>
                               </SelectContent>
                             </Select>
                             {mapping.source === 'automation_input' && (
@@ -1637,51 +1456,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                 )}
                               </>
                             )}
-                            {mapping.source === 'environment' && (
-                              <Select value={mapping.sourceParameter || undefined} onValueChange={(value) => updateInputMapping(operation.id, mapping.id, { sourceParameter: value })}>
-                                <SelectTrigger className="flex-1">
-                                  <SelectValue placeholder="Select env var" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {[...environmentVariables, ...operation.environmentVariables].filter(env => env.key.trim()).map(env => (
-                                    <SelectItem key={env.id} value={env.key}>{env.key}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
                             <Button type="button" variant="ghost" size="sm" onClick={() => removeInputMapping(operation.id, mapping.id)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Operation Environment Variables */}
-                    <div className="border-t pt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-sm font-semibold">Operation Environment Variables</Label>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => addOperationEnvVar(operation.id)}>
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add Variable
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        {operation.environmentVariables.map((envVar) => (
-                          <div key={envVar.id} className="flex gap-2 items-center bg-background p-2 rounded">
-                            <Input
-                              value={envVar.key}
-                              onChange={(e) => updateOperationEnvVar(operation.id, envVar.id, { key: e.target.value })}
-                              placeholder="KEY"
-                              className="flex-1"
-                            />
-                            <Input
-                              value={envVar.value}
-                              onChange={(e) => updateOperationEnvVar(operation.id, envVar.id, { value: e.target.value })}
-                              placeholder="value"
-                              className="flex-1"
-                            />
-                            <Button type="button" variant="ghost" size="sm" onClick={() => removeOperationEnvVar(operation.id, envVar.id)}>
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1872,16 +1647,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
               <CardContent className="space-y-3">
                 {outputParameters.map((param) => (
                   <div key={param.id} className="border rounded-lg p-3 space-y-3 bg-muted/30">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                      <div>
-                        <Label className="text-xs">Name *</Label>
-                        <Input
-                          className="w-full h-8"
-                          value={param.name}
-                          onChange={(e) => updateOutputParameter(param.id, { name: e.target.value })}
-                          placeholder="summary_report"
-                        />
-                      </div>
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label className="text-xs">Type</Label>
                         <Select value={param.type} onValueChange={(value: any) => updateOutputParameter(param.id, { type: value })}>
@@ -1889,45 +1655,29 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="string">String</SelectItem>
-                            <SelectItem value="number">Number</SelectItem>
-                            <SelectItem value="boolean">Boolean</SelectItem>
-                            <SelectItem value="object">Object</SelectItem>
-                            <SelectItem value="array">Array</SelectItem>
-                            <SelectItem value="list">List</SelectItem>
-                            <SelectItem value="dict">Dict</SelectItem>
-                            <SelectItem value="file">File</SelectItem>
+                            <SelectItem value="boolean">Boolean (True/False)</SelectItem>
+                            <SelectItem value="from_operations">From Previous Operations</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Description</Label>
-                        <Input
-                          className="h-8"
-                          value={param.description || ''}
-                          onChange={(e) => updateOutputParameter(param.id, { description: e.target.value })}
-                          placeholder="What this output contains"
-                        />
-                      </div>
+                      {param.type === 'boolean' && (
+                        <div>
+                          <Label className="text-xs">Value</Label>
+                          <Select value={param.booleanValue?.toString()} onValueChange={(value) => updateOutputParameter(param.id, { booleanValue: value === 'true' })}>
+                            <SelectTrigger className="w-full h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="true">True</SelectItem>
+                              <SelectItem value="false">False</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="flex items-end">
                         <Button variant="ghost" size="sm" onClick={() => removeOutputParameter(param.id)} className="w-full md:w-auto h-8">
                           <X className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Example Value</Label>
-                        <Input
-                          className="h-8"
-                          value={param.exampleValue || ''}
-                          onChange={(e) => updateOutputParameter(param.id, { exampleValue: e.target.value })}
-                          placeholder='{"status": "success", "count": 42}'
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch checked={param.required} onCheckedChange={(checked) => updateOutputParameter(param.id, { required: checked })} />
-                        <Label className="text-xs">Required</Label>
                       </div>
                     </div>
                   </div>

@@ -24,14 +24,12 @@ interface EditAutomationDialogProps {
 export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }: EditAutomationDialogProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
   const [enabled, setEnabled] = useState(true);
 
   useEffect(() => {
     if (automation) {
       setName(automation.name);
       setDescription(automation.description || '');
-      setCategory(automation.category || '');
       setEnabled(automation.enabled);
     }
   }, [automation]);
@@ -43,7 +41,6 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
       ...automation,
       name: name.trim(),
       description: description.trim(),
-      category: category.trim(),
       enabled,
       updatedAt: new Date().toISOString()
     };
@@ -62,25 +59,14 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter automation name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="category">Category / Tag</Label>
-              <Input
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g., Data Processing"
-              />
-            </div>
+          <div>
+            <Label htmlFor="name">Name *</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter automation name"
+            />
           </div>
 
           <div>
@@ -108,16 +94,6 @@ export const EditAutomationDialog = ({ automation, open, onOpenChange, onSave }:
               <p><strong>Operations:</strong> {automation.operations.length}</p>
               <p><strong>Input Parameters:</strong> {automation.inputParameters.length}</p>
               <p><strong>Output Parameters:</strong> {automation.outputParameters.length}</p>
-              <p><strong>Environment Variables:</strong> {automation.environmentVariables.length}</p>
-              {automation.metadata && (
-                <>
-                  {automation.metadata.returnType && <p><strong>Return Type:</strong> {automation.metadata.returnType}</p>}
-                  {automation.metadata.complexityLevel && <p><strong>Complexity:</strong> {automation.metadata.complexityLevel}</p>}
-                  {automation.metadata.preferredLibraries && automation.metadata.preferredLibraries.length > 0 && (
-                    <p><strong>Libraries:</strong> {automation.metadata.preferredLibraries.join(', ')}</p>
-                  )}
-                </>
-              )}
             </div>
           </div>
         </div>

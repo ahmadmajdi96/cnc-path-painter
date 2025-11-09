@@ -19,17 +19,9 @@ export interface AutomationParameter {
   defaultValue?: any;
 }
 
-export interface EnvironmentVariable {
-  id: string;
-  key: string;
-  value: string;
-  description?: string;
-}
-
 export interface OperationInputMapping {
   id: string;
-  targetParameter: string;
-  source: 'automation_input' | 'previous_operation' | 'environment';
+  source: 'automation_input' | 'previous_operation';
   sourceParameter: string;
   sourceOperationId?: string;
 }
@@ -37,11 +29,10 @@ export interface OperationInputMapping {
 export interface AutomationOperation {
   id: string;
   order: number;
-  type: 'crud_operation' | 'file_operation' | 'logic_conditions' | 'run_script' | 'http_request' | 'data_transformation' | 'messaging' | 'conditional_logic' | 'ai_model' | 'delay';
+  type: 'crud_operation' | 'file_operation' | 'logic_conditions' | 'run_script' | 'http_request' | 'data_transformation' | 'messaging' | 'conditional_logic' | 'delay';
   name: string;
-  description?: string; // Problem 7: Operation description
+  description?: string;
   inputMappings: OperationInputMapping[];
-  environmentVariables: EnvironmentVariable[];
   
   // Problem 9: Conditional execution per operation
   runCondition?: {
@@ -49,7 +40,7 @@ export interface AutomationOperation {
     field: string;
     operator: '==' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'exists';
     value: string;
-    source: 'automation_input' | 'previous_operation' | 'environment';
+    source: 'automation_input' | 'previous_operation';
     sourceOperationId?: string;
   };
   
@@ -108,12 +99,6 @@ export interface AutomationOperation {
     messagingSubject?: string;
     messagingBody?: string;
     
-    // AI Model operation (Problem 1)
-    aiModelType?: 'text_generation' | 'image_analysis' | 'sentiment' | 'classification';
-    aiModelProvider?: 'openai' | 'anthropic' | 'google';
-    aiModelName?: string;
-    aiPrompt?: string;
-    
     // Delay operation (Problem 1)
     delayDuration?: number;
     delayUnit?: 'seconds' | 'minutes' | 'hours';
@@ -153,8 +138,9 @@ export interface AutomationOperation {
     label?: string;
   };
   onFailure?: {
-    action: 'continue' | 'goto' | 'end' | 'retry' | 'compensate' | 'alert';
+    action: 'continue' | 'goto' | 'end' | 'retry' | 'compensate' | 'alert' | 'goto_integration';
     targetOperationId?: string;
+    targetIntegrationId?: string;
     retryCount?: number;
     retryDelay?: number; // in seconds
     compensatingOperationId?: string;
@@ -171,20 +157,30 @@ export interface AutomationOperation {
   validationMessage?: string;
 }
 
+export interface DynamicOutputParameter {
+  id: string;
+  type: 'boolean' | 'from_operations';
+  booleanValue?: boolean;
+  selectedOperations?: {
+    operationId: string;
+    outputParameterId: string;
+  }[];
+}
+
 export interface Automation {
   id: string;
   name: string;
   description?: string;
-  category?: string;
   enabled: boolean;
   operations: AutomationOperation[];
   inputParameters: AutomationParameter[];
-  outputParameters: AutomationParameter[];
-  environmentVariables: EnvironmentVariable[];
-  metadata?: {
-    returnType?: string;
-    complexityLevel?: 'simple' | 'intermediate' | 'advanced';
-    preferredLibraries?: string[];
+  outputParameters: DynamicOutputParameter[];
+  onFailure?: {
+    action: 'retry' | 'fail' | 'goto_operation' | 'goto_integration';
+    targetOperationId?: string;
+    targetIntegrationId?: string;
+    retryCount?: number;
+    retryDelay?: number;
   };
   createdAt: string;
   updatedAt: string;
@@ -196,7 +192,6 @@ export const AutomationControlSystem = () => {
       id: '1',
       name: 'Data Sync Workflow',
       description: 'Syncs data between databases',
-      category: 'Data Processing',
       enabled: true,
       operations: [
         {
@@ -207,12 +202,10 @@ export const AutomationControlSystem = () => {
           inputMappings: [
             { 
               id: 'im1',
-              targetParameter: 'status_filter', 
               source: 'automation_input', 
               sourceParameter: 'filter_status' 
             }
           ],
-          environmentVariables: [],
           config: {
             operation: 'read',
             database: 'production_db',
@@ -235,13 +228,11 @@ export const AutomationControlSystem = () => {
           inputMappings: [
             { 
               id: 'im2',
-              targetParameter: 'data', 
               source: 'previous_operation', 
               sourceParameter: 'orders', 
               sourceOperationId: 'op1' 
             }
           ],
-          environmentVariables: [],
           config: {
             operation: 'create',
             database: 'archive_db',
@@ -256,16 +247,18 @@ export const AutomationControlSystem = () => {
         { id: 'p2', name: 'date_from', type: 'string', required: true, exampleValue: '2024-01-01' }
       ],
       outputParameters: [
-        { id: 'out1', name: 'synced_count', type: 'number', required: true, exampleValue: '150' },
-        { id: 'out2', name: 'status', type: 'string', required: true, exampleValue: 'success' }
+        { 
+          id: 'out1', 
+          type: 'from_operations',
+          selectedOperations: [
+            { operationId: 'op2', outputParameterId: 'result' }
+          ]
+        }
       ],
-      environmentVariables: [
-        { id: 'env1', key: 'DB_CONNECTION_STRING', value: 'postgresql://localhost:5432', description: 'Database connection' }
-      ],
-      metadata: {
-        returnType: 'dict',
-        complexityLevel: 'intermediate',
-        preferredLibraries: ['psycopg2', 'pandas']
+      onFailure: {
+        action: 'retry',
+        retryCount: 3,
+        retryDelay: 5
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

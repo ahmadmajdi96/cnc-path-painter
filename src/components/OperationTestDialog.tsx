@@ -107,15 +107,6 @@ export const OperationTestDialog: React.FC<OperationTestDialogProps> = ({
         }
         break;
 
-      case 'ai_model':
-        if (!operation.config.aiModelType || !operation.config.aiPrompt) {
-          isValid = false;
-          message = 'Missing AI model type or prompt';
-        } else {
-          message = `AI model operation validated: ${operation.config.aiModelType}`;
-        }
-        break;
-
       case 'delay':
         if (!operation.config.delayDuration || !operation.config.delayUnit) {
           isValid = false;
