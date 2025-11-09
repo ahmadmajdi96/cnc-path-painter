@@ -6,11 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { X, Plus, Database, FileText, Calculator, GitBranch, ArrowRight, Settings } from 'lucide-react';
+import { X, Plus, Database, FileText, Calculator, GitBranch, ArrowRight, Settings, Globe, Repeat, Mail, Brain, Clock, Copy, Save, TestTube2, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AutomationVisualFlow } from './AutomationVisualFlow';
+import { OperationTemplateDialog } from './OperationTemplateDialog';
+import { OperationTestDialog } from './OperationTestDialog';
 import type { Automation, AutomationOperation, AutomationParameter, OperationInputMapping, EnvironmentVariable } from './AutomationControlSystem';
+import { toast } from 'sonner';
 
 interface AddAutomationDialogProps {
   open: boolean;
@@ -39,6 +44,17 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
   const [returnType, setReturnType] = useState('');
   const [complexityLevel, setComplexityLevel] = useState<'simple' | 'intermediate' | 'advanced'>('simple');
   const [preferredLibraries, setPreferredLibraries] = useState<string>('');
+  
+  // Problem 2: Visual flow representation
+  const [viewMode, setViewMode] = useState<'list' | 'visual'>('list');
+  
+  // Problem 10: Templates
+  const [operationTemplates, setOperationTemplates] = useState<AutomationOperation[]>([]);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  
+  // Problem 3: Testing
+  const [testingOperation, setTestingOperation] = useState<AutomationOperation | null>(null);
+  const [showTestDialog, setShowTestDialog] = useState(false);
 
   const handleSubmit = () => {
     if (!name) {
@@ -91,12 +107,81 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
       order: operations.length + 1,
       type: 'crud_operation',
       name: `Operation ${operations.length + 1}`,
+      description: '', // Problem 7
       config: {},
       inputMappings: [],
       environmentVariables: [],
-      outputParameters: []
+      outputParameters: [],
+      validationStatus: 'untested' // Problem 3
     };
     setOperations([...operations, newOperation]);
+  };
+
+  // Problem 10: Clone operation
+  const cloneOperation = (operationId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+    
+    const clonedOperation: AutomationOperation = {
+      ...JSON.parse(JSON.stringify(operation)), // Deep clone
+      id: Math.random().toString(36).substr(2, 9),
+      order: operations.length + 1,
+      name: `${operation.name} (Copy)`,
+      validationStatus: 'untested'
+    };
+    setOperations([...operations, clonedOperation]);
+    toast.success('Operation cloned successfully');
+  };
+
+  // Problem 10: Save as template
+  const saveAsTemplate = (operationId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+    
+    const templateName = prompt('Enter template name:', operation.name);
+    if (!templateName) return;
+    
+    const template: AutomationOperation = {
+      ...JSON.parse(JSON.stringify(operation)),
+      id: Math.random().toString(36).substr(2, 9),
+      isTemplate: true,
+      templateName,
+      order: 0
+    };
+    setOperationTemplates([...operationTemplates, template]);
+    toast.success('Template saved successfully');
+  };
+
+  // Problem 10: Load from template
+  const loadFromTemplate = (template: AutomationOperation) => {
+    const newOperation: AutomationOperation = {
+      ...JSON.parse(JSON.stringify(template)),
+      id: Math.random().toString(36).substr(2, 9),
+      order: operations.length + 1,
+      isTemplate: false,
+      templateName: undefined,
+      validationStatus: 'untested'
+    };
+    setOperations([...operations, newOperation]);
+    toast.success('Template loaded successfully');
+  };
+
+  // Problem 3: Test operation
+  const testOperation = (operationId: string) => {
+    const operation = operations.find(op => op.id === operationId);
+    if (!operation) return;
+    
+    setTestingOperation(operation);
+    setShowTestDialog(true);
+  };
+
+  // Problem 3: Handle validation result
+  const handleValidationComplete = (operationId: string, isValid: boolean, message: string) => {
+    setOperations(operations.map(op => 
+      op.id === operationId 
+        ? { ...op, validationStatus: isValid ? 'valid' : 'invalid', validationMessage: message } 
+        : op
+    ));
   };
 
   const updateOperation = (id: string, updates: Partial<AutomationOperation>) => {
@@ -355,6 +440,18 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
         return <FileText className="h-4 w-4" />;
       case 'logic_conditions':
         return <GitBranch className="h-4 w-4" />;
+      case 'run_script':
+        return <Calculator className="h-4 w-4" />;
+      case 'http_request':
+        return <Globe className="h-4 w-4" />;
+      case 'data_transformation':
+        return <Repeat className="h-4 w-4" />;
+      case 'messaging':
+        return <Mail className="h-4 w-4" />;
+      case 'ai_model':
+        return <Brain className="h-4 w-4" />;
+      case 'delay':
+        return <Clock className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
@@ -579,16 +676,39 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                     <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</span>
                     Operations (Sequential Logic)
                   </CardTitle>
-                  <Button type="button" variant="outline" size="sm" onClick={addOperation}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Operation
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowTemplateDialog(true)}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Load Template
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={addOperation}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Operation
+                    </Button>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">Add sequential steps that the automation performs</p>
               </CardHeader>
               <CardContent className="space-y-4">
-
-              {operations.map((operation, index) => (
+                {/* Problem 2: Visual Flow Toggle */}
+                <Tabs value={viewMode} onValueChange={(value: any) => setViewMode(value)}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="list">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Detailed View
+                    </TabsTrigger>
+                    <TabsTrigger value="visual">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Visual Flow
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="visual" className="mt-4">
+                    <AutomationVisualFlow operations={operations} />
+                  </TabsContent>
+                  
+                  <TabsContent value="list" className="mt-4 space-y-4">
+                    {operations.map((operation, index) => (
                 <Card key={operation.id} className="border-2">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -604,12 +724,57 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Operation Name */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Operation Name</Label>
+                        <Input
+                          value={operation.name}
+                          onChange={(e) => updateOperation(operation.id, { name: e.target.value })}
+                          placeholder="Operation name"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => cloneOperation(operation.id)}
+                          className="flex-1"
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Clone
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => saveAsTemplate(operation.id)}
+                          className="flex-1"
+                        >
+                          <Save className="h-3 w-3 mr-1" />
+                          Template
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => testOperation(operation.id)}
+                          className="flex-1"
+                        >
+                          <TestTube2 className="h-3 w-3 mr-1" />
+                          Test
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Problem 7: Operation Description */}
                     <div>
-                      <Label>Operation Name</Label>
-                      <Input
-                        value={operation.name}
-                        onChange={(e) => updateOperation(operation.id, { name: e.target.value })}
-                        placeholder="Operation name"
+                      <Label>Description</Label>
+                      <Textarea
+                        value={operation.description || ''}
+                        onChange={(e) => updateOperation(operation.id, { description: e.target.value })}
+                        placeholder="Describe what this operation does"
+                        rows={2}
                       />
                     </div>
 
@@ -625,8 +790,136 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                           <SelectItem value="file_operation">File Operation</SelectItem>
                           <SelectItem value="logic_conditions">Logic & Conditions</SelectItem>
                           <SelectItem value="run_script">Run Script</SelectItem>
+                          <SelectItem value="http_request">HTTP/API Request</SelectItem>
+                          <SelectItem value="data_transformation">Data Transformation</SelectItem>
+                          <SelectItem value="messaging">Messaging (Email/Slack/SMS)</SelectItem>
+                          <SelectItem value="conditional_logic">Conditional Logic Block</SelectItem>
+                          <SelectItem value="ai_model">AI Model Execution</SelectItem>
+                          <SelectItem value="delay">Delay / Wait</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Problem 9: Conditional Execution */}
+                    <div className="border rounded-lg p-3 bg-blue-500/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold">Conditional Execution (Run If)</Label>
+                        <Switch
+                          checked={operation.runCondition?.enabled || false}
+                          onCheckedChange={(checked) => updateOperation(operation.id, {
+                            runCondition: checked ? {
+                              enabled: true,
+                              field: '',
+                              operator: '==',
+                              value: '',
+                              source: 'automation_input'
+                            } : undefined
+                          })}
+                        />
+                      </div>
+                      {operation.runCondition?.enabled && (
+                        <div className="grid grid-cols-4 gap-2">
+                          <Select 
+                            value={operation.runCondition.source} 
+                            onValueChange={(value: any) => updateOperation(operation.id, {
+                              runCondition: { ...operation.runCondition!, source: value, sourceOperationId: undefined }
+                            })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="automation_input">Input</SelectItem>
+                              <SelectItem value="previous_operation">Previous Op</SelectItem>
+                              <SelectItem value="environment">Env Var</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Field"
+                            value={operation.runCondition.field}
+                            onChange={(e) => updateOperation(operation.id, {
+                              runCondition: { ...operation.runCondition!, field: e.target.value }
+                            })}
+                          />
+                          <Select 
+                            value={operation.runCondition.operator} 
+                            onValueChange={(value: any) => updateOperation(operation.id, {
+                              runCondition: { ...operation.runCondition!, operator: value }
+                            })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="==">==</SelectItem>
+                              <SelectItem value="!=">!=</SelectItem>
+                              <SelectItem value=">">{">"}</SelectItem>
+                              <SelectItem value="<">{"<"}</SelectItem>
+                              <SelectItem value=">=">{"=>"}</SelectItem>
+                              <SelectItem value="<=">{"<="}</SelectItem>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="exists">exists</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Value"
+                            value={operation.runCondition.value}
+                            onChange={(e) => updateOperation(operation.id, {
+                              runCondition: { ...operation.runCondition!, value: e.target.value }
+                            })}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Problem 5: Iteration Support */}
+                    <div className="border rounded-lg p-3 bg-purple-500/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold">Iteration (Repeat For Each)</Label>
+                        <Switch
+                          checked={operation.iteration?.enabled || false}
+                          onCheckedChange={(checked) => updateOperation(operation.id, {
+                            iteration: checked ? {
+                              enabled: true,
+                              sourceArray: '',
+                              itemVariable: 'item',
+                              source: 'automation_input'
+                            } : undefined
+                          })}
+                        />
+                      </div>
+                      {operation.iteration?.enabled && (
+                        <div className="grid grid-cols-3 gap-2">
+                          <Select 
+                            value={operation.iteration.source} 
+                            onValueChange={(value: any) => updateOperation(operation.id, {
+                              iteration: { ...operation.iteration!, source: value, sourceOperationId: undefined }
+                            })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="automation_input">Input Array</SelectItem>
+                              <SelectItem value="previous_operation">Previous Op Array</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Array name"
+                            value={operation.iteration.sourceArray}
+                            onChange={(e) => updateOperation(operation.id, {
+                              iteration: { ...operation.iteration!, sourceArray: e.target.value }
+                            })}
+                          />
+                          <Input
+                            placeholder="Item variable"
+                            value={operation.iteration.itemVariable}
+                            onChange={(e) => updateOperation(operation.id, {
+                              iteration: { ...operation.iteration!, itemVariable: e.target.value }
+                            })}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Type-specific Configuration */}
@@ -1071,6 +1364,213 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       </div>
                     )}
 
+                    {/* Problem 1: HTTP Request operation */}
+                    {operation.type === 'http_request' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>HTTP Method</Label>
+                            <Select value={operation.config.httpRequestMethod || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, httpRequestMethod: value } })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select method" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="GET">GET</SelectItem>
+                                <SelectItem value="POST">POST</SelectItem>
+                                <SelectItem value="PUT">PUT</SelectItem>
+                                <SelectItem value="DELETE">DELETE</SelectItem>
+                                <SelectItem value="PATCH">PATCH</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Timeout (seconds)</Label>
+                            <Input
+                              type="number"
+                              value={operation.config.httpRequestTimeout || ''}
+                              onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, httpRequestTimeout: parseInt(e.target.value) } })}
+                              placeholder="30"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label>URL</Label>
+                          <Input
+                            value={operation.config.httpRequestUrl || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, httpRequestUrl: e.target.value } })}
+                            placeholder="https://api.example.com/endpoint"
+                          />
+                        </div>
+                        <div>
+                          <Label>Request Body (JSON)</Label>
+                          <Textarea
+                            value={operation.config.httpRequestBody || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, httpRequestBody: e.target.value } })}
+                            placeholder='{"key": "value"}'
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Problem 1: Data Transformation operation */}
+                    {operation.type === 'data_transformation' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div>
+                          <Label>Transformation Type</Label>
+                          <Select value={operation.config.transformationType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, transformationType: value } })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select transformation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="csv_to_json">CSV to JSON</SelectItem>
+                              <SelectItem value="json_to_csv">JSON to CSV</SelectItem>
+                              <SelectItem value="xml_to_json">XML to JSON</SelectItem>
+                              <SelectItem value="filter">Filter Data</SelectItem>
+                              <SelectItem value="map">Map/Transform Fields</SelectItem>
+                              <SelectItem value="aggregate">Aggregate/Group</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Transformation Script</Label>
+                          <Textarea
+                            value={operation.config.transformationScript || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, transformationScript: e.target.value } })}
+                            placeholder="Enter transformation logic or filter expression"
+                            rows={4}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Problem 1: Messaging operation */}
+                    {operation.type === 'messaging' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div>
+                          <Label>Messaging Type</Label>
+                          <Select value={operation.config.messagingType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, messagingType: value } })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select messaging type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="slack">Slack</SelectItem>
+                              <SelectItem value="sms">SMS</SelectItem>
+                              <SelectItem value="webhook">Webhook</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Recipient</Label>
+                          <Input
+                            value={operation.config.messagingRecipient || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, messagingRecipient: e.target.value } })}
+                            placeholder="email@example.com, #channel, or +1234567890"
+                          />
+                        </div>
+                        <div>
+                          <Label>Subject / Title</Label>
+                          <Input
+                            value={operation.config.messagingSubject || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, messagingSubject: e.target.value } })}
+                            placeholder="Message subject or title"
+                          />
+                        </div>
+                        <div>
+                          <Label>Message Body</Label>
+                          <Textarea
+                            value={operation.config.messagingBody || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, messagingBody: e.target.value } })}
+                            placeholder="Enter message content"
+                            rows={4}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Problem 1: AI Model operation */}
+                    {operation.type === 'ai_model' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>AI Model Type</Label>
+                            <Select value={operation.config.aiModelType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, aiModelType: value } })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select AI task" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="text_generation">Text Generation</SelectItem>
+                                <SelectItem value="image_analysis">Image Analysis</SelectItem>
+                                <SelectItem value="sentiment">Sentiment Analysis</SelectItem>
+                                <SelectItem value="classification">Classification</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Provider</Label>
+                            <Select value={operation.config.aiModelProvider || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, aiModelProvider: value } })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select provider" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="openai">OpenAI</SelectItem>
+                                <SelectItem value="anthropic">Anthropic</SelectItem>
+                                <SelectItem value="google">Google</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Model Name</Label>
+                          <Input
+                            value={operation.config.aiModelName || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, aiModelName: e.target.value } })}
+                            placeholder="gpt-4, claude-3, gemini-pro"
+                          />
+                        </div>
+                        <div>
+                          <Label>Prompt</Label>
+                          <Textarea
+                            value={operation.config.aiPrompt || ''}
+                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, aiPrompt: e.target.value } })}
+                            placeholder="Enter your AI prompt here"
+                            rows={4}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Problem 1: Delay operation */}
+                    {operation.type === 'delay' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Duration</Label>
+                            <Input
+                              type="number"
+                              value={operation.config.delayDuration || ''}
+                              onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, delayDuration: parseInt(e.target.value) } })}
+                              placeholder="5"
+                            />
+                          </div>
+                          <div>
+                            <Label>Unit</Label>
+                            <Select value={operation.config.delayUnit || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, delayUnit: value } })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select unit" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="seconds">Seconds</SelectItem>
+                                <SelectItem value="minutes">Minutes</SelectItem>
+                                <SelectItem value="hours">Hours</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Input Mappings */}
                     <div className="border-t pt-4">
                       <div className="flex items-center justify-between mb-2">
@@ -1347,8 +1847,10 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                   </CardContent>
                 </Card>
               ))}
-            </CardContent>
-          </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
 
             <Separator />
 
@@ -1489,6 +1991,20 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
           <Button onClick={handleSubmit}>Create Automation</Button>
         </DialogFooter>
       </DialogContent>
+      
+      <OperationTemplateDialog
+        open={showTemplateDialog}
+        onOpenChange={setShowTemplateDialog}
+        templates={operationTemplates}
+        onSelectTemplate={loadFromTemplate}
+      />
+      
+      <OperationTestDialog
+        open={showTestDialog}
+        onOpenChange={setShowTestDialog}
+        operation={testingOperation}
+        onValidationComplete={handleValidationComplete}
+      />
     </Dialog>
   );
 };

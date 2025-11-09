@@ -37,10 +37,31 @@ export interface OperationInputMapping {
 export interface AutomationOperation {
   id: string;
   order: number;
-  type: 'crud_operation' | 'file_operation' | 'logic_conditions' | 'run_script';
+  type: 'crud_operation' | 'file_operation' | 'logic_conditions' | 'run_script' | 'http_request' | 'data_transformation' | 'messaging' | 'conditional_logic' | 'ai_model' | 'delay';
   name: string;
+  description?: string; // Problem 7: Operation description
   inputMappings: OperationInputMapping[];
   environmentVariables: EnvironmentVariable[];
+  
+  // Problem 9: Conditional execution per operation
+  runCondition?: {
+    enabled: boolean;
+    field: string;
+    operator: '==' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'exists';
+    value: string;
+    source: 'automation_input' | 'previous_operation' | 'environment';
+    sourceOperationId?: string;
+  };
+  
+  // Problem 5: Iteration support
+  iteration?: {
+    enabled: boolean;
+    sourceArray: string; // The array to iterate over
+    itemVariable: string; // Variable name for each item
+    source: 'automation_input' | 'previous_operation';
+    sourceOperationId?: string;
+  };
+  
   config: {
     // CRUD operation
     operation?: 'create' | 'read' | 'update' | 'delete';
@@ -70,6 +91,33 @@ export interface AutomationOperation {
     s3Region?: string;
     s3Key?: string;
     
+    // HTTP Request operation (Problem 1)
+    httpRequestMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    httpRequestUrl?: string;
+    httpRequestHeaders?: { key: string; value: string }[];
+    httpRequestBody?: string;
+    httpRequestTimeout?: number;
+    
+    // Data Transformation operation (Problem 1)
+    transformationType?: 'csv_to_json' | 'json_to_csv' | 'xml_to_json' | 'filter' | 'map' | 'aggregate';
+    transformationScript?: string;
+    
+    // Messaging operation (Problem 1)
+    messagingType?: 'email' | 'slack' | 'sms' | 'webhook';
+    messagingRecipient?: string;
+    messagingSubject?: string;
+    messagingBody?: string;
+    
+    // AI Model operation (Problem 1)
+    aiModelType?: 'text_generation' | 'image_analysis' | 'sentiment' | 'classification';
+    aiModelProvider?: 'openai' | 'anthropic' | 'google';
+    aiModelName?: string;
+    aiPrompt?: string;
+    
+    // Delay operation (Problem 1)
+    delayDuration?: number;
+    delayUnit?: 'seconds' | 'minutes' | 'hours';
+    
     // Logic & Conditions operation (combines logical, mathematical, and conditional)
     operationType?: 'logical' | 'mathematical' | 'conditional';
     
@@ -91,16 +139,36 @@ export interface AutomationOperation {
   };
   outputParameters: AutomationParameter[];
   
-  // Success/Failure routing
+  // Problem 8: Output transformation
+  outputTransformation?: {
+    enabled: boolean;
+    format?: 'json' | 'csv' | 'xml' | 'text';
+    transformationRule?: string;
+  };
+  
+  // Success/Failure routing (Problem 6: Enhanced routing)
   onSuccess?: {
-    action: 'continue' | 'goto' | 'end';
+    action: 'continue' | 'goto' | 'end' | 'label';
     targetOperationId?: string;
+    label?: string;
   };
   onFailure?: {
-    action: 'continue' | 'goto' | 'end' | 'retry';
+    action: 'continue' | 'goto' | 'end' | 'retry' | 'compensate' | 'alert';
     targetOperationId?: string;
     retryCount?: number;
+    retryDelay?: number; // in seconds
+    compensatingOperationId?: string;
+    alertMessage?: string;
+    label?: string;
   };
+  
+  // Problem 10: Template metadata
+  isTemplate?: boolean;
+  templateName?: string;
+  
+  // Problem 3: Validation status
+  validationStatus?: 'untested' | 'valid' | 'invalid' | 'testing';
+  validationMessage?: string;
 }
 
 export interface Automation {
