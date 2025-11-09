@@ -1105,7 +1105,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                   <SelectValue placeholder="Select input" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {inputParameters.map(param => (
+                                  {inputParameters.filter(param => param.name.trim()).map(param => (
                                     <SelectItem key={param.id} value={param.name}>{param.name}</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1118,7 +1118,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                     <SelectValue placeholder="Select operation" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {getPreviousOperationsForMapping(operation.id).map(op => (
+                                    {getPreviousOperationsForMapping(operation.id).filter(op => op.id.trim()).map(op => (
                                       <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
                                     ))}
                                   </SelectContent>
@@ -1129,7 +1129,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                       <SelectValue placeholder="Select output" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {operations.find(op => op.id === mapping.sourceOperationId)?.outputParameters.map(param => (
+                                      {operations.find(op => op.id === mapping.sourceOperationId)?.outputParameters.filter(param => param.name.trim()).map(param => (
                                         <SelectItem key={param.id} value={param.name}>{param.name}</SelectItem>
                                       ))}
                                     </SelectContent>
@@ -1143,7 +1143,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                   <SelectValue placeholder="Select env var" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {[...environmentVariables, ...operation.environmentVariables].map(env => (
+                                  {[...environmentVariables, ...operation.environmentVariables].filter(env => env.key.trim()).map(env => (
                                     <SelectItem key={env.id} value={env.key}>{env.key}</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1269,7 +1269,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                   <SelectValue placeholder="Select operation" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {operations.filter(op => op.id !== operation.id).map(op => (
+                                  {operations.filter(op => op.id !== operation.id && op.id.trim()).map(op => (
                                     <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1320,7 +1320,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                   <SelectValue placeholder="Select operation" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {operations.filter(op => op.id !== operation.id).map(op => (
+                                  {operations.filter(op => op.id !== operation.id && op.id.trim()).map(op => (
                                     <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
                                   ))}
                                 </SelectContent>
