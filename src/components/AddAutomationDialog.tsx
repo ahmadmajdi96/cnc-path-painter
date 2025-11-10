@@ -525,20 +525,9 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Example Value</Label>
-                        <Input
-                          className="h-8"
-                          value={param.exampleValue || ''}
-                          onChange={(e) => updateInputParameter(param.id, { exampleValue: e.target.value })}
-                          placeholder="https://example.com/data.csv"
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch checked={param.required} onCheckedChange={(checked) => updateInputParameter(param.id, { required: checked })} />
-                        <Label className="text-xs">Required</Label>
-                      </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch checked={param.required} onCheckedChange={(checked) => updateInputParameter(param.id, { required: checked })} />
+                      <Label className="text-xs">Required</Label>
                     </div>
                   </div>
                 ))}
@@ -1092,7 +1081,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
                         <div>
                           <Label>Operation Type</Label>
-                          <Select value={operation.config.operationType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operationType: value, logicalOperator: undefined, mathOperator: undefined, conditionalOperator: undefined } })}>
+                          <Select value={operation.config.operationType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, operationType: value, operations: [] } })}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select operation type" />
                             </SelectTrigger>
@@ -1104,41 +1093,236 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                           </Select>
                         </div>
 
-                        {operation.config.operationType === 'logical' && (
-                          <div>
-                            <Label>Logical Operator</Label>
-                            <Select value={operation.config.logicalOperator || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, logicalOperator: value } })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select operator" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="AND">AND</SelectItem>
-                                <SelectItem value="OR">OR</SelectItem>
-                                <SelectItem value="NOT">NOT</SelectItem>
-                                <SelectItem value="XOR">XOR</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
+                        {(operation.config.operationType === 'mathematical' || operation.config.operationType === 'logical') && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="font-semibold">
+                                {operation.config.operationType === 'mathematical' ? 'Mathematical Operations' : 'Logical Operations'}
+                              </Label>
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => {
+                                  const currentOps = operation.config.operations || [];
+                                  updateOperation(operation.id, { 
+                                    config: { 
+                                      ...operation.config, 
+                                      operations: [
+                                        ...currentOps, 
+                                        {
+                                          id: Math.random().toString(36).substr(2, 9),
+                                          operator: operation.config.operationType === 'mathematical' ? '+' : 'AND',
+                                          operands: [],
+                                          outputName: `result_${currentOps.length + 1}`
+                                        }
+                                      ] 
+                                    } 
+                                  });
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Operation
+                              </Button>
+                            </div>
+                            
+                            {(operation.config.operations || []).map((subOp, subOpIdx) => (
+                              <Card key={subOp.id} className="border bg-background/50">
+                                <CardContent className="pt-4 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-sm font-medium">Operation {subOpIdx + 1}</Label>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => {
+                                        const newOps = (operation.config.operations || []).filter(op => op.id !== subOp.id);
+                                        updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
 
-                        {operation.config.operationType === 'mathematical' && (
-                          <div>
-                            <Label>Mathematical Operator</Label>
-                            <Select value={operation.config.mathOperator || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, mathOperator: value } })}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select operator" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="+">+ (Add)</SelectItem>
-                                <SelectItem value="-">- (Subtract)</SelectItem>
-                                <SelectItem value="*">* (Multiply)</SelectItem>
-                                <SelectItem value="/">/  (Divide)</SelectItem>
-                                <SelectItem value="%">% (Modulo)</SelectItem>
-                                <SelectItem value="^">^ (Power)</SelectItem>
-                                <SelectItem value="concat">Concat (String)</SelectItem>
-                                <SelectItem value="merge">Merge (JSON)</SelectItem>
-                              </SelectContent>
-                            </Select>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <Label className="text-xs">Operator</Label>
+                                      <Select 
+                                        value={subOp.operator} 
+                                        onValueChange={(value) => {
+                                          const newOps = [...(operation.config.operations || [])];
+                                          newOps[subOpIdx] = { ...subOp, operator: value };
+                                          updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-8">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {operation.config.operationType === 'mathematical' ? (
+                                            <>
+                                              <SelectItem value="+">+ (Add)</SelectItem>
+                                              <SelectItem value="-">- (Subtract)</SelectItem>
+                                              <SelectItem value="*">* (Multiply)</SelectItem>
+                                              <SelectItem value="/">/  (Divide)</SelectItem>
+                                              <SelectItem value="%">% (Modulo)</SelectItem>
+                                              <SelectItem value="^">^ (Power)</SelectItem>
+                                              <SelectItem value="concat">Concat (String)</SelectItem>
+                                              <SelectItem value="merge">Merge (JSON)</SelectItem>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <SelectItem value="AND">AND</SelectItem>
+                                              <SelectItem value="OR">OR</SelectItem>
+                                              <SelectItem value="NOT">NOT</SelectItem>
+                                              <SelectItem value="XOR">XOR</SelectItem>
+                                            </>
+                                          )}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs">Output Variable Name</Label>
+                                      <Input
+                                        className="h-8"
+                                        value={subOp.outputName}
+                                        onChange={(e) => {
+                                          const newOps = [...(operation.config.operations || [])];
+                                          newOps[subOpIdx] = { ...subOp, outputName: e.target.value };
+                                          updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                        }}
+                                        placeholder="result_name"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-xs">Operands / Variables</Label>
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => {
+                                          const newOps = [...(operation.config.operations || [])];
+                                          const newOperands = [...(subOp.operands || []), { 
+                                            id: Math.random().toString(36).substr(2, 9),
+                                            source: 'manual' as const,
+                                            value: ''
+                                          }];
+                                          newOps[subOpIdx] = { ...subOp, operands: newOperands };
+                                          updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                        }}
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Add Operand
+                                      </Button>
+                                    </div>
+                                    
+                                    {(subOp.operands || []).map((operand, operandIdx) => (
+                                      <div key={operand.id} className="grid grid-cols-12 gap-2 items-end">
+                                        <div className="col-span-4">
+                                          <Label className="text-xs">Source</Label>
+                                          <Select 
+                                            value={operand.source} 
+                                            onValueChange={(value) => {
+                                              const newOps = [...(operation.config.operations || [])];
+                                              const newOperands = [...(subOp.operands || [])];
+                                              newOperands[operandIdx] = { ...operand, source: value as any, value: '', sourceOperationId: undefined };
+                                              newOps[subOpIdx] = { ...subOp, operands: newOperands };
+                                              updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                            }}
+                                          >
+                                            <SelectTrigger className="h-8">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="manual">Manual Input</SelectItem>
+                                              <SelectItem value="current_operation">Current Operation Output</SelectItem>
+                                              <SelectItem value="previous_operation">Previous Operation Output</SelectItem>
+                                              <SelectItem value="integration_env">Integration Env Variable</SelectItem>
+                                              <SelectItem value="automation_input">Automation Input Parameter</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        
+                                        {operand.source === 'previous_operation' && (
+                                          <div className="col-span-3">
+                                            <Label className="text-xs">Operation</Label>
+                                            <Select 
+                                              value={operand.sourceOperationId || ''} 
+                                              onValueChange={(value) => {
+                                                const newOps = [...(operation.config.operations || [])];
+                                                const newOperands = [...(subOp.operands || [])];
+                                                newOperands[operandIdx] = { ...operand, sourceOperationId: value };
+                                                newOps[subOpIdx] = { ...subOp, operands: newOperands };
+                                                updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                              }}
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue placeholder="Select" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {getPreviousOperationsForMapping(operation.id).map(prevOp => (
+                                                  <SelectItem key={prevOp.id} value={prevOp.id}>{prevOp.name}</SelectItem>
+                                                ))}
+                                                {(operation.config.operations || []).slice(0, subOpIdx).map(prevSubOp => (
+                                                  <SelectItem key={prevSubOp.id} value={prevSubOp.id}>{prevSubOp.outputName}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        )}
+                                        
+                                        <div className={operand.source === 'previous_operation' ? 'col-span-4' : 'col-span-7'}>
+                                          <Label className="text-xs">
+                                            {operand.source === 'manual' ? 'Value' : 
+                                             operand.source === 'current_operation' ? 'Output Variable' :
+                                             operand.source === 'previous_operation' ? 'Output Variable' :
+                                             operand.source === 'integration_env' ? 'Env Variable Name' :
+                                             'Input Parameter Name'}
+                                          </Label>
+                                          <Input
+                                            className="h-8"
+                                            value={operand.value}
+                                            onChange={(e) => {
+                                              const newOps = [...(operation.config.operations || [])];
+                                              const newOperands = [...(subOp.operands || [])];
+                                              newOperands[operandIdx] = { ...operand, value: e.target.value };
+                                              newOps[subOpIdx] = { ...subOp, operands: newOperands };
+                                              updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                            }}
+                                            placeholder={
+                                              operand.source === 'manual' ? 'Enter value' :
+                                              operand.source === 'current_operation' ? 'result_1' :
+                                              operand.source === 'integration_env' ? 'ENV_VAR_NAME' :
+                                              'parameter_name'
+                                            }
+                                          />
+                                        </div>
+                                        
+                                        <div className="col-span-1">
+                                          <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-8 w-full"
+                                            onClick={() => {
+                                              const newOps = [...(operation.config.operations || [])];
+                                              const newOperands = (subOp.operands || []).filter(op => op.id !== operand.id);
+                                              newOps[subOpIdx] = { ...subOp, operands: newOperands };
+                                              updateOperation(operation.id, { config: { ...operation.config, operations: newOps } });
+                                            }}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
                           </div>
                         )}
 
@@ -1161,13 +1345,9 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                 <SelectItem value="endsWith">Ends With</SelectItem>
                               </SelectContent>
                             </Select>
-                          </div>
-                        )}
-
-                        {operation.config.operationType && (
-                          <div>
-                            <Label className="flex items-center justify-between">
-                              Variables
+                            
+                            <div className="mt-3 space-y-2">
+                              <Label className="text-xs">Variables (for comparison)</Label>
                               <Button 
                                 type="button" 
                                 variant="ghost" 
@@ -1182,33 +1362,33 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                                 <Plus className="h-3 w-3 mr-1" />
                                 Add Variable
                               </Button>
-                            </Label>
-                            <div className="space-y-2 mt-2">
-                              {(operation.config.variables || []).map((variable, varIdx) => (
-                                <div key={varIdx} className="flex gap-2">
-                                  <Input
-                                    value={variable}
-                                    onChange={(e) => {
-                                      const newVars = [...(operation.config.variables || [])];
-                                      newVars[varIdx] = e.target.value;
-                                      updateOperation(operation.id, { config: { ...operation.config, variables: newVars } });
-                                    }}
-                                    placeholder="Variable name or value"
-                                    className="flex-1"
-                                  />
-                                  <Button 
-                                    type="button" 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={() => {
-                                      const newVars = (operation.config.variables || []).filter((_, idx) => idx !== varIdx);
-                                      updateOperation(operation.id, { config: { ...operation.config, variables: newVars } });
-                                    }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ))}
+                              <div className="space-y-2 mt-2">
+                                {(operation.config.variables || []).map((variable, varIdx) => (
+                                  <div key={varIdx} className="flex gap-2">
+                                    <Input
+                                      value={variable}
+                                      onChange={(e) => {
+                                        const newVars = [...(operation.config.variables || [])];
+                                        newVars[varIdx] = e.target.value;
+                                        updateOperation(operation.id, { config: { ...operation.config, variables: newVars } });
+                                      }}
+                                      placeholder="Variable name or value"
+                                      className="flex-1"
+                                    />
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => {
+                                        const newVars = (operation.config.variables || []).filter((_, idx) => idx !== varIdx);
+                                        updateOperation(operation.id, { config: { ...operation.config, variables: newVars } });
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1279,14 +1459,162 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                             placeholder="https://api.example.com/endpoint"
                           />
                         </div>
-                        <div>
-                          <Label>Request Body (JSON)</Label>
-                          <Textarea
-                            value={operation.config.httpRequestBody || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, httpRequestBody: e.target.value } })}
-                            placeholder='{"key": "value"}'
-                            rows={3}
-                          />
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>Request Body - Dynamic Builder</Label>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                const currentBodyFields = operation.config.httpRequestBodyFields || [];
+                                updateOperation(operation.id, { 
+                                  config: { 
+                                    ...operation.config, 
+                                    httpRequestBodyFields: [
+                                      ...currentBodyFields, 
+                                      {
+                                        id: Math.random().toString(36).substr(2, 9),
+                                        key: '',
+                                        source: 'manual',
+                                        value: ''
+                                      }
+                                    ] 
+                                  } 
+                                });
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Field
+                            </Button>
+                          </div>
+                          
+                          {(operation.config.httpRequestBodyFields || []).length > 0 && (
+                            <div className="space-y-2 border rounded-lg p-3 bg-background/50">
+                              {(operation.config.httpRequestBodyFields || []).map((field, fieldIdx) => (
+                                <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Key</Label>
+                                    <Input
+                                      className="h-8"
+                                      value={field.key}
+                                      onChange={(e) => {
+                                        const newFields = [...(operation.config.httpRequestBodyFields || [])];
+                                        newFields[fieldIdx] = { ...field, key: e.target.value };
+                                        updateOperation(operation.id, { config: { ...operation.config, httpRequestBodyFields: newFields } });
+                                      }}
+                                      placeholder="field_name"
+                                    />
+                                  </div>
+                                  
+                                  <div className="col-span-3">
+                                    <Label className="text-xs">Source</Label>
+                                    <Select 
+                                      value={field.source} 
+                                      onValueChange={(value) => {
+                                        const newFields = [...(operation.config.httpRequestBodyFields || [])];
+                                        newFields[fieldIdx] = { ...field, source: value as any, value: '', sourceOperationId: undefined };
+                                        updateOperation(operation.id, { config: { ...operation.config, httpRequestBodyFields: newFields } });
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="manual">Manual Input</SelectItem>
+                                        <SelectItem value="integration_env">Integration Env Variable</SelectItem>
+                                        <SelectItem value="automation_input">Automation Input Parameter</SelectItem>
+                                        <SelectItem value="automation_output">Automation Output Variable</SelectItem>
+                                        <SelectItem value="operation_output">Operation Output Variable</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  {field.source === 'operation_output' && (
+                                    <div className="col-span-2">
+                                      <Label className="text-xs">Operation</Label>
+                                      <Select 
+                                        value={field.sourceOperationId || ''} 
+                                        onValueChange={(value) => {
+                                          const newFields = [...(operation.config.httpRequestBodyFields || [])];
+                                          newFields[fieldIdx] = { ...field, sourceOperationId: value };
+                                          updateOperation(operation.id, { config: { ...operation.config, httpRequestBodyFields: newFields } });
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-8">
+                                          <SelectValue placeholder="Select" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {getPreviousOperationsForMapping(operation.id).map(prevOp => (
+                                            <SelectItem key={prevOp.id} value={prevOp.id}>{prevOp.name}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                  
+                                  <div className={field.source === 'operation_output' ? 'col-span-3' : 'col-span-5'}>
+                                    <Label className="text-xs">
+                                      {field.source === 'manual' ? 'Value' :
+                                       field.source === 'integration_env' ? 'Env Variable Name' :
+                                       field.source === 'automation_input' ? 'Input Parameter Name' :
+                                       field.source === 'automation_output' ? 'Output Variable Name' :
+                                       'Output Variable Name'}
+                                    </Label>
+                                    <Input
+                                      className="h-8"
+                                      value={field.value}
+                                      onChange={(e) => {
+                                        const newFields = [...(operation.config.httpRequestBodyFields || [])];
+                                        newFields[fieldIdx] = { ...field, value: e.target.value };
+                                        updateOperation(operation.id, { config: { ...operation.config, httpRequestBodyFields: newFields } });
+                                      }}
+                                      placeholder={
+                                        field.source === 'manual' ? 'Enter value' :
+                                        field.source === 'integration_env' ? 'ENV_VAR_NAME' :
+                                        'variable_name'
+                                      }
+                                    />
+                                  </div>
+                                  
+                                  <div className="col-span-1">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 w-full"
+                                      onClick={() => {
+                                        const newFields = (operation.config.httpRequestBodyFields || []).filter(f => f.id !== field.id);
+                                        updateOperation(operation.id, { config: { ...operation.config, httpRequestBodyFields: newFields } });
+                                      }}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Preview (JSON)</Label>
+                            <Textarea
+                              className="font-mono text-xs"
+                              value={JSON.stringify(
+                                (operation.config.httpRequestBodyFields || []).reduce((acc, field) => {
+                                  if (field.key) {
+                                    acc[field.key] = field.source === 'manual' ? field.value : `{{${field.source}:${field.value}}}`;
+                                  }
+                                  return acc;
+                                }, {} as Record<string, string>),
+                                null,
+                                2
+                              )}
+                              readOnly
+                              rows={4}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}

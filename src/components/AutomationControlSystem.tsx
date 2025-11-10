@@ -88,6 +88,14 @@ export interface AutomationOperation {
     httpRequestHeaders?: { key: string; value: string }[];
     httpRequestBody?: string;
     httpRequestTimeout?: number;
+    // Dynamic HTTP request body builder
+    httpRequestBodyFields?: {
+      id: string;
+      key: string;
+      source: 'manual' | 'integration_env' | 'automation_input' | 'automation_output' | 'operation_output';
+      value: string;
+      sourceOperationId?: string;
+    }[];
     
     // Data Transformation operation (Problem 1)
     transformationType?: 'csv_to_json' | 'json_to_csv' | 'xml_to_json' | 'filter' | 'map' | 'aggregate';
@@ -106,16 +114,29 @@ export interface AutomationOperation {
     // Logic & Conditions operation (combines logical, mathematical, and conditional)
     operationType?: 'logical' | 'mathematical' | 'conditional';
     
-    // Logical operators (returns boolean)
+    // Dynamic operations for mathematical and logical operations
+    operations?: {
+      id: string;
+      operator: string; // '+', '-', '*', '/', '%', '^', 'concat', 'merge', 'AND', 'OR', 'NOT', 'XOR'
+      operands: {
+        id: string;
+        source: 'manual' | 'current_operation' | 'previous_operation' | 'integration_env' | 'automation_input';
+        value: string;
+        sourceOperationId?: string;
+      }[];
+      outputName: string; // Name of the output variable for this operation
+    }[];
+    
+    // Logical operators (returns boolean) - kept for backward compatibility
     logicalOperator?: 'AND' | 'OR' | 'NOT' | 'XOR';
     
-    // Mathematical operators (returns number/string/json)
+    // Mathematical operators (returns number/string/json) - kept for backward compatibility
     mathOperator?: '+' | '-' | '*' | '/' | '%' | '^' | 'concat' | 'merge';
     
     // Conditional operators (returns boolean)
     conditionalOperator?: '==' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'startsWith' | 'endsWith';
     
-    // Variables for logic/math/conditional operations
+    // Variables for logic/math/conditional operations - kept for backward compatibility
     variables?: string[];
     
     // Script operation
