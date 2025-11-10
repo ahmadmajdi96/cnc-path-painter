@@ -29,7 +29,7 @@ export interface OperationInputMapping {
 export interface AutomationOperation {
   id: string;
   order: number;
-  type: 'crud_operation' | 'file_operation' | 'logic_conditions' | 'run_script' | 'http_request' | 'data_transformation' | 'messaging' | 'conditional_logic' | 'delay';
+  type: 'crud_operation' | 'file_operation' | 'logic_conditions' | 'run_script' | 'http_request' | 'delay' | 'manual_operation';
   name: string;
   description?: string;
   inputMappings: OperationInputMapping[];
@@ -180,11 +180,15 @@ export interface AutomationOperation {
 
 export interface DynamicOutputParameter {
   id: string;
-  type: 'boolean' | 'from_operations';
+  type: 'boolean' | 'from_operations' | 'from_variables';
   booleanValue?: boolean;
   selectedOperations?: {
     operationId: string;
     outputParameterId: string;
+  }[];
+  selectedVariables?: {
+    source: 'integration_env' | 'automation_input';
+    variableName: string;
   }[];
 }
 

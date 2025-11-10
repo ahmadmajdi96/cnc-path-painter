@@ -391,14 +391,10 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
         return <Calculator className="h-4 w-4" />;
       case 'http_request':
         return <Globe className="h-4 w-4" />;
-      case 'data_transformation':
-        return <Repeat className="h-4 w-4" />;
-      case 'messaging':
-        return <Mail className="h-4 w-4" />;
-      case 'ai_model':
-        return <Brain className="h-4 w-4" />;
       case 'delay':
         return <Clock className="h-4 w-4" />;
+      case 'manual_operation':
+        return <Settings className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
@@ -659,10 +655,8 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                           <SelectItem value="logic_conditions">Logic & Conditions</SelectItem>
                           <SelectItem value="run_script">Run Script</SelectItem>
                           <SelectItem value="http_request">HTTP/API Request</SelectItem>
-                          <SelectItem value="data_transformation">Data Transformation</SelectItem>
-                          <SelectItem value="messaging">Messaging (Email/Slack/SMS)</SelectItem>
-                          <SelectItem value="conditional_logic">Conditional Logic Block</SelectItem>
                           <SelectItem value="delay">Delay / Wait</SelectItem>
+                          <SelectItem value="manual_operation">Manual Operation</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1462,6 +1456,86 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
+                            <Label>Request Headers - Dynamic Builder</Label>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                const currentHeaders = operation.config.httpRequestHeaders || [];
+                                updateOperation(operation.id, { 
+                                  config: { 
+                                    ...operation.config, 
+                                    httpRequestHeaders: [
+                                      ...currentHeaders, 
+                                      {
+                                        key: '',
+                                        value: ''
+                                      }
+                                    ] 
+                                  } 
+                                });
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Header
+                            </Button>
+                          </div>
+                          
+                          {(operation.config.httpRequestHeaders || []).length > 0 && (
+                            <div className="space-y-2 border rounded-lg p-3 bg-background/50">
+                              {(operation.config.httpRequestHeaders || []).map((header, headerIdx) => (
+                                <div key={headerIdx} className="grid grid-cols-12 gap-2 items-end">
+                                  <div className="col-span-5">
+                                    <Label className="text-xs">Header Name</Label>
+                                    <Input
+                                      className="h-8"
+                                      value={header.key}
+                                      onChange={(e) => {
+                                        const newHeaders = [...(operation.config.httpRequestHeaders || [])];
+                                        newHeaders[headerIdx] = { ...header, key: e.target.value };
+                                        updateOperation(operation.id, { config: { ...operation.config, httpRequestHeaders: newHeaders } });
+                                      }}
+                                      placeholder="Content-Type"
+                                    />
+                                  </div>
+                                  
+                                  <div className="col-span-6">
+                                    <Label className="text-xs">Value</Label>
+                                    <Input
+                                      className="h-8"
+                                      value={header.value}
+                                      onChange={(e) => {
+                                        const newHeaders = [...(operation.config.httpRequestHeaders || [])];
+                                        newHeaders[headerIdx] = { ...header, value: e.target.value };
+                                        updateOperation(operation.id, { config: { ...operation.config, httpRequestHeaders: newHeaders } });
+                                      }}
+                                      placeholder="application/json"
+                                    />
+                                  </div>
+                                  
+                                  <div className="col-span-1">
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 w-full"
+                                      onClick={() => {
+                                        const newHeaders = (operation.config.httpRequestHeaders || []).filter((_, idx) => idx !== headerIdx);
+                                        updateOperation(operation.id, { config: { ...operation.config, httpRequestHeaders: newHeaders } });
+                                      }}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
                             <Label>Request Body - Dynamic Builder</Label>
                             <Button 
                               type="button" 
@@ -1619,83 +1693,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                       </div>
                     )}
 
-                    {/* Problem 1: Data Transformation operation */}
-                    {operation.type === 'data_transformation' && (
-                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                        <div>
-                          <Label>Transformation Type</Label>
-                          <Select value={operation.config.transformationType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, transformationType: value } })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select transformation" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="csv_to_json">CSV to JSON</SelectItem>
-                              <SelectItem value="json_to_csv">JSON to CSV</SelectItem>
-                              <SelectItem value="xml_to_json">XML to JSON</SelectItem>
-                              <SelectItem value="filter">Filter Data</SelectItem>
-                              <SelectItem value="map">Map/Transform Fields</SelectItem>
-                              <SelectItem value="aggregate">Aggregate/Group</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label>Transformation Script</Label>
-                          <Textarea
-                            value={operation.config.transformationScript || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, transformationScript: e.target.value } })}
-                            placeholder="Enter transformation logic or filter expression"
-                            rows={4}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Problem 1: Messaging operation */}
-                    {operation.type === 'messaging' && (
-                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
-                        <div>
-                          <Label>Messaging Type</Label>
-                          <Select value={operation.config.messagingType || undefined} onValueChange={(value: any) => updateOperation(operation.id, { config: { ...operation.config, messagingType: value } })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select messaging type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="email">Email</SelectItem>
-                              <SelectItem value="slack">Slack</SelectItem>
-                              <SelectItem value="sms">SMS</SelectItem>
-                              <SelectItem value="webhook">Webhook</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label>Recipient</Label>
-                          <Input
-                            value={operation.config.messagingRecipient || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, messagingRecipient: e.target.value } })}
-                            placeholder="email@example.com, #channel, or +1234567890"
-                          />
-                        </div>
-                        <div>
-                          <Label>Subject / Title</Label>
-                          <Input
-                            value={operation.config.messagingSubject || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, messagingSubject: e.target.value } })}
-                            placeholder="Message subject or title"
-                          />
-                        </div>
-                        <div>
-                          <Label>Message Body</Label>
-                          <Textarea
-                            value={operation.config.messagingBody || ''}
-                            onChange={(e) => updateOperation(operation.id, { config: { ...operation.config, messagingBody: e.target.value } })}
-                            placeholder="Enter message content"
-                            rows={4}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Problem 1: Delay operation */}
+                    {/* Delay operation */}
                     {operation.type === 'delay' && (
                       <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
                         <div className="grid grid-cols-2 gap-4">
@@ -1721,6 +1719,16 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                               </SelectContent>
                             </Select>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual Operation */}
+                    {operation.type === 'manual_operation' && (
+                      <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                        <div className="text-sm text-muted-foreground p-3 bg-blue-500/10 rounded border border-blue-500/20">
+                          <p className="font-medium mb-1">Manual Operation</p>
+                          <p className="text-xs">This operation requires manual intervention. Use the description field to provide detailed instructions for the operator.</p>
                         </div>
                       </div>
                     )}
@@ -1985,6 +1993,7 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                           <SelectContent>
                             <SelectItem value="boolean">Boolean (True/False)</SelectItem>
                             <SelectItem value="from_operations">From Previous Operations</SelectItem>
+                            <SelectItem value="from_variables">From Variables</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -2008,6 +2017,167 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
                         </Button>
                       </div>
                     </div>
+                    
+                    {param.type === 'from_operations' && (
+                      <div className="space-y-2 mt-2">
+                        <Label className="text-xs">Select Operations & Outputs</Label>
+                        <div className="border rounded-lg p-2 space-y-2 bg-background/50">
+                          <Button 
+                            type="button"
+                            variant="outline" 
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              const currentSelections = param.selectedOperations || [];
+                              updateOutputParameter(param.id, {
+                                selectedOperations: [
+                                  ...currentSelections,
+                                  { operationId: '', outputParameterId: '' }
+                                ]
+                              });
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Operation Output
+                          </Button>
+                          {(param.selectedOperations || []).map((selection, idx) => (
+                            <div key={idx} className="grid grid-cols-12 gap-2 items-end">
+                              <div className="col-span-5">
+                                <Label className="text-xs">Operation</Label>
+                                <Select 
+                                  value={selection.operationId} 
+                                  onValueChange={(value) => {
+                                    const newSelections = [...(param.selectedOperations || [])];
+                                    newSelections[idx] = { ...selection, operationId: value, outputParameterId: '' };
+                                    updateOutputParameter(param.id, { selectedOperations: newSelections });
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Select operation" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {operations.map(op => (
+                                      <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="col-span-6">
+                                <Label className="text-xs">Output Parameter</Label>
+                                <Select 
+                                  value={selection.outputParameterId}
+                                  onValueChange={(value) => {
+                                    const newSelections = [...(param.selectedOperations || [])];
+                                    newSelections[idx] = { ...selection, outputParameterId: value };
+                                    updateOutputParameter(param.id, { selectedOperations: newSelections });
+                                  }}
+                                  disabled={!selection.operationId}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Select output" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {selection.operationId && operations.find(op => op.id === selection.operationId)?.outputParameters.map(outParam => (
+                                      <SelectItem key={outParam.id} value={outParam.id}>{outParam.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="col-span-1">
+                                <Button 
+                                  type="button"
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-8 w-full"
+                                  onClick={() => {
+                                    const newSelections = (param.selectedOperations || []).filter((_, i) => i !== idx);
+                                    updateOutputParameter(param.id, { selectedOperations: newSelections });
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {param.type === 'from_variables' && (
+                      <div className="space-y-2 mt-2">
+                        <Label className="text-xs">Select Variables</Label>
+                        <div className="border rounded-lg p-2 space-y-2 bg-background/50">
+                          <Button 
+                            type="button"
+                            variant="outline" 
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              const currentVariables = param.selectedVariables || [];
+                              updateOutputParameter(param.id, {
+                                selectedVariables: [
+                                  ...currentVariables,
+                                  { source: 'automation_input', variableName: '' }
+                                ]
+                              });
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Variable
+                          </Button>
+                          {(param.selectedVariables || []).map((variable, idx) => (
+                            <div key={idx} className="grid grid-cols-12 gap-2 items-end">
+                              <div className="col-span-5">
+                                <Label className="text-xs">Source</Label>
+                                <Select 
+                                  value={variable.source} 
+                                  onValueChange={(value: any) => {
+                                    const newVariables = [...(param.selectedVariables || [])];
+                                    newVariables[idx] = { ...variable, source: value };
+                                    updateOutputParameter(param.id, { selectedVariables: newVariables });
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="integration_env">Integration Environment</SelectItem>
+                                    <SelectItem value="automation_input">Automation Input</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="col-span-6">
+                                <Label className="text-xs">Variable Name</Label>
+                                <Input
+                                  className="h-8"
+                                  value={variable.variableName}
+                                  onChange={(e) => {
+                                    const newVariables = [...(param.selectedVariables || [])];
+                                    newVariables[idx] = { ...variable, variableName: e.target.value };
+                                    updateOutputParameter(param.id, { selectedVariables: newVariables });
+                                  }}
+                                  placeholder="variable_name"
+                                />
+                              </div>
+                              <div className="col-span-1">
+                                <Button 
+                                  type="button"
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-8 w-full"
+                                  onClick={() => {
+                                    const newVariables = (param.selectedVariables || []).filter((_, i) => i !== idx);
+                                    updateOutputParameter(param.id, { selectedVariables: newVariables });
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </CardContent>

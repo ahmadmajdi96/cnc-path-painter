@@ -89,23 +89,6 @@ export const OperationTestDialog: React.FC<OperationTestDialogProps> = ({
         }
         break;
 
-      case 'data_transformation':
-        if (!operation.config.transformationType) {
-          isValid = false;
-          message = 'Missing transformation type';
-        } else {
-          message = `Data transformation validated: ${operation.config.transformationType}`;
-        }
-        break;
-
-      case 'messaging':
-        if (!operation.config.messagingType || !operation.config.messagingRecipient) {
-          isValid = false;
-          message = 'Missing messaging type or recipient';
-        } else {
-          message = `Messaging operation validated: ${operation.config.messagingType} to ${operation.config.messagingRecipient}`;
-        }
-        break;
 
       case 'delay':
         if (!operation.config.delayDuration || !operation.config.delayUnit) {
@@ -114,6 +97,10 @@ export const OperationTestDialog: React.FC<OperationTestDialogProps> = ({
         } else {
           message = `Delay operation validated: ${operation.config.delayDuration} ${operation.config.delayUnit}`;
         }
+        break;
+
+      case 'manual_operation':
+        message = 'Manual operation - requires human intervention';
         break;
 
       default:
