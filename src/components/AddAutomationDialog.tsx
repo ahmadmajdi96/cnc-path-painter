@@ -1685,54 +1685,6 @@ export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, 
               </CardContent>
             </Card>
 
-            <Separator />
-
-            {/* 7. Function Metadata (Optional) */}
-            <Card className="border-2 border-primary/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">7</span>
-                  Function Metadata (Optional)
-                </CardTitle>
-                <p className="text-xs text-muted-foreground mt-2">Add descriptive metadata for documentation and reference</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="returnType">Return Type</Label>
-                    <Input
-                      id="returnType"
-                      value={returnType}
-                      onChange={(e) => setReturnType(e.target.value)}
-                      placeholder="e.g., list, dict, file"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="complexityLevel">Complexity Level</Label>
-                    <Select value={complexityLevel} onValueChange={(value: any) => setComplexityLevel(value)}>
-                      <SelectTrigger id="complexityLevel">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="simple">Simple</SelectItem>
-                        <SelectItem value="intermediate">Intermediate</SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="preferredLibraries">Preferred Libraries</Label>
-                    <Input
-                      id="preferredLibraries"
-                      value={preferredLibraries}
-                      onChange={(e) => setPreferredLibraries(e.target.value)}
-                      placeholder="e.g., requests, pandas, boto3"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Comma-separated list</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </ScrollArea>
 
