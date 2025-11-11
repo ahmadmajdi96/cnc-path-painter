@@ -46,9 +46,11 @@ interface Payment {
   notes: string | null;
   created_at: string;
   clients: {
+    id: string;
     company_name: string;
   };
   projects: {
+    id: string;
     name: string;
   } | null;
 }
@@ -73,6 +75,8 @@ const AdminPayments = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [formData, setFormData] = useState({
     client_id: '',
     project_id: '',
@@ -136,9 +140,11 @@ const AdminPayments = () => {
         .select(`
           *,
           clients (
+            id,
             company_name
           ),
           projects (
+            id,
             name
           )
         `)
@@ -213,6 +219,70 @@ const AdminPayments = () => {
       toast.error(error.message || 'Failed to create payment');
       console.error(error);
     }
+  };
+
+  const handleEditPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPayment) return;
+
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .update({
+          client_id: formData.client_id,
+          project_id: formData.project_id || null,
+          amount: parseFloat(formData.amount),
+          currency: formData.currency,
+          status: formData.status,
+          payment_method: formData.payment_method || null,
+          transaction_id: formData.transaction_id || null,
+          due_date: formData.due_date || null,
+          paid_date: formData.paid_date || null,
+          notes: formData.notes || null,
+        })
+        .eq('id', editingPayment.id);
+
+      if (error) throw error;
+
+      toast.success('Payment updated successfully!');
+      setIsEditDialogOpen(false);
+      setEditingPayment(null);
+      setFormData({
+        client_id: '',
+        project_id: '',
+        amount: '',
+        currency: 'USD',
+        status: 'pending',
+        payment_method: '',
+        transaction_id: '',
+        due_date: '',
+        paid_date: '',
+        notes: '',
+      });
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update payment');
+      console.error(error);
+    }
+  };
+
+  const openEditDialog = (payment: Payment) => {
+    setEditingPayment(payment);
+    // Find the project's client_id from the projects list
+    const project = projects.find(p => p.id === payment.projects?.id);
+    setFormData({
+      client_id: payment.clients?.id || '',
+      project_id: payment.projects?.id || '',
+      amount: payment.amount.toString(),
+      currency: payment.currency,
+      status: payment.status,
+      payment_method: payment.payment_method || '',
+      transaction_id: payment.transaction_id || '',
+      due_date: payment.due_date || '',
+      paid_date: payment.paid_date || '',
+      notes: payment.notes || '',
+    });
+    setIsEditDialogOpen(true);
   };
 
   const handleDeletePayment = async (id: string) => {
@@ -435,6 +505,178 @@ const AdminPayments = () => {
               </form>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Payment</DialogTitle>
+                <DialogDescription>
+                  Update payment information
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleEditPayment} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_client_id">Client</Label>
+                  <Select
+                    value={formData.client_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, client_id: value, project_id: '' })
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.company_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_project_id">Project (Optional)</Label>
+                  <Select
+                    value={formData.project_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, project_id: value })
+                    }
+                    disabled={!formData.client_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_amount">Amount</Label>
+                    <Input
+                      id="edit_amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) =>
+                        setFormData({ ...formData, amount: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_currency">Currency</Label>
+                    <Select
+                      value={formData.currency}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, currency: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, status: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_payment_method">Payment Method</Label>
+                  <Input
+                    id="edit_payment_method"
+                    value={formData.payment_method}
+                    onChange={(e) =>
+                      setFormData({ ...formData, payment_method: e.target.value })
+                    }
+                    placeholder="e.g., Credit Card, Bank Transfer"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_transaction_id">Transaction ID</Label>
+                  <Input
+                    id="edit_transaction_id"
+                    value={formData.transaction_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, transaction_id: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_due_date">Due Date</Label>
+                    <Input
+                      id="edit_due_date"
+                      type="date"
+                      value={formData.due_date}
+                      onChange={(e) =>
+                        setFormData({ ...formData, due_date: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_paid_date">Paid Date</Label>
+                    <Input
+                      id="edit_paid_date"
+                      type="date"
+                      value={formData.paid_date}
+                      onChange={(e) =>
+                        setFormData({ ...formData, paid_date: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_notes">Notes</Label>
+                  <Textarea
+                    id="edit_notes"
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">Update Payment</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
@@ -500,6 +742,13 @@ const AdminPayments = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(payment)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

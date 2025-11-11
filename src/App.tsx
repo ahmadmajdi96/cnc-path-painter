@@ -20,6 +20,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminClients from "./pages/AdminClients";
 import AdminProjects from "./pages/AdminProjects";
 import AdminPayments from "./pages/AdminPayments";
+import AdminEmployees from "./pages/AdminEmployees";
+import AdminExpenses from "./pages/AdminExpenses";
 import ProjectDashboard from "./pages/ProjectDashboard";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,8 @@ const App = () => (
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/clients" element={<AdminClients />} />
+          <Route path="/admin/employees" element={<AdminEmployees />} />
+          <Route path="/admin/expenses" element={<AdminExpenses />} />
           <Route path="/admin/projects" element={<AdminProjects />} />
           <Route path="/admin/payments" element={<AdminPayments />} />
           <Route path="/admin/project/:projectId/*" element={<ProjectDashboard />} />

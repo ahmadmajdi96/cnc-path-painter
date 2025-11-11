@@ -1004,7 +1004,10 @@ export type Database = {
           employee_id: string
           id: string
           is_manager: boolean | null
+          mobile_number: string | null
           name: string
+          position: string | null
+          salary: number | null
           updated_at: string
         }
         Insert: {
@@ -1013,7 +1016,10 @@ export type Database = {
           employee_id: string
           id?: string
           is_manager?: boolean | null
+          mobile_number?: string | null
           name: string
+          position?: string | null
+          salary?: number | null
           updated_at?: string
         }
         Update: {
@@ -1022,7 +1028,10 @@ export type Database = {
           employee_id?: string
           id?: string
           is_manager?: boolean | null
+          mobile_number?: string | null
           name?: string
+          position?: string | null
+          salary?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -1057,6 +1066,36 @@ export type Database = {
           status?: string
           updated_at?: string
           url?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

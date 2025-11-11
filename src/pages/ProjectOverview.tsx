@@ -33,19 +33,42 @@ const ProjectOverview = () => {
     if (!projectId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('project_components')
-        .select('component_type')
+      // Fetch integrations count
+      const { data: integrationsData, error: integrationsError } = await supabase
+        .from('integrations')
+        .select('id', { count: 'exact', head: true })
         .eq('project_id', projectId);
 
-      if (error) throw error;
+      // Fetch automations count  
+      const { data: automationsData, error: automationsError } = await supabase
+        .from('automations')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId);
+
+      // Fetch datasets count
+      const { data: datasetsData, error: datasetsError } = await supabase
+        .from('datasets')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId);
+
+      // Fetch chatbots count
+      const { data: chatbotsData, error: chatbotsError } = await supabase
+        .from('chatbots')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId);
+
+      // Fetch workflows count
+      const { data: workflowsData, error: workflowsError } = await supabase
+        .from('workflows')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId);
 
       const componentStats = {
-        integrations: data?.filter(c => c.component_type === 'integration').length || 0,
-        automations: data?.filter(c => c.component_type === 'automation').length || 0,
-        datasets: data?.filter(c => c.component_type === 'dataset').length || 0,
-        chatbots: data?.filter(c => c.component_type === 'chatbot').length || 0,
-        workflows: data?.filter(c => c.component_type === 'workflow').length || 0,
+        integrations: integrationsData?.length || 0,
+        automations: automationsData?.length || 0,
+        datasets: datasetsData?.length || 0,
+        chatbots: chatbotsData?.length || 0,
+        workflows: workflowsData?.length || 0,
       };
 
       setStats(componentStats);

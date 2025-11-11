@@ -62,6 +62,8 @@ const AdminProjects = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [formData, setFormData] = useState({
     client_id: '',
     name: '',
@@ -172,6 +174,59 @@ const AdminProjects = () => {
       toast.error(error.message || 'Failed to create project');
       console.error(error);
     }
+  };
+
+  const handleEditProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          client_id: formData.client_id,
+          name: formData.name,
+          description: formData.description || null,
+          status: formData.status,
+          budget: formData.budget ? parseFloat(formData.budget) : null,
+          start_date: formData.start_date || null,
+          end_date: formData.end_date || null,
+        })
+        .eq('id', editingProject.id);
+
+      if (error) throw error;
+
+      toast.success('Project updated successfully!');
+      setIsEditDialogOpen(false);
+      setEditingProject(null);
+      setFormData({
+        client_id: '',
+        name: '',
+        description: '',
+        status: 'planning',
+        budget: '',
+        start_date: '',
+        end_date: '',
+      });
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update project');
+      console.error(error);
+    }
+  };
+
+  const openEditDialog = (project: Project) => {
+    setEditingProject(project);
+    setFormData({
+      client_id: project.client_id,
+      name: project.name,
+      description: project.description || '',
+      status: project.status,
+      budget: project.budget?.toString() || '',
+      start_date: project.start_date || '',
+      end_date: project.end_date || '',
+    });
+    setIsEditDialogOpen(true);
   };
 
   const handleDeleteProject = async (id: string) => {
@@ -363,6 +418,129 @@ const AdminProjects = () => {
               </form>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Edit Project</DialogTitle>
+                <DialogDescription>
+                  Update project information
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleEditProject} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_client_id">Client</Label>
+                  <Select
+                    value={formData.client_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, client_id: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.company_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_name">Project Name</Label>
+                  <Input
+                    id="edit_name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit_description">Description</Label>
+                  <Textarea
+                    id="edit_description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, status: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planning">Planning</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="on_hold">On Hold</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_budget">Budget ($)</Label>
+                    <Input
+                      id="edit_budget"
+                      type="number"
+                      step="0.01"
+                      value={formData.budget}
+                      onChange={(e) =>
+                        setFormData({ ...formData, budget: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_start_date">Start Date</Label>
+                    <Input
+                      id="edit_start_date"
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) =>
+                        setFormData({ ...formData, start_date: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_end_date">End Date</Label>
+                    <Input
+                      id="edit_end_date"
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) =>
+                        setFormData({ ...formData, end_date: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">Update Project</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
@@ -444,6 +622,13 @@ const AdminProjects = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(project)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

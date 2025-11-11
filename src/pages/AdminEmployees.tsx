@@ -115,10 +115,14 @@ const AdminEmployees = () => {
 
   const handleAddEmployee = async (values: z.infer<typeof employeeFormSchema>) => {
     try {
+      // Generate employee_id from name and timestamp
+      const employeeId = `EMP${Date.now()}`;
+      
       const { error } = await supabase
         .from('employees')
         .insert([
           {
+            employee_id: employeeId,
             name: values.name,
             position: values.position,
             mobile_number: values.mobile_number || null,
