@@ -40,7 +40,11 @@ interface Dataset {
   created_at: string;
 }
 
-const DatasetBuilderPage = () => {
+interface DatasetBuilderPageProps {
+  projectId?: string;
+}
+
+const DatasetBuilderPage = ({ projectId }: DatasetBuilderPageProps = {}) => {
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -51,12 +55,18 @@ const DatasetBuilderPage = () => {
   const { toast } = useToast();
 
   const { data: datasets, refetch } = useQuery({
-    queryKey: ['datasets'],
+    queryKey: ['datasets', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('datasets')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as Dataset[];
@@ -295,6 +305,7 @@ const DatasetBuilderPage = () => {
       <CreateDatasetDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
+        projectId={projectId}
         onSuccess={() => {
           refetch();
           setCreateDialogOpen(false);

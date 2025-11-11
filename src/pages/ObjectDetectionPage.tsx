@@ -7,7 +7,11 @@ import { Scan, Upload, Settings, Play, Image } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const ObjectDetectionPage = () => {
+interface ObjectDetectionPageProps {
+  projectId?: string;
+}
+
+const ObjectDetectionPage = ({ projectId }: ObjectDetectionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

@@ -6,7 +6,11 @@ import { Upload, Video, AlertCircle } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const VehicleRecognitionPage = () => {
+interface VehicleRecognitionPageProps {
+  projectId?: string;
+}
+
+const VehicleRecognitionPage = ({ projectId }: VehicleRecognitionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

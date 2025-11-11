@@ -21,12 +21,14 @@ interface CreateWorkflowDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onWorkflowCreated: () => void;
+  projectId?: string;
 }
 
 export const CreateWorkflowDialog: React.FC<CreateWorkflowDialogProps> = ({
   open,
   onOpenChange,
   onWorkflowCreated,
+  projectId,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -51,6 +53,7 @@ export const CreateWorkflowDialog: React.FC<CreateWorkflowDialogProps> = ({
           trigger_type: formData.trigger_type,
           status: 'draft',
           is_active: false,
+          project_id: projectId || null,
         }])
         .select()
         .single();

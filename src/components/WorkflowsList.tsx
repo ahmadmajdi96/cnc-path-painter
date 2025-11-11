@@ -310,6 +310,7 @@ export const WorkflowsList = ({ projectId }: WorkflowsListProps) => {
       <CreateWorkflowDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+        projectId={projectId}
         onWorkflowCreated={fetchWorkflows}
       />
     </div>

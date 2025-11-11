@@ -51,12 +51,14 @@ interface CreateChatbotDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onChatbotCreated: () => void;
+  projectId?: string;
 }
 
 export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
   open,
   onOpenChange,
-  onChatbotCreated
+  onChatbotCreated,
+  projectId
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -87,10 +89,12 @@ export const CreateChatbotDialog: React.FC<CreateChatbotDialogProps> = ({
 
     setLoading(true);
     try {
-      // Use type assertion to work around TypeScript issues until types are regenerated
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('chatbots')
-        .insert([formData]);
+        .insert([{
+          ...formData,
+          project_id: projectId || null,
+        }]);
 
       if (error) throw error;
 

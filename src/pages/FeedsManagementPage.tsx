@@ -5,7 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Plus, Video, Trash2, PlayCircle, StopCircle, Settings } from 'lucide-react';
 
-const FeedsManagementPage = () => {
+interface FeedsManagementPageProps {
+  projectId?: string;
+}
+
+const FeedsManagementPage = ({ projectId }: FeedsManagementPageProps = {}) => {
   const [feeds, setFeeds] = useState([
     { id: 1, name: 'Entrance Camera', url: 'rtsp://192.168.1.10:554', status: 'active', vehicles: 45 },
     { id: 2, name: 'Parking Lot A', url: 'rtsp://192.168.1.11:554', status: 'active', vehicles: 23 },

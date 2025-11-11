@@ -25,7 +25,11 @@ interface Trip {
   endLocation: Location | null;
 }
 
-const PathOptimizationPage = () => {
+interface PathOptimizationPageProps {
+  projectId?: string;
+}
+
+const PathOptimizationPage = ({ projectId }: PathOptimizationPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [tripMode, setTripMode] = useState<'single' | 'multiple'>('single');
   const [singleTripStops, setSingleTripStops] = useState<Location[]>([]);

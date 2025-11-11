@@ -10,7 +10,11 @@ import { AIModelManager } from '@/components/AIModelManager';
 import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
 import { useToast } from '@/hooks/use-toast';
 
-const ComputerVisionPage = () => {
+interface ComputerVisionPageProps {
+  projectId?: string;
+}
+
+const ComputerVisionPage = ({ projectId }: ComputerVisionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
@@ -166,6 +170,7 @@ const ComputerVisionPage = () => {
           modelType="computer_vision"
           title="Computer Vision"
           description="AI models for image analysis and object detection"
+          projectId={projectId}
           onModelSelect={setSelectedModel}
           selectedModelId={selectedModel?.id}
         />

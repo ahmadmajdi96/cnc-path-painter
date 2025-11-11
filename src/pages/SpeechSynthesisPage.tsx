@@ -9,7 +9,11 @@ import { Play, Download, AlertCircle, Volume2 } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const SpeechSynthesisPage = () => {
+interface SpeechSynthesisPageProps {
+  projectId?: string;
+}
+
+const SpeechSynthesisPage = ({ projectId }: SpeechSynthesisPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [speed, setSpeed] = useState([1.0]);
   const [pitch, setPitch] = useState([1.0]);

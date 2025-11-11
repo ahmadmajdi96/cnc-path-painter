@@ -15,7 +15,11 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-const ChatBotsPage = () => {
+interface ChatBotsPageProps {
+  projectId?: string;
+}
+
+const ChatBotsPage = ({ projectId }: ChatBotsPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -211,6 +215,7 @@ const ChatBotsPage = () => {
           modelType="chatbot"
           title="Chatbot"
           description="AI models for conversational chatbots and virtual assistants"
+          projectId={projectId}
           onModelSelect={setSelectedModel}
           selectedModelId={selectedModel?.id}
         />

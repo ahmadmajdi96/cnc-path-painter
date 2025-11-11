@@ -28,7 +28,11 @@ interface LocationDataset {
   updated_at: string;
 }
 
-const LocationsDatasetPage = () => {
+interface LocationsDatasetPageProps {
+  projectId?: string;
+}
+
+const LocationsDatasetPage = ({ projectId }: LocationsDatasetPageProps = {}) => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [datasetName, setDatasetName] = useState('');
   const [savedDatasets, setSavedDatasets] = useState<LocationDataset[]>([]);

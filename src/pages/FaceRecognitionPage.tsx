@@ -7,7 +7,11 @@ import { Users, Upload, Settings, Play, Image, UserCheck } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const FaceRecognitionPage = () => {
+interface FaceRecognitionPageProps {
+  projectId?: string;
+}
+
+const FaceRecognitionPage = ({ projectId }: FaceRecognitionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

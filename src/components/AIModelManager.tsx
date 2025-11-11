@@ -31,6 +31,7 @@ interface AIModelManagerProps {
   description: string;
   onModelSelect?: (model: AIModel) => void;
   selectedModelId?: string;
+  projectId?: string;
 }
 
 export const AIModelManager: React.FC<AIModelManagerProps> = ({
@@ -38,7 +39,8 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
   title,
   description,
   onModelSelect,
-  selectedModelId
+  selectedModelId,
+  projectId
 }) => {
   const { toast } = useToast();
   const [models, setModels] = useState<AIModel[]>([]);
@@ -65,11 +67,17 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     try {
       console.log('Loading models for type:', modelType);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('chatbots')
         .select('*')
         .eq('model_type', modelType)
         .order('created_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error loading models:', error);
@@ -152,7 +160,8 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
       temperature: Number(formData.temperature),
       max_tokens: Number(formData.max_tokens),
       status: formData.status,
-      description: description
+      description: description,
+      project_id: projectId || null,
     };
 
     console.log('Final model data to submit:', modelData);

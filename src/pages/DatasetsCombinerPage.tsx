@@ -38,7 +38,11 @@ interface Combination {
   created_at: string;
 }
 
-const DatasetsCombinerPage = () => {
+interface DatasetsCombinerPageProps {
+  projectId?: string;
+}
+
+const DatasetsCombinerPage = ({ projectId }: DatasetsCombinerPageProps = {}) => {
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -47,12 +51,18 @@ const DatasetsCombinerPage = () => {
   const [viewCombinationId, setViewCombinationId] = useState<string | null>(null);
 
   const { data: datasets, isLoading: loadingDatasets } = useQuery({
-    queryKey: ['all-datasets'],
+    queryKey: ['all-datasets', projectId],
     queryFn: async () => {
-      const { data: regularData, error: regularError } = await supabase
+      let regularQuery = supabase
         .from('datasets')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (projectId) {
+        regularQuery = regularQuery.eq('project_id', projectId);
+      }
+
+      const { data: regularData, error: regularError } = await regularQuery;
 
       if (regularError) throw regularError;
 

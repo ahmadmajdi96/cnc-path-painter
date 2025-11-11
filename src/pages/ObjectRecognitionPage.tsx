@@ -7,7 +7,11 @@ import { Camera, Upload, Settings, Play, Image } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const ObjectRecognitionPage = () => {
+interface ObjectRecognitionPageProps {
+  projectId?: string;
+}
+
+const ObjectRecognitionPage = ({ projectId }: ObjectRecognitionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

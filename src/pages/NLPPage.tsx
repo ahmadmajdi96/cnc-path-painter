@@ -11,7 +11,11 @@ import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
 import { useToast } from '@/hooks/use-toast';
 
-const NLPPage = () => {
+interface NLPPageProps {
+  projectId?: string;
+}
+
+const NLPPage = ({ projectId }: NLPPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [inputText, setInputText] = useState('');
   const [analysisTask, setAnalysisTask] = useState('sentiment');
@@ -169,6 +173,7 @@ const NLPPage = () => {
             modelType="nlp"
             title="NLP"
             description="AI models for natural language processing and text analysis"
+            projectId={projectId}
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
           />

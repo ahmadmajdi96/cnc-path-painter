@@ -25,9 +25,10 @@ interface CreateDatasetDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  projectId?: string;
 }
 
-export const CreateDatasetDialog = ({ open, onOpenChange, onSuccess }: CreateDatasetDialogProps) => {
+export const CreateDatasetDialog = ({ open, onOpenChange, onSuccess, projectId }: CreateDatasetDialogProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'image' | 'file' | 'text'>('image');
@@ -55,6 +56,7 @@ export const CreateDatasetDialog = ({ open, onOpenChange, onSuccess }: CreateDat
         type,
         mode: type === 'image' ? mode : null,
         status: 'draft',
+        project_id: projectId || null,
       })
       .select()
       .single();

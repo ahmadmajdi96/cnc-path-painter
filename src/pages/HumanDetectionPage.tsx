@@ -6,7 +6,11 @@ import { Upload, Video, AlertCircle } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const HumanDetectionPage = () => {
+interface HumanDetectionPageProps {
+  projectId?: string;
+}
+
+const HumanDetectionPage = ({ projectId }: HumanDetectionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

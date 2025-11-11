@@ -10,7 +10,11 @@ import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
 import { useToast } from '@/hooks/use-toast';
 
-const OCRPage = () => {
+interface OCRPageProps {
+  projectId?: string;
+}
+
+const OCRPage = ({ projectId }: OCRPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState('');
   const { processWithModel, isProcessing, result } = useAIModelProcessor();

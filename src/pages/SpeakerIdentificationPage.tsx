@@ -6,7 +6,11 @@ import { Upload, Mic, AlertCircle, UserCircle } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const SpeakerIdentificationPage = () => {
+interface SpeakerIdentificationPageProps {
+  projectId?: string;
+}
+
+const SpeakerIdentificationPage = ({ projectId }: SpeakerIdentificationPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

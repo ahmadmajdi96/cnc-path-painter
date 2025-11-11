@@ -6,7 +6,11 @@ import { Upload, Video, AlertCircle } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const PlateDetectionPage = () => {
+interface PlateDetectionPageProps {
+  projectId?: string;
+}
+
+const PlateDetectionPage = ({ projectId }: PlateDetectionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

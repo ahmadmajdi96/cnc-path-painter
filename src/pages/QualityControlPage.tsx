@@ -7,7 +7,11 @@ import { Search, Camera, AlertTriangle, CheckCircle, Settings, Play } from 'luci
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 
-const QualityControlPage = () => {
+interface QualityControlPageProps {
+  projectId?: string;
+}
+
+const QualityControlPage = ({ projectId }: QualityControlPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

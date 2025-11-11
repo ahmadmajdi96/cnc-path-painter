@@ -47,7 +47,11 @@ interface RulesDataset {
   status: 'draft' | 'active' | 'archived';
 }
 
-const RulesDatasetPage = () => {
+interface RulesDatasetPageProps {
+  projectId?: string;
+}
+
+const RulesDatasetPage = ({ projectId }: RulesDatasetPageProps = {}) => {
   const { toast } = useToast();
   const [rulesDatasets, setRulesDatasets] = useState<RulesDataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<RulesDataset | null>(null);

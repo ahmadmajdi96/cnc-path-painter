@@ -52,7 +52,11 @@ interface QuestionDataset {
   status: 'draft' | 'active' | 'archived';
 }
 
-const QuestionDatasetPage = () => {
+interface QuestionDatasetPageProps {
+  projectId?: string;
+}
+
+const QuestionDatasetPage = ({ projectId }: QuestionDatasetPageProps = {}) => {
   const { toast } = useToast();
   const [questionDatasets, setQuestionDatasets] = useState<QuestionDataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<QuestionDataset | null>(null);

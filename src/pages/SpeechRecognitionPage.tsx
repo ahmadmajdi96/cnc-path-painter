@@ -8,7 +8,11 @@ import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useToast } from '@/hooks/use-toast';
 
-const SpeechRecognitionPage = () => {
+interface SpeechRecognitionPageProps {
+  projectId?: string;
+}
+
+const SpeechRecognitionPage = ({ projectId }: SpeechRecognitionPageProps = {}) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const { toast } = useToast();
 
