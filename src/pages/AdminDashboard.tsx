@@ -49,13 +49,11 @@ const AdminDashboard = () => {
       return;
     }
 
-    const { data: adminProfile } = await supabase
-      .from('admin_profiles')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .single();
+    // Use security definer function to check admin status
+    const { data: isAdmin } = await supabase
+      .rpc('is_admin', { check_user_id: session.user.id });
 
-    if (!adminProfile) {
+    if (!isAdmin) {
       navigate('/admin/login');
     }
   };
