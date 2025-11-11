@@ -8,6 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import {
   Dialog,
   DialogContent,
@@ -44,20 +55,34 @@ interface Client {
   created_at: string;
 }
 
+const clientFormSchema = z.object({
+  company_name: z.string().min(2, 'Company name must be at least 2 characters').max(100, 'Company name must be less than 100 characters'),
+  contact_name: z.string().min(2, 'Contact name must be at least 2 characters').max(100, 'Contact name must be less than 100 characters'),
+  email: z.string().email('Invalid email address').max(255, 'Email must be less than 255 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(72, 'Password must be less than 72 characters'),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'suspended']),
+});
+
 const AdminClients = () => {
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    company_name: '',
-    contact_name: '',
-    email: '',
-    password: '',
-    phone: '',
-    address: '',
-    status: 'active',
+  
+  const form = useForm<z.infer<typeof clientFormSchema>>({
+    resolver: zodResolver(clientFormSchema),
+    defaultValues: {
+      company_name: '',
+      contact_name: '',
+      email: '',
+      password: '',
+      phone: '',
+      address: '',
+      status: 'active',
+    },
   });
 
   useEffect(() => {
@@ -98,14 +123,12 @@ const AdminClients = () => {
     }
   };
 
-  const handleAddClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleAddClient = async (values: z.infer<typeof clientFormSchema>) => {
     try {
       // First create the user account
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+        email: values.email,
+        password: values.password,
       });
 
       if (authError) throw authError;
@@ -117,12 +140,12 @@ const AdminClients = () => {
           .insert([
             {
               user_id: authData.user.id,
-              company_name: formData.company_name,
-              contact_name: formData.contact_name,
-              email: formData.email,
-              phone: formData.phone || null,
-              address: formData.address || null,
-              status: formData.status,
+              company_name: values.company_name,
+              contact_name: values.contact_name,
+              email: values.email,
+              phone: values.phone || null,
+              address: values.address || null,
+              status: values.status,
             },
           ]);
 
@@ -130,15 +153,7 @@ const AdminClients = () => {
 
         toast.success('Client created successfully!');
         setIsAddDialogOpen(false);
-        setFormData({
-          company_name: '',
-          contact_name: '',
-          email: '',
-          password: '',
-          phone: '',
-          address: '',
-          status: 'active',
-        });
+        form.reset();
         fetchClients();
       }
     } catch (error: any) {
@@ -204,84 +219,116 @@ const AdminClients = () => {
                   Create a new client account. This will also create a user account for the client.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddClient} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company_name">Company Name</Label>
-                  <Input
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                    required
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleAddClient)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="company_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact_name">Contact Name</Label>
-                  <Input
-                    id="contact_name"
-                    value={formData.contact_name}
-                    onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                    required
+                  <FormField
+                    control={form.control}
+                    name="contact_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (Optional)</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone (Optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address (Optional)</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address (Optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Client</Button>
-                </div>
-              </form>
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Create Client</Button>
+                  </div>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
         </div>
