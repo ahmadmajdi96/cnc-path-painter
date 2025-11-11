@@ -418,6 +418,7 @@ export const AutomationControlSystem = ({ projectId }: { projectId?: string }) =
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAdd={handleAddAutomation}
+        projectId={projectId}
       />
 
       <EditAutomationDialog

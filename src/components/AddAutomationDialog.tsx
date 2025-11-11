@@ -21,6 +21,7 @@ interface AddAutomationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (automation: Omit<Automation, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  projectId?: string;
 }
 
 // Mock databases and tables
@@ -32,7 +33,7 @@ const mockTables: Record<string, string[]> = {
   'analytics_db': ['events', 'metrics', 'reports', 'logs']
 };
 
-export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, onOpenChange, onAdd }) => {
+export const AddAutomationDialog: React.FC<AddAutomationDialogProps> = ({ open, onOpenChange, onAdd, projectId }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [enabled, setEnabled] = useState(true);

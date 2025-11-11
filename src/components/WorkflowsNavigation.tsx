@@ -14,7 +14,7 @@ export const WorkflowsNavigation = () => {
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-4">
+    <nav className="bg-background border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to="/">
@@ -24,7 +24,7 @@ export const WorkflowsNavigation = () => {
             </Button>
           </Link>
           
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-border" />
           
           <div className="flex items-center space-x-1">
             {navItems.map((item) => {
@@ -37,7 +37,7 @@ export const WorkflowsNavigation = () => {
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     className={`flex items-center gap-2 ${
-                      isActive ? "bg-gray-900 text-white" : "text-gray-600 hover:text-gray-900"
+                      isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -49,7 +49,7 @@ export const WorkflowsNavigation = () => {
           </div>
         </div>
         
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           Workflows Portal
         </div>
       </div>

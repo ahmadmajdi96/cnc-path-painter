@@ -460,6 +460,7 @@ export const IntegrationControlSystem = ({ projectId }: IntegrationControlSystem
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onAdd={handleAddIntegration}
+        projectId={projectId}
       />
 
       {selectedIntegration && (

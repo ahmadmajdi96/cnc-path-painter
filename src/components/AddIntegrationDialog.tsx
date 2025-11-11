@@ -14,6 +14,7 @@ interface AddIntegrationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (integration: Omit<Integration, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  projectId?: string;
 }
 
 interface Parameter {
@@ -57,7 +58,8 @@ interface Automation {
 export const AddIntegrationDialog: React.FC<AddIntegrationDialogProps> = ({
   open,
   onOpenChange,
-  onAdd
+  onAdd,
+  projectId
 }) => {
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [formData, setFormData] = useState({
