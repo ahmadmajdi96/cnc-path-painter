@@ -88,7 +88,6 @@ const AdminPayments = () => {
 
   useEffect(() => {
     checkAuth();
-    fetchData();
   }, []);
 
   useEffect(() => {
@@ -102,18 +101,31 @@ const AdminPayments = () => {
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
+    
+    console.log('Payments - Session check:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      email: session?.user?.email
+    });
+    
     if (!session) {
+      console.error('No session found - redirecting to login');
       navigate('/admin/login');
       return;
     }
 
-    // Use security definer function to check admin status
-    const { data: isAdmin } = await supabase
+    const { data: isAdmin, error: adminError } = await supabase
       .rpc('is_admin', { check_user_id: session.user.id });
 
+    console.log('Payments - Admin check:', { isAdmin, error: adminError });
+
     if (!isAdmin) {
+      console.error('User is not admin - redirecting to login');
       navigate('/admin/login');
+      return;
     }
+
+    fetchData();
   };
 
   const fetchData = async () => {
