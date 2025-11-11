@@ -15,6 +15,11 @@ import CortanexRoboticArms from "./pages/CortanexRoboticArms";
 import CortanexLaser from "./pages/CortanexLaser";
 import CortanexVision from "./pages/CortanexVision";
 import CortanexConveyor from "./pages/CortanexConveyor";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminClients from "./pages/AdminClients";
+import AdminProjects from "./pages/AdminProjects";
+import AdminPayments from "./pages/AdminPayments";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +41,11 @@ const App = () => (
           <Route path="/cortanex/laser-marking" element={<CortanexLaser />} />
           <Route path="/cortanex/vision-systems" element={<CortanexVision />} />
           <Route path="/cortanex/conveyor" element={<CortanexConveyor />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/clients" element={<AdminClients />} />
+          <Route path="/admin/projects" element={<AdminProjects />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
