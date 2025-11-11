@@ -88,6 +88,16 @@ const AdminClients = () => {
     fetchClients();
   }, []);
 
+  useEffect(() => {
+    // Debug: Show current user info
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        console.log('Current user ID:', session.user.id);
+        console.log('Current user email:', session.user.email);
+      }
+    });
+  }, []);
+
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
