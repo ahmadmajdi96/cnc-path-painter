@@ -5,13 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { z } from 'zod';
+
+const loginSchema = z.object({
+  email: z.string().trim().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" })
+});
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,24 +45,47 @@ const AdminLogin = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setFieldErrors({});
+    
+    // Validate inputs
+    const validation = loginSchema.safeParse({ email, password });
+    if (!validation.success) {
+      const errors: { email?: string; password?: string } = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0] === 'email') errors.email = err.message;
+        if (err.path[0] === 'password') errors.password = err.message;
+      });
+      setFieldErrors(errors);
+      toast.error('Please fix the form errors');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      console.log('Attempting login...');
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
-      console.log('Login response:', { data, error });
-
-      if (error) {
-        console.error('Login error:', error);
-        throw error;
+      if (authError) {
+        let errorMessage = 'Failed to login. Please try again.';
+        
+        if (authError.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials.';
+        } else if (authError.message.includes('Email not confirmed')) {
+          errorMessage = 'Please confirm your email address before logging in.';
+        } else if (authError.message.includes('too many requests')) {
+          errorMessage = 'Too many login attempts. Please try again later.';
+        }
+        
+        setError(errorMessage);
+        toast.error(errorMessage);
+        return;
       }
 
       if (data.user) {
-        console.log('User logged in, checking admin profile...');
         // Check if user is admin
         const { data: adminProfile, error: profileError } = await supabase
           .from('admin_profiles')
@@ -61,23 +93,21 @@ const AdminLogin = () => {
           .eq('user_id', data.user.id)
           .single();
 
-        console.log('Admin profile check:', { adminProfile, profileError });
-
         if (profileError || !adminProfile) {
-          console.error('No admin profile found, signing out');
           await supabase.auth.signOut();
-          toast.error('Access denied. Admin privileges required.');
-          setLoading(false);
+          const accessError = 'Access denied. Admin privileges required.';
+          setError(accessError);
+          toast.error(accessError);
           return;
         }
 
-        console.log('Login successful, redirecting to dashboard');
-        toast.success('Login successful!');
+        toast.success('Welcome back!');
         navigate('/admin/dashboard');
       }
     } catch (error: any) {
-      console.error('Login catch error:', error);
-      toast.error(error.message || 'Failed to login');
+      const errorMessage = 'An unexpected error occurred. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -93,6 +123,13 @@ const AdminLogin = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -101,21 +138,36 @@ const AdminLogin = () => {
                 type="email"
                 placeholder="admin@cortanexai.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setFieldErrors(prev => ({ ...prev, email: undefined }));
+                  setError('');
+                }}
+                className={fieldErrors.email ? 'border-destructive' : ''}
                 disabled={loading}
               />
+              {fieldErrors.email && (
+                <p className="text-sm text-destructive">{fieldErrors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
+                placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setFieldErrors(prev => ({ ...prev, password: undefined }));
+                  setError('');
+                }}
+                className={fieldErrors.password ? 'border-destructive' : ''}
                 disabled={loading}
               />
+              {fieldErrors.password && (
+                <p className="text-sm text-destructive">{fieldErrors.password}</p>
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
