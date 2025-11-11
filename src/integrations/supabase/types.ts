@@ -341,6 +341,7 @@ export type Database = {
           model_name: string
           model_type: string
           name: string
+          project_id: string | null
           status: string
           system_prompt: string | null
           temperature: number | null
@@ -357,6 +358,7 @@ export type Database = {
           model_name: string
           model_type: string
           name: string
+          project_id?: string | null
           status?: string
           system_prompt?: string | null
           temperature?: number | null
@@ -373,12 +375,21 @@ export type Database = {
           model_name?: string
           model_type?: string
           name?: string
+          project_id?: string | null
           status?: string
           system_prompt?: string | null
           temperature?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chatbots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clients: {
         Row: {
@@ -789,6 +800,7 @@ export type Database = {
           item_count: number | null
           mode: string | null
           name: string
+          project_id: string | null
           status: string
           type: string
           updated_at: string
@@ -800,6 +812,7 @@ export type Database = {
           item_count?: number | null
           mode?: string | null
           name: string
+          project_id?: string | null
           status?: string
           type: string
           updated_at?: string
@@ -811,11 +824,20 @@ export type Database = {
           item_count?: number | null
           mode?: string | null
           name?: string
+          project_id?: string | null
           status?: string
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "datasets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       departments: {
         Row: {
@@ -3176,6 +3198,7 @@ export type Database = {
           last_run: string | null
           name: string
           next_run: string | null
+          project_id: string | null
           run_count: number | null
           status: string | null
           steps: string | null
@@ -3193,6 +3216,7 @@ export type Database = {
           last_run?: string | null
           name: string
           next_run?: string | null
+          project_id?: string | null
           run_count?: number | null
           status?: string | null
           steps?: string | null
@@ -3210,6 +3234,7 @@ export type Database = {
           last_run?: string | null
           name?: string
           next_run?: string | null
+          project_id?: string | null
           run_count?: number | null
           status?: string | null
           steps?: string | null
@@ -3218,7 +3243,15 @@ export type Database = {
           trigger_type?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workflows_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
