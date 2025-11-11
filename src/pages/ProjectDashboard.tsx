@@ -2,9 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, User, LogOut } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import ProjectOverview from './ProjectOverview';
 import ProjectWorkflows from './ProjectWorkflows';
+import SoftwarePortal from './SoftwarePortal';
+import AIPortal from './AIPortal';
+import WorkflowsPortal from './WorkflowsPortal';
 
 interface Project {
   id: string;
@@ -61,9 +72,13 @@ const ProjectDashboard = () => {
     setProject(data);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/admin/login');
+  };
+
   const navItems = [
     { path: `/admin/project/${projectId}`, label: 'Overview' },
-    { path: `/admin/project/${projectId}/workflows`, label: 'Workflows' },
   ];
 
   return (
@@ -100,15 +115,35 @@ const ProjectDashboard = () => {
             </div>
           </div>
           
-          <div className="text-sm text-muted-foreground">
-            {project && `${project.name} - ${project.clients?.company_name}`}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              {project && `${project.name} - ${project.clients?.company_name}`}
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </nav>
 
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
-        <Route path="/workflows" element={<ProjectWorkflows />} />
+        <Route path="/software/*" element={<SoftwarePortal />} />
+        <Route path="/ai/*" element={<AIPortal />} />
+        <Route path="/workflows/*" element={<WorkflowsPortal />} />
       </Routes>
     </div>
   );

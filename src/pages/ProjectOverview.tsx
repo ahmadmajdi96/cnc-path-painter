@@ -68,99 +68,116 @@ const ProjectOverview = () => {
 
       {/* Software Portal Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
-          <Blocks className="h-6 w-6 mr-2 text-indigo-600" />
-          Software Portal Components
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-indigo-600">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Integrations</CardTitle>
-              <LinkIcon className="h-5 w-5 text-indigo-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.integrations}</div>
-              <Button variant="outline" size="sm" className="mt-3" disabled>
-                <Plus className="h-3 w-3 mr-1" />
-                Add Integration
+        <Card 
+          className="hover:shadow-xl transition-all cursor-pointer border-l-4 border-l-indigo-600 hover:scale-[1.02]"
+          onClick={() => window.location.href = `/admin/project/${projectId}/software`}
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Blocks className="h-8 w-8 mr-3 text-indigo-600" />
+                <div>
+                  <CardTitle className="text-2xl font-bold text-foreground">Software Portal</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">Integrations & Automations</p>
+                </div>
+              </div>
+              <Button variant="default" size="lg">
+                Open Portal →
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-indigo-600">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Automations</CardTitle>
-              <Zap className="h-5 w-5 text-indigo-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.automations}</div>
-              <Button variant="outline" size="sm" className="mt-3" disabled>
-                <Plus className="h-3 w-3 mr-1" />
-                Add Automation
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center">
+                <LinkIcon className="h-5 w-5 mr-2 text-indigo-600" />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">{stats.integrations}</div>
+                  <div className="text-xs text-muted-foreground">Integrations</div>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-indigo-600" />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">{stats.automations}</div>
+                  <div className="text-xs text-muted-foreground">Automations</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* AI Portal Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
-          <Bot className="h-6 w-6 mr-2 text-blue-600" />
-          AI Portal Components
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Datasets</CardTitle>
-              <Bot className="h-5 w-5 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.datasets}</div>
-              <Button variant="outline" size="sm" className="mt-3" disabled>
-                <Plus className="h-3 w-3 mr-1" />
-                Add Dataset
+        <Card 
+          className="hover:shadow-xl transition-all cursor-pointer border-l-4 border-l-blue-600 hover:scale-[1.02]"
+          onClick={() => window.location.href = `/admin/project/${projectId}/ai`}
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Bot className="h-8 w-8 mr-3 text-blue-600" />
+                <div>
+                  <CardTitle className="text-2xl font-bold text-foreground">AI Portal</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">Datasets & Chatbots</p>
+                </div>
+              </div>
+              <Button variant="default" size="lg">
+                Open Portal →
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Chatbots</CardTitle>
-              <Bot className="h-5 w-5 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.chatbots}</div>
-              <Button variant="outline" size="sm" className="mt-3" disabled>
-                <Plus className="h-3 w-3 mr-1" />
-                Add Chatbot
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center">
+                <Bot className="h-5 w-5 mr-2 text-blue-600" />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">{stats.datasets}</div>
+                  <div className="text-xs text-muted-foreground">Datasets</div>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Bot className="h-5 w-5 mr-2 text-blue-600" />
+                <div>
+                  <div className="text-2xl font-bold text-foreground">{stats.chatbots}</div>
+                  <div className="text-xs text-muted-foreground">Chatbots</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Workflow Portal Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
-          <WorkflowIcon className="h-6 w-6 mr-2 text-purple-600" />
-          Workflow Portal Components
-        </h2>
-        <div className="grid gap-6 md:grid-cols-1">
-          <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-600">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Workflows</CardTitle>
-              <WorkflowIcon className="h-5 w-5 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stats.workflows}</div>
-              <Button variant="outline" size="sm" className="mt-3" disabled>
-                <Plus className="h-3 w-3 mr-1" />
-                Add Workflow
+        <Card 
+          className="hover:shadow-xl transition-all cursor-pointer border-l-4 border-l-purple-600 hover:scale-[1.02]"
+          onClick={() => window.location.href = `/admin/project/${projectId}/workflows`}
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <WorkflowIcon className="h-8 w-8 mr-3 text-purple-600" />
+                <div>
+                  <CardTitle className="text-2xl font-bold text-foreground">Workflow Portal</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">Process Automation</p>
+                </div>
+              </div>
+              <Button variant="default" size="lg">
+                Open Portal →
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <WorkflowIcon className="h-5 w-5 mr-2 text-purple-600" />
+              <div>
+                <div className="text-2xl font-bold text-foreground">{stats.workflows}</div>
+                <div className="text-xs text-muted-foreground">Workflows</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

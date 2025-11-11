@@ -30,7 +30,8 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<AdminLogin />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/hardware/*" element={<HardwarePortal />} />
           <Route path="/software/*" element={<SoftwarePortal />} />
           <Route path="/ai/*" element={<AIPortal />} />
