@@ -96,14 +96,7 @@ const ProjectDashboard = () => {
     );
   }
 
-  // Add AI Portal navigation items
-  if (isAIPortal) {
-    navItems.push(
-      { path: `/admin/project/${projectId}/ai/dataset-builder`, label: 'Dataset Builder' },
-      { path: `/admin/project/${projectId}/ai/chatbots`, label: 'Chat Bots' },
-      { path: `/admin/project/${projectId}/ai/datasets-combiner`, label: 'Datasets Combiner' }
-    );
-  }
+  // Don't add AI Portal navigation items here - they have their own navigation
 
   // Add Workflows Portal navigation items
   if (isWorkflowsPortal && !isSoftwarePortal) {
@@ -175,7 +168,7 @@ const ProjectDashboard = () => {
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
         <Route path="/software/*" element={<SoftwarePortal projectId={projectId} hideNavigation />} />
-        <Route path="/ai/*" element={<AIPortal projectId={projectId} hideNavigation />} />
+        <Route path="/ai/*" element={<AIPortal projectId={projectId} />} />
         <Route path="/workflows/*" element={<WorkflowsPortal projectId={projectId} hideNavigation />} />
       </Routes>
     </div>
