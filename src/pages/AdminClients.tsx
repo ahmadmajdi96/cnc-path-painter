@@ -59,7 +59,6 @@ const clientFormSchema = z.object({
   company_name: z.string().min(2, 'Company name must be at least 2 characters').max(100, 'Company name must be less than 100 characters'),
   contact_name: z.string().min(2, 'Contact name must be at least 2 characters').max(100, 'Contact name must be less than 100 characters'),
   email: z.string().email('Invalid email address').max(255, 'Email must be less than 255 characters'),
-  password: z.string().min(6, 'Password must be at least 6 characters').max(72, 'Password must be less than 72 characters'),
   phone: z.string().optional(),
   address: z.string().optional(),
   status: z.enum(['active', 'inactive', 'suspended']),
@@ -78,7 +77,6 @@ const AdminClients = () => {
       company_name: '',
       contact_name: '',
       email: '',
-      password: '',
       phone: '',
       address: '',
       status: 'active',
@@ -125,37 +123,26 @@ const AdminClients = () => {
 
   const handleAddClient = async (values: z.infer<typeof clientFormSchema>) => {
     try {
-      // First create the user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-      });
+      // Create the client record directly without authentication
+      const { error } = await supabase
+        .from('clients')
+        .insert([
+          {
+            company_name: values.company_name,
+            contact_name: values.contact_name,
+            email: values.email,
+            phone: values.phone || null,
+            address: values.address || null,
+            status: values.status,
+          },
+        ]);
 
-      if (authError) throw authError;
+      if (error) throw error;
 
-      if (authData.user) {
-        // Then create the client record
-        const { error: clientError } = await supabase
-          .from('clients')
-          .insert([
-            {
-              user_id: authData.user.id,
-              company_name: values.company_name,
-              contact_name: values.contact_name,
-              email: values.email,
-              phone: values.phone || null,
-              address: values.address || null,
-              status: values.status,
-            },
-          ]);
-
-        if (clientError) throw clientError;
-
-        toast.success('Client created successfully!');
-        setIsAddDialogOpen(false);
-        form.reset();
-        fetchClients();
-      }
+      toast.success('Client created successfully!');
+      setIsAddDialogOpen(false);
+      form.reset();
+      fetchClients();
     } catch (error: any) {
       toast.error(error.message || 'Failed to create client');
       console.error(error);
@@ -216,7 +203,7 @@ const AdminClients = () => {
               <DialogHeader>
                 <DialogTitle>Add New Client</DialogTitle>
                 <DialogDescription>
-                  Create a new client account. This will also create a user account for the client.
+                  Create a new client record with contact information.
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -255,19 +242,6 @@ const AdminClients = () => {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
