@@ -86,40 +86,51 @@ const AdminLogin = () => {
       }
 
       if (data.user && data.session) {
-        // Explicitly set the session to ensure it's active
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-        
-        // Small delay to ensure session is propagated
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Check if user is admin using the authenticated session
-        const { data: adminProfile, error: profileError } = await supabase
-          .from('admin_profiles')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .maybeSingle();
+        // Wait for auth state to be fully established
+        const checkAdminStatus = () => new Promise<boolean>((resolve) => {
+          const timeout = setTimeout(() => {
+            console.error('Auth state change timeout');
+            resolve(false);
+          }, 5000);
 
-        console.log('Admin profile check:', { 
-          userId: data.user.id,
-          adminProfile, 
-          profileError,
-          sessionSet: true 
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event, session?.user?.id);
+            
+            if (event === 'SIGNED_IN' && session) {
+              clearTimeout(timeout);
+              subscription.unsubscribe();
+              
+              // Now query with properly established auth context
+              const { data: adminProfile, error: profileError } = await supabase
+                .from('admin_profiles')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+
+              console.log('Admin profile check after auth state:', { 
+                userId: session.user.id,
+                adminProfile, 
+                profileError
+              });
+
+              if (profileError || !adminProfile) {
+                await supabase.auth.signOut();
+                setError('Access denied. Admin privileges required.');
+                toast.error('Access denied. Admin privileges required.');
+                resolve(false);
+              } else {
+                toast.success('Welcome back!');
+                navigate('/admin/dashboard');
+                resolve(true);
+              }
+            }
+          });
         });
 
-        if (profileError || !adminProfile) {
-          await supabase.auth.signOut();
-          const accessError = 'Access denied. Admin privileges required.';
-          setError(accessError);
-          toast.error(accessError);
-          console.error('Admin check failed:', { profileError, userId: data.user.id });
+        const success = await checkAdminStatus();
+        if (!success) {
           return;
         }
-
-        toast.success('Welcome back!');
-        navigate('/admin/dashboard');
       }
     } catch (error: any) {
       const errorMessage = 'An unexpected error occurred. Please try again.';
