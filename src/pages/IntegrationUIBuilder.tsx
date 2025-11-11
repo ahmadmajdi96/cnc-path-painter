@@ -440,7 +440,11 @@ const DraggableUIComponent: React.FC<DraggableUIComponentProps> = ({
   );
 };
 
-const IntegrationUIBuilder = () => {
+interface IntegrationUIBuilderProps {
+  projectId?: string;
+}
+
+const IntegrationUIBuilder = ({ projectId }: IntegrationUIBuilderProps) => {
   const [uis, setUis] = useState<IntegrationUI[]>([]);
   const [selectedUI, setSelectedUI] = useState<IntegrationUI | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<UIComponent | null>(null);

@@ -117,7 +117,11 @@ export interface Integration {
   updatedAt: string;
 }
 
-export const IntegrationControlSystem = () => {
+interface IntegrationControlSystemProps {
+  projectId?: string;
+}
+
+export const IntegrationControlSystem = ({ projectId }: IntegrationControlSystemProps) => {
   const [integrations, setIntegrations] = useState<Integration[]>([
     {
       id: '1',
@@ -345,12 +349,28 @@ export const IntegrationControlSystem = () => {
     setFilteredIntegrations(filtered);
   };
 
+  // Filter integrations by projectId if provided
+  React.useEffect(() => {
+    if (projectId) {
+      // When projectId is provided, show only integrations for this project
+      // For now, we're using mock data, so we'll just show empty initially
+      setIntegrations([]);
+      setFilteredIntegrations([]);
+    }
+  }, [projectId]);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Integration Management</h1>
-          <p className="text-gray-600">Configure and manage system integrations and data flows</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {projectId ? 'Project Integration Management' : 'Integration Management'}
+          </h1>
+          <p className="text-gray-600">
+            {projectId 
+              ? 'Configure and manage integrations for this project' 
+              : 'Configure and manage system integrations and data flows'}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button

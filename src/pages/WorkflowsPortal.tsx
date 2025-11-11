@@ -6,14 +6,19 @@ import { WorkflowDesigner } from '@/components/WorkflowDesigner';
 import { WorkflowsList } from '@/components/WorkflowsList';
 import { WorkflowExecutions } from '@/components/WorkflowExecutions';
 
-const WorkflowsPortal = () => {
+interface WorkflowsPortalProps {
+  projectId?: string;
+  hideNavigation?: boolean;
+}
+
+const WorkflowsPortal = ({ projectId, hideNavigation }: WorkflowsPortalProps) => {
   return (
     <div className="min-h-screen bg-background">
-      <WorkflowsNavigation />
+      {!hideNavigation && <WorkflowsNavigation />}
       <Routes>
-        <Route path="/" element={<WorkflowsList />} />
-        <Route path="/designer/:workflowId?" element={<WorkflowDesigner />} />
-        <Route path="/executions" element={<WorkflowExecutions />} />
+        <Route path="/" element={<WorkflowsList projectId={projectId} />} />
+        <Route path="/designer/:workflowId?" element={<WorkflowDesigner projectId={projectId} />} />
+        <Route path="/executions" element={<WorkflowExecutions projectId={projectId} />} />
         <Route path="*" element={<Navigate to="/workflows" replace />} />
       </Routes>
     </div>

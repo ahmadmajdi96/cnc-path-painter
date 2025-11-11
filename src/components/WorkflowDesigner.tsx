@@ -31,7 +31,7 @@ const nodeTypes = {
   workflowNode: WorkflowNodeComponent,
 };
 
-export const WorkflowDesigner = () => {
+export const WorkflowDesigner = ({ projectId }: { projectId?: string }) => {
   const { workflowId } = useParams();
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);

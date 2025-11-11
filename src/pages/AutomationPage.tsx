@@ -2,10 +2,14 @@
 import React from 'react';
 import { AutomationControlSystem } from '@/components/AutomationControlSystem';
 
-const AutomationPage = () => {
+interface AutomationPageProps {
+  projectId?: string;
+}
+
+const AutomationPage = ({ projectId }: AutomationPageProps) => {
   return (
     <div className="container mx-auto px-6 py-8">
-      <AutomationControlSystem />
+      <AutomationControlSystem projectId={projectId} />
     </div>
   );
 };

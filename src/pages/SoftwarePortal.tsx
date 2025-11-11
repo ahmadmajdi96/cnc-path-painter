@@ -8,16 +8,21 @@ import IntegrationUIBuilder from './IntegrationUIBuilder';
 import WorkflowsPortal from './WorkflowsPortal';
 import NotFound from './NotFound';
 
-const SoftwarePortal = () => {
+interface SoftwarePortalProps {
+  projectId?: string;
+  hideNavigation?: boolean;
+}
+
+const SoftwarePortal = ({ projectId, hideNavigation }: SoftwarePortalProps) => {
   return (
     <div className="min-h-screen bg-background">
-      <SoftwareNavigation />
+      {!hideNavigation && <SoftwareNavigation />}
       <Routes>
-        <Route path="/" element={<IntegrationsPage />} />
-        <Route path="/integrations" element={<IntegrationsPage />} />
-        <Route path="/ui-builder" element={<IntegrationUIBuilder />} />
-        <Route path="/automation/*" element={<AutomationPage />} />
-        <Route path="/workflows/*" element={<WorkflowsPortal />} />
+        <Route path="/" element={<IntegrationsPage projectId={projectId} />} />
+        <Route path="/integrations" element={<IntegrationsPage projectId={projectId} />} />
+        <Route path="/ui-builder" element={<IntegrationUIBuilder projectId={projectId} />} />
+        <Route path="/automation/*" element={<AutomationPage projectId={projectId} />} />
+        <Route path="/workflows/*" element={<WorkflowsPortal projectId={projectId} hideNavigation />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

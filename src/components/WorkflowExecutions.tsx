@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { WorkflowExecution } from '@/types/workflow';
 
-export const WorkflowExecutions = () => {
+export const WorkflowExecutions = ({ projectId }: { projectId?: string }) => {
   const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +20,7 @@ export const WorkflowExecutions = () => {
 
   const fetchExecutions = async () => {
     try {
-      const { data: executionsData, error } = await supabase
+      let query = supabase
         .from('workflow_executions')
         .select(`
           *,
@@ -28,6 +28,13 @@ export const WorkflowExecutions = () => {
         `)
         .order('started_at', { ascending: false })
         .limit(50);
+
+      // Filter by project if projectId is provided
+      if (projectId) {
+        query = query.eq('workflows.project_id', projectId);
+      }
+
+      const { data: executionsData, error } = await query;
 
       if (error) throw error;
 

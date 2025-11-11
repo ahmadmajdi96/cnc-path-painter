@@ -12,7 +12,11 @@ import { CreateWorkflowDialog } from './CreateWorkflowDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Workflow } from '@/types/workflow';
 
-export const WorkflowsList = () => {
+interface WorkflowsListProps {
+  projectId?: string;
+}
+
+export const WorkflowsList = ({ projectId }: WorkflowsListProps) => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,10 +26,25 @@ export const WorkflowsList = () => {
 
   const fetchWorkflows = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workflows')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let data: any = null;
+      let error: any = null;
+
+      if (projectId) {
+        const result = await (supabase as any)
+          .from('workflows')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false });
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await (supabase as any)
+          .from('workflows')
+          .select('*')
+          .order('created_at', { ascending: false });
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('Error fetching workflows:', error);
@@ -65,7 +84,7 @@ export const WorkflowsList = () => {
 
   useEffect(() => {
     fetchWorkflows();
-  }, []);
+  }, [projectId]);
 
   const toggleWorkflowStatus = async (workflow: Workflow) => {
     try {

@@ -211,7 +211,7 @@ export interface Automation {
   updatedAt: string;
 }
 
-export const AutomationControlSystem = () => {
+export const AutomationControlSystem = ({ projectId }: { projectId?: string }) => {
   const [automations, setAutomations] = useState<Automation[]>([
     {
       id: '1',

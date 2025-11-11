@@ -77,9 +77,42 @@ const ProjectDashboard = () => {
     navigate('/admin/login');
   };
 
+  // Determine which portal we're in based on current path
+  const isSoftwarePortal = location.pathname.includes('/software');
+  const isAIPortal = location.pathname.includes('/ai');
+  const isWorkflowsPortal = location.pathname.includes('/workflows');
+
   const navItems = [
     { path: `/admin/project/${projectId}`, label: 'Overview' },
   ];
+
+  // Add Software Portal navigation items
+  if (isSoftwarePortal) {
+    navItems.push(
+      { path: `/admin/project/${projectId}/software/integrations`, label: 'Integrations' },
+      { path: `/admin/project/${projectId}/software/ui-builder`, label: 'UI Builder' },
+      { path: `/admin/project/${projectId}/software/automation`, label: 'Automation' },
+      { path: `/admin/project/${projectId}/software/workflows`, label: 'Workflows' }
+    );
+  }
+
+  // Add AI Portal navigation items
+  if (isAIPortal) {
+    navItems.push(
+      { path: `/admin/project/${projectId}/ai/dataset-builder`, label: 'Dataset Builder' },
+      { path: `/admin/project/${projectId}/ai/chatbots`, label: 'Chat Bots' },
+      { path: `/admin/project/${projectId}/ai/datasets-combiner`, label: 'Datasets Combiner' }
+    );
+  }
+
+  // Add Workflows Portal navigation items
+  if (isWorkflowsPortal && !isSoftwarePortal) {
+    navItems.push(
+      { path: `/admin/project/${projectId}/workflows`, label: 'All Workflows' },
+      { path: `/admin/project/${projectId}/workflows/designer`, label: 'Designer' },
+      { path: `/admin/project/${projectId}/workflows/executions`, label: 'Executions' }
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,9 +174,9 @@ const ProjectDashboard = () => {
 
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
-        <Route path="/software/*" element={<SoftwarePortal />} />
-        <Route path="/ai/*" element={<AIPortal />} />
-        <Route path="/workflows/*" element={<WorkflowsPortal />} />
+        <Route path="/software/*" element={<SoftwarePortal projectId={projectId} hideNavigation />} />
+        <Route path="/ai/*" element={<AIPortal projectId={projectId} hideNavigation />} />
+        <Route path="/workflows/*" element={<WorkflowsPortal projectId={projectId} hideNavigation />} />
       </Routes>
     </div>
   );
