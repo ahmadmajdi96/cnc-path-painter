@@ -39,14 +39,21 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting login...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      console.log('Login response:', { data, error });
+
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
 
       if (data.user) {
+        console.log('User logged in, checking admin profile...');
         // Check if user is admin
         const { data: adminProfile, error: profileError } = await supabase
           .from('admin_profiles')
@@ -54,17 +61,22 @@ const AdminLogin = () => {
           .eq('user_id', data.user.id)
           .single();
 
+        console.log('Admin profile check:', { adminProfile, profileError });
+
         if (profileError || !adminProfile) {
+          console.error('No admin profile found, signing out');
           await supabase.auth.signOut();
           toast.error('Access denied. Admin privileges required.');
           setLoading(false);
           return;
         }
 
+        console.log('Login successful, redirecting to dashboard');
         toast.success('Login successful!');
         navigate('/admin/dashboard');
       }
     } catch (error: any) {
+      console.error('Login catch error:', error);
       toast.error(error.message || 'Failed to login');
     } finally {
       setLoading(false);
