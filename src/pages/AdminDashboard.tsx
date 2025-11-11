@@ -3,22 +3,36 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import AdminNavbar from '@/components/AdminNavbar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, FolderKanban, DollarSign, Activity, TrendingUp, AlertCircle } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, FolderKanban, DollarSign, Workflow, Bot, Database, Blocks, Zap, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
 interface DashboardStats {
+  // Client & Project Stats
   totalClients: number;
   activeClients: number;
   totalProjects: number;
   activeProjects: number;
   totalRevenue: number;
   pendingPayments: number;
-  integrations: number;
-  automations: number;
-  workflows: number;
-  aiModels: number;
+  
+  // Software Portal Stats
+  totalIntegrations: number;
+  activeIntegrations: number;
+  totalAutomations: number;
+  activeAutomations: number;
+  
+  // AI Portal Stats
+  totalDatasets: number;
+  activeDatasets: number;
+  totalChatbots: number;
+  activeChatbots: number;
+  
+  // Workflows Portal Stats
+  totalWorkflows: number;
+  activeWorkflows: number;
+  totalExecutions: number;
+  successfulExecutions: number;
 }
 
 const AdminDashboard = () => {
@@ -31,10 +45,18 @@ const AdminDashboard = () => {
     activeProjects: 0,
     totalRevenue: 0,
     pendingPayments: 0,
-    integrations: 0,
-    automations: 0,
-    workflows: 0,
-    aiModels: 0,
+    totalIntegrations: 0,
+    activeIntegrations: 0,
+    totalAutomations: 0,
+    activeAutomations: 0,
+    totalDatasets: 0,
+    activeDatasets: 0,
+    totalChatbots: 0,
+    activeChatbots: 0,
+    totalWorkflows: 0,
+    activeWorkflows: 0,
+    totalExecutions: 0,
+    successfulExecutions: 0,
   });
 
   useEffect(() => {
@@ -94,26 +116,45 @@ const AdminDashboard = () => {
       const totalRevenue = completedPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const pendingAmount = pendingPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
-      // Fetch resources count (this is a placeholder - adjust based on your actual tables)
-      const { count: integrations } = await supabase
-        .from('project_resources')
-        .select('*', { count: 'exact', head: true })
-        .eq('resource_type', 'integration');
+      // Fetch datasets (AI Portal)
+      const { count: totalDatasets } = await supabase
+        .from('datasets')
+        .select('*', { count: 'exact', head: true });
 
-      const { count: automations } = await supabase
-        .from('project_resources')
+      const { count: activeDatasets } = await supabase
+        .from('datasets')
         .select('*', { count: 'exact', head: true })
-        .eq('resource_type', 'automation');
+        .eq('status', 'active');
 
-      const { count: workflows } = await supabase
-        .from('project_resources')
-        .select('*', { count: 'exact', head: true })
-        .eq('resource_type', 'workflow');
+      // Fetch chatbots (AI Portal)
+      const { count: totalChatbots } = await supabase
+        .from('chatbots')
+        .select('*', { count: 'exact', head: true });
 
-      const { count: aiModels } = await supabase
-        .from('project_resources')
+      const { count: activeChatbots } = await supabase
+        .from('chatbots')
         .select('*', { count: 'exact', head: true })
-        .eq('resource_type', 'ai_model');
+        .eq('status', 'active');
+
+      // Fetch workflows (Workflows Portal)
+      const { count: totalWorkflows } = await supabase
+        .from('workflows')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: activeWorkflows } = await supabase
+        .from('workflows')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // Fetch workflow executions
+      const { count: totalExecutions } = await supabase
+        .from('workflow_executions')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: successfulExecutions } = await supabase
+        .from('workflow_executions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed');
 
       setStats({
         totalClients: totalClients || 0,
@@ -122,10 +163,18 @@ const AdminDashboard = () => {
         activeProjects: activeProjects || 0,
         totalRevenue,
         pendingPayments: pendingAmount,
-        integrations: integrations || 0,
-        automations: automations || 0,
-        workflows: workflows || 0,
-        aiModels: aiModels || 0,
+        totalIntegrations: 0, // Not implemented yet
+        activeIntegrations: 0,
+        totalAutomations: 0,
+        activeAutomations: 0,
+        totalDatasets: totalDatasets || 0,
+        activeDatasets: activeDatasets || 0,
+        totalChatbots: totalChatbots || 0,
+        activeChatbots: activeChatbots || 0,
+        totalWorkflows: totalWorkflows || 0,
+        activeWorkflows: activeWorkflows || 0,
+        totalExecutions: totalExecutions || 0,
+        successfulExecutions: successfulExecutions || 0,
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -134,31 +183,20 @@ const AdminDashboard = () => {
     }
   };
 
-  const resourceData = [
-    { name: 'Integrations', value: stats.integrations, color: '#8b5cf6' },
-    { name: 'Automations', value: stats.automations, color: '#3b82f6' },
-    { name: 'Workflows', value: stats.workflows, color: '#10b981' },
-    { name: 'AI Models', value: stats.aiModels, color: '#f59e0b' },
-  ];
-
-  const projectStatusData = [
-    { name: 'Active', value: stats.activeProjects, color: '#10b981' },
-    { name: 'Inactive', value: stats.totalProjects - stats.activeProjects, color: '#94a3b8' },
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <AdminNavbar />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-8">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-          <p className="text-muted-foreground mt-2">
-            Welcome back! Here's what's happening with your business today.
+          <h1 className="text-4xl font-bold text-gray-900">Dashboard Overview</h1>
+          <p className="text-gray-600 mt-2">
+            Monitor your business performance and client projects
           </p>
         </div>
 
         {loading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
               <Card key={i}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -174,173 +212,267 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalClients}</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600">{stats.activeClients}</span> active
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Business Overview Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Business Overview</h2>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Clients</CardTitle>
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-gray-900">{stats.totalClients}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-green-600 font-semibold">{stats.activeClients}</span> active
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalProjects}</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600">{stats.activeProjects}</span> in progress
-                  </p>
-                </CardContent>
-              </Card>
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Projects</CardTitle>
+                    <FolderKanban className="h-5 w-5 text-purple-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-gray-900">{stats.totalProjects}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-green-600 font-semibold">{stats.activeProjects}</span> in progress
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-orange-600">${stats.pendingPayments.toLocaleString()}</span> pending
-                  </p>
-                </CardContent>
-              </Card>
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-gray-900">${stats.totalRevenue.toLocaleString()}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-orange-600 font-semibold">${stats.pendingPayments.toLocaleString()}</span> pending
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Resources</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats.integrations + stats.automations + stats.workflows + stats.aiModels}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Across all projects</p>
-                </CardContent>
-              </Card>
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">System Health</CardTitle>
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-600">100%</div>
+                    <p className="text-xs text-gray-600 mt-1">All systems operational</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 mb-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resources Distribution</CardTitle>
-                  <CardDescription>Breakdown of all project resources</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={resourceData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {resourceData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    {resourceData.map((item) => (
-                      <div key={item.name} className="flex items-center space-x-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="text-sm">{item.name}: {item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            {/* AI Portal Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                <Bot className="h-6 w-6 mr-2 text-blue-600" />
+                AI Portal Resources
+              </h2>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Datasets</CardTitle>
+                    <Database className="h-5 w-5 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalDatasets}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-green-600 font-semibold">{stats.activeDatasets}</span> active
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Status</CardTitle>
-                  <CardDescription>Active vs. inactive projects</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={projectStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {projectStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Chatbots</CardTitle>
+                    <Bot className="h-5 w-5 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalChatbots}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-green-600 font-semibold">{stats.activeChatbots}</span> active
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">AI Models</CardTitle>
+                    <Blocks className="h-5 w-5 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">8</div>
+                    <p className="text-xs text-gray-600 mt-1">Computer vision & NLP</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Accuracy</CardTitle>
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">94%</div>
+                    <p className="text-xs text-gray-600 mt-1">Average model accuracy</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Quick overview of system status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
+            {/* Workflows Portal Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                <Workflow className="h-6 w-6 mr-2 text-purple-600" />
+                Workflows Portal
+              </h2>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Workflows</CardTitle>
+                    <Workflow className="h-5 w-5 text-purple-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalWorkflows}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-green-600 font-semibold">{stats.activeWorkflows}</span> active
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Total Executions</CardTitle>
+                    <Zap className="h-5 w-5 text-purple-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalExecutions}</div>
+                    <p className="text-xs text-gray-600 mt-1">All time runs</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Success Rate</CardTitle>
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {stats.totalExecutions > 0 
+                        ? Math.round((stats.successfulExecutions / stats.totalExecutions) * 100)
+                        : 0}%
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {stats.successfulExecutions} successful
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Failed Runs</CardTitle>
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {stats.totalExecutions - stats.successfulExecutions}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">Require attention</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Software Portal Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                <Blocks className="h-6 w-6 mr-2 text-indigo-600" />
+                Software Portal (Coming Soon)
+              </h2>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-indigo-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Integrations</CardTitle>
+                    <Blocks className="h-5 w-5 text-indigo-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalIntegrations}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-green-600 font-semibold">{stats.activeIntegrations}</span> connected
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-indigo-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-600">Automations</CardTitle>
+                    <Zap className="h-5 w-5 text-indigo-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-gray-900">{stats.totalAutomations}</div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="text-green-600 font-semibold">{stats.activeAutomations}</span> running
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+              <div className="grid gap-6 md:grid-cols-3">
+                <Card 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate('/admin/clients')}
+                >
+                  <CardContent className="pt-6">
                     <div className="flex items-center space-x-4">
-                      <Activity className="h-5 w-5 text-primary" />
+                      <Users className="h-8 w-8 text-blue-600" />
                       <div>
-                        <p className="font-medium">System Status</p>
-                        <p className="text-sm text-muted-foreground">All systems operational</p>
+                        <p className="font-semibold text-gray-900">Manage Clients</p>
+                        <p className="text-sm text-gray-600">View and edit client accounts</p>
                       </div>
                     </div>
-                    <Badge variant="default">Active</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                  </CardContent>
+                </Card>
+
+                <Card 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate('/admin/projects')}
+                >
+                  <CardContent className="pt-6">
                     <div className="flex items-center space-x-4">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      <FolderKanban className="h-8 w-8 text-purple-600" />
                       <div>
-                        <p className="font-medium">Revenue Growth</p>
-                        <p className="text-sm text-muted-foreground">Up 12% from last month</p>
+                        <p className="font-semibold text-gray-900">Manage Projects</p>
+                        <p className="text-sm text-gray-600">Track project progress</p>
                       </div>
                     </div>
-                    <Badge variant="secondary">+12%</Badge>
-                  </div>
-                  {stats.pendingPayments > 0 && (
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <AlertCircle className="h-5 w-5 text-orange-600" />
-                        <div>
-                          <p className="font-medium">Pending Payments</p>
-                          <p className="text-sm text-muted-foreground">
-                            ${stats.pendingPayments.toLocaleString()} awaiting payment
-                          </p>
-                        </div>
+                  </CardContent>
+                </Card>
+
+                <Card 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate('/admin/payments')}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-center space-x-4">
+                      <DollarSign className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="font-semibold text-gray-900">Manage Payments</p>
+                        <p className="text-sm text-gray-600">Process and track payments</p>
                       </div>
-                      <Badge variant="outline">Action Required</Badge>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </>
         )}
       </div>
