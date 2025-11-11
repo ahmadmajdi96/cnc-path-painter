@@ -85,19 +85,25 @@ const AdminLogin = () => {
         return;
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
+        // Wait a moment for session to be fully established in the client
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Check if user is admin
         const { data: adminProfile, error: profileError } = await supabase
           .from('admin_profiles')
           .select('*')
           .eq('user_id', data.user.id)
-          .single();
+          .maybeSingle();
+
+        console.log('Admin profile check:', { adminProfile, profileError });
 
         if (profileError || !adminProfile) {
           await supabase.auth.signOut();
           const accessError = 'Access denied. Admin privileges required.';
           setError(accessError);
           toast.error(accessError);
+          console.error('Admin check failed:', profileError);
           return;
         }
 
