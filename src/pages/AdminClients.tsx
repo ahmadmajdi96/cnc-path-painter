@@ -70,6 +70,8 @@ const AdminClients = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   
   const form = useForm<z.infer<typeof clientFormSchema>>({
     resolver: zodResolver(clientFormSchema),
@@ -185,6 +187,47 @@ const AdminClients = () => {
       console.error('Insert error:', error);
       toast.error(error.message || 'Failed to create client');
     }
+  };
+
+  const handleEditClient = async (values: z.infer<typeof clientFormSchema>) => {
+    if (!editingClient) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          company_name: values.company_name,
+          contact_name: values.contact_name,
+          email: values.email,
+          phone: values.phone || null,
+          address: values.address || null,
+          status: values.status,
+        })
+        .eq('id', editingClient.id);
+
+      if (error) throw error;
+
+      toast.success('Client updated successfully!');
+      setIsEditDialogOpen(false);
+      setEditingClient(null);
+      form.reset();
+      fetchClients();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update client');
+    }
+  };
+
+  const openEditDialog = (client: Client) => {
+    setEditingClient(client);
+    form.reset({
+      company_name: client.company_name,
+      contact_name: client.contact_name,
+      email: client.email,
+      phone: client.phone || '',
+      address: client.address || '',
+      status: client.status as 'active' | 'inactive' | 'suspended',
+    });
+    setIsEditDialogOpen(true);
   };
 
   const handleDeleteClient = async (id: string) => {
@@ -343,6 +386,114 @@ const AdminClients = () => {
               </Form>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Edit Client</DialogTitle>
+                <DialogDescription>
+                  Update client information.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleEditClient)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="company_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="contact_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone (Optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address (Optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Update Client</Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Card>
@@ -397,9 +548,9 @@ const AdminClients = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => navigate(`/admin/clients/${client.id}`)}
+                            onClick={() => openEditDialog(client)}
                           >
-                            <Eye className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"

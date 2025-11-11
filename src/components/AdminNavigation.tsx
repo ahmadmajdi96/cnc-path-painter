@@ -11,6 +11,8 @@ export const AdminNavigation = () => {
     { path: '/admin/clients', label: 'Clients', icon: Users },
     { path: '/admin/projects', label: 'Projects', icon: FolderKanban },
     { path: '/admin/payments', label: 'Payments', icon: DollarSign },
+    { path: '/admin/employees', label: 'Employees', icon: Users },
+    { path: '/admin/expenses', label: 'Expenses', icon: DollarSign },
   ];
 
   return (
