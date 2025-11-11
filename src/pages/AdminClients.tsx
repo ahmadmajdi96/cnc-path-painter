@@ -85,37 +85,62 @@ const AdminClients = () => {
 
   useEffect(() => {
     checkAuth();
-    fetchClients();
   }, []);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
+    
+    console.log('Session check:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      email: session?.user?.email
+    });
+    
     if (!session) {
+      console.error('No session found - redirecting to login');
       navigate('/admin/login');
       return;
     }
 
     // Use security definer function to check admin status
-    const { data: isAdmin } = await supabase
+    const { data: isAdmin, error: adminError } = await supabase
       .rpc('is_admin', { check_user_id: session.user.id });
 
+    console.log('Admin check:', { isAdmin, error: adminError });
+
     if (!isAdmin) {
+      console.error('User is not admin - redirecting to login');
       navigate('/admin/login');
+      return;
     }
+
+    // Only fetch clients if auth checks pass
+    fetchClients();
   };
 
   const fetchClients = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session when fetching clients');
+        toast.error('Session expired. Please login again.');
+        navigate('/admin/login');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Fetch clients result:', { data, error });
+
       if (error) throw error;
       setClients(data || []);
     } catch (error: any) {
-      toast.error('Failed to fetch clients');
-      console.error(error);
+      console.error('Fetch clients error:', error);
+      toast.error('Failed to fetch clients: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -123,6 +148,17 @@ const AdminClients = () => {
 
   const handleAddClient = async (values: z.infer<typeof clientFormSchema>) => {
     try {
+      // Verify session before attempting insert
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Session expired. Please login again.');
+        navigate('/admin/login');
+        return;
+      }
+
+      console.log('Attempting to insert client with session:', session.user.id);
+
       // Create the client record directly without authentication
       const { error } = await supabase
         .from('clients')
@@ -137,6 +173,8 @@ const AdminClients = () => {
           },
         ]);
 
+      console.log('Insert result:', { error });
+
       if (error) throw error;
 
       toast.success('Client created successfully!');
@@ -144,8 +182,8 @@ const AdminClients = () => {
       form.reset();
       fetchClients();
     } catch (error: any) {
+      console.error('Insert error:', error);
       toast.error(error.message || 'Failed to create client');
-      console.error(error);
     }
   };
 
