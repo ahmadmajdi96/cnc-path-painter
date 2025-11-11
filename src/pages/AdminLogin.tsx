@@ -86,15 +86,22 @@ const AdminLogin = () => {
       }
 
       if (data.user && data.session) {
-        // Wait a moment for auth context to update
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Set the session explicitly and wait for auth to propagate
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
         
-        // Force a session refresh to ensure auth context is current
+        // Wait longer for auth context to fully propagate to all queries
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verify session is set
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        console.log('Current session after login:', { 
+        console.log('Session verification:', { 
           hasSession: !!currentSession,
-          userId: currentSession?.user?.id 
+          userId: currentSession?.user?.id,
+          hasAccessToken: !!currentSession?.access_token
         });
         
         if (!currentSession) {
@@ -103,7 +110,7 @@ const AdminLogin = () => {
           return;
         }
         
-        // Now query with established auth context
+        // Query admin profile with properly established auth context
         const { data: adminProfile, error: profileError } = await supabase
           .from('admin_profiles')
           .select('*')
@@ -113,7 +120,8 @@ const AdminLogin = () => {
         console.log('Admin profile check:', { 
           userId: currentSession.user.id,
           adminProfile, 
-          profileError
+          profileError,
+          query: `user_id = ${currentSession.user.id}`
         });
 
         if (profileError || !adminProfile) {
