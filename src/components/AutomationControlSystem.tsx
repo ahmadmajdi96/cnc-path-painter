@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Zap, CheckCircle, Database } from 'lucide-react';
@@ -8,6 +8,7 @@ import { AutomationList } from './AutomationList';
 import { AddAutomationDialog } from './AddAutomationDialog';
 import { EditAutomationDialog } from './EditAutomationDialog';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AutomationParameter {
   id: string;
@@ -212,120 +213,148 @@ export interface Automation {
 }
 
 export const AutomationControlSystem = ({ projectId }: { projectId?: string }) => {
-  const [automations, setAutomations] = useState<Automation[]>([
-    {
-      id: '1',
-      name: 'Data Sync Workflow',
-      description: 'Syncs data between databases',
-      enabled: true,
-      operations: [
-        {
-          id: 'op1',
-          order: 1,
-          type: 'crud_operation',
-          name: 'Read Source Data',
-          inputMappings: [
-            { 
-              id: 'im1',
-              source: 'automation_input', 
-              sourceParameter: 'filter_status' 
-            }
-          ],
-          config: {
-            operation: 'read',
-            database: 'production_db',
-            table: 'orders',
-            columns: ['id', 'customer', 'total', 'status'],
-            conditions: [
-              { id: 'c1', field: 'status', operator: '=', value: 'pending', logicalOperator: 'AND' },
-              { id: 'c2', field: 'total', operator: '>', value: '100' }
-            ]
-          },
-          outputParameters: [
-            { id: 'o1', name: 'orders', type: 'array', required: true, exampleValue: '[{...}]' }
-          ]
-        },
-        {
-          id: 'op2',
-          order: 2,
-          type: 'crud_operation',
-          name: 'Write to Archive',
-          inputMappings: [
-            { 
-              id: 'im2',
-              source: 'previous_operation', 
-              sourceParameter: 'orders', 
-              sourceOperationId: 'op1' 
-            }
-          ],
-          config: {
-            operation: 'create',
-            database: 'archive_db',
-            table: 'orders_archive',
-            data: {}
-          },
-          outputParameters: []
-        }
-      ],
-      inputParameters: [
-        { id: 'p1', name: 'filter_status', type: 'string', required: true, description: 'Status to filter', exampleValue: 'pending' },
-        { id: 'p2', name: 'date_from', type: 'string', required: true, exampleValue: '2024-01-01' }
-      ],
-      outputParameters: [
-        { 
-          id: 'out1', 
-          type: 'from_operations',
-          selectedOperations: [
-            { operationId: 'op2', outputParameterId: 'result' }
-          ]
-        }
-      ],
-      onFailure: {
-        action: 'retry',
-        retryCount: 3,
-        retryDelay: 5
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ]);
-  
-  const [filteredAutomations, setFilteredAutomations] = useState<Automation[]>(automations);
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [filteredAutomations, setFilteredAutomations] = useState<Automation[]>([]);
   const [selectedAutomation, setSelectedAutomation] = useState<Automation | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleAddAutomation = (automation: Omit<Automation, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newAutomation: Automation = {
-      ...automation,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    setAutomations([...automations, newAutomation]);
-    toast.success('Automation created successfully');
+  useEffect(() => {
+    fetchAutomations();
+  }, [projectId]);
+
+  const fetchAutomations = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('automations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching automations:', error);
+        toast.error('Failed to load automations');
+        return;
+      }
+
+      // Map database fields to Automation interface
+      const mappedData: Automation[] = (data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        enabled: item.enabled,
+        operations: item.operations || [],
+        inputParameters: item.input_parameters || [],
+        outputParameters: item.output_parameters || [],
+        onFailure: item.on_failure,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }));
+
+      setAutomations(mappedData);
+      setFilteredAutomations(mappedData);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to load automations');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditAutomation = (automation: Automation) => {
-    const updatedAutomations = automations.map(a => a.id === automation.id ? automation : a);
-    setAutomations(updatedAutomations);
-    setFilteredAutomations(updatedAutomations);
-    toast.success('Automation updated successfully');
+  const handleAddAutomation = async (automation: Omit<Automation, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('automations')
+        .insert([{
+          project_id: projectId || null,
+          name: automation.name,
+          description: automation.description,
+          enabled: automation.enabled,
+          operations: automation.operations as any,
+          input_parameters: automation.inputParameters as any,
+          output_parameters: automation.outputParameters as any,
+          on_failure: automation.onFailure as any
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Automation created successfully');
+      fetchAutomations();
+    } catch (error) {
+      console.error('Error creating automation:', error);
+      toast.error('Failed to create automation');
+    }
   };
 
-  const handleDeleteAutomation = (id: string) => {
-    const updatedAutomations = automations.filter(a => a.id !== id);
-    setAutomations(updatedAutomations);
-    setFilteredAutomations(updatedAutomations);
-    toast.success('Automation deleted successfully');
+  const handleEditAutomation = async (automation: Automation) => {
+    try {
+      const { error } = await supabase
+        .from('automations')
+        .update({
+          name: automation.name,
+          description: automation.description,
+          enabled: automation.enabled,
+          operations: automation.operations as any,
+          input_parameters: automation.inputParameters as any,
+          output_parameters: automation.outputParameters as any,
+          on_failure: automation.onFailure as any
+        })
+        .eq('id', automation.id);
+
+      if (error) throw error;
+
+      toast.success('Automation updated successfully');
+      fetchAutomations();
+    } catch (error) {
+      console.error('Error updating automation:', error);
+      toast.error('Failed to update automation');
+    }
   };
 
-  const handleToggleAutomation = (id: string) => {
-    const updatedAutomations = automations.map(a => 
-      a.id === id ? { ...a, enabled: !a.enabled } : a
-    );
-    setAutomations(updatedAutomations);
-    setFilteredAutomations(updatedAutomations);
+  const handleDeleteAutomation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('automations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Automation deleted successfully');
+      fetchAutomations();
+    } catch (error) {
+      console.error('Error deleting automation:', error);
+      toast.error('Failed to delete automation');
+    }
+  };
+
+  const handleToggleAutomation = async (id: string) => {
+    try {
+      const automation = automations.find(a => a.id === id);
+      if (!automation) return;
+
+      const { error } = await supabase
+        .from('automations')
+        .update({ enabled: !automation.enabled })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success(`Automation ${!automation.enabled ? 'enabled' : 'disabled'}`);
+      fetchAutomations();
+    } catch (error) {
+      console.error('Error toggling automation:', error);
+      toast.error('Failed to toggle automation');
+    }
   };
 
   return (

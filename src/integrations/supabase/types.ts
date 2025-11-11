@@ -134,6 +134,56 @@ export type Database = {
         }
         Relationships: []
       }
+      automations: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          input_parameters: Json | null
+          name: string
+          on_failure: Json | null
+          operations: Json
+          output_parameters: Json | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          input_parameters?: Json | null
+          name: string
+          on_failure?: Json | null
+          operations?: Json
+          output_parameters?: Json | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          input_parameters?: Json | null
+          name?: string
+          on_failure?: Json | null
+          operations?: Json
+          output_parameters?: Json | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bottlenecks: {
         Row: {
           description: string
@@ -1054,6 +1104,74 @@ export type Database = {
           warranty_expiry?: string | null
         }
         Relationships: []
+      }
+      integrations: {
+        Row: {
+          automation_steps: Json | null
+          configuration: Json
+          created_at: string
+          data_configuration: Json | null
+          description: string | null
+          id: string
+          last_test: Json | null
+          live_data: Json | null
+          name: string
+          output_mappings: Json | null
+          parameters: Json
+          project_id: string | null
+          result_destination: string
+          source_endpoint: Json
+          status: string
+          target_endpoint: Json
+          updated_at: string
+        }
+        Insert: {
+          automation_steps?: Json | null
+          configuration?: Json
+          created_at?: string
+          data_configuration?: Json | null
+          description?: string | null
+          id?: string
+          last_test?: Json | null
+          live_data?: Json | null
+          name: string
+          output_mappings?: Json | null
+          parameters?: Json
+          project_id?: string | null
+          result_destination?: string
+          source_endpoint?: Json
+          status?: string
+          target_endpoint?: Json
+          updated_at?: string
+        }
+        Update: {
+          automation_steps?: Json | null
+          configuration?: Json
+          created_at?: string
+          data_configuration?: Json | null
+          description?: string | null
+          id?: string
+          last_test?: Json | null
+          live_data?: Json | null
+          name?: string
+          output_mappings?: Json | null
+          parameters?: Json
+          project_id?: string | null
+          result_destination?: string
+          source_endpoint?: Json
+          status?: string
+          target_endpoint?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       joint_configurations: {
         Row: {

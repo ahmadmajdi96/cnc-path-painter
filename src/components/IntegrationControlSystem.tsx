@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { IntegrationList } from './IntegrationList';
 import { IntegrationFilters } from './IntegrationFilters';
@@ -10,6 +10,8 @@ import { IntegrationLiveDataPanel } from './IntegrationLiveDataPanel';
 import { IntegrationStatusCards } from './IntegrationStatusCards';
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, Activity } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface AutomationStep {
   id: string;
@@ -122,207 +124,148 @@ interface IntegrationControlSystemProps {
 }
 
 export const IntegrationControlSystem = ({ projectId }: IntegrationControlSystemProps) => {
-  const [integrations, setIntegrations] = useState<Integration[]>([
-    {
-      id: '1',
-      name: 'ERP to MES Integration',
-      description: 'Real-time data synchronization between ERP and Manufacturing Execution System',
-      status: 'active',
-      resultDestination: 'forward',
-      configuration: {
-        host: 'erp-system.company.com',
-        port: 443,
-        protocol: 'HTTPS',
-        auth: { type: 'oauth2', credentials: {} }
-      },
-      sourceEndpoint: {
-        protocol: 'REST_API',
-        auth: { type: 'oauth2', credentials: {} }
-      },
-      targetEndpoint: {
-        protocol: 'MQTT',
-        host: 'mes-broker.local',
-        port: 1883,
-        path: '/production/data',
-        auth: { type: 'none', credentials: {} }
-      },
-      automationSteps: [],
-      outputMappings: [],
-      parameters: {
-        timeout: 30000,
-        retryAttempts: 3,
-        dataFormat: 'json',
-        mappingRules: []
-      },
-      dataConfiguration: {
-        receiveDataType: 'json',
-        sendDataType: 'json',
-        expectedParameters: [
-          {
-            id: '1',
-            name: 'productionOrderId',
-            type: 'string',
-            required: true,
-            description: 'Unique identifier for production order'
-          },
-          {
-            id: '2',
-            name: 'quantity',
-            type: 'number',
-            required: true,
-            description: 'Number of items to produce'
-          }
-        ],
-        variableMappings: [
-          {
-            id: '1',
-            sourceField: 'order_id',
-            targetField: 'productionOrderId',
-            transformation: 'toUpperCase()'
-          },
-          {
-            id: '2',
-            sourceField: 'qty',
-            targetField: 'quantity'
-          }
-        ]
-      },
-      liveData: {
-        receivedCount: 127,
-        sentCount: 124,
-        lastReceived: {
-          timestamp: '2024-01-15T14:30:25Z',
-          data: { order_id: 'PO-2024-001', qty: 500 },
-          size: 1024
-        },
-        lastSent: {
-          timestamp: '2024-01-15T14:30:26Z',
-          data: { productionOrderId: 'PO-2024-001', quantity: 500 },
-          size: 1156
-        },
-        errors: []
-      },
-      lastTest: {
-        timestamp: '2024-01-15T10:30:00Z',
-        status: 'success'
-      },
-      createdAt: '2024-01-10T08:00:00Z',
-      updatedAt: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: '2',
-      name: 'SCADA to Database Sync',
-      description: 'Historical data archiving from SCADA system to time-series database',
-      status: 'testing',
-      resultDestination: 'forward',
-      configuration: {
-        host: '192.168.1.100',
-        port: 4840,
-        protocol: 'TCP',
-        auth: { type: 'certificate', credentials: {} }
-      },
-      sourceEndpoint: {
-        protocol: 'OPC_UA',
-        auth: { type: 'certificate', credentials: {} }
-      },
-      targetEndpoint: {
-        protocol: 'HTTP',
-        host: 'influxdb.company.com',
-        port: 8086,
-        path: '/write',
-        auth: { type: 'bearer', credentials: {} }
-      },
-      automationSteps: [],
-      outputMappings: [],
-      parameters: {
-        timeout: 15000,
-        retryAttempts: 5,
-        dataFormat: 'json',
-        mappingRules: []
-      },
-      dataConfiguration: {
-        receiveDataType: 'binary',
-        sendDataType: 'json',
-        expectedParameters: [
-          {
-            id: '3',
-            name: 'timestamp',
-            type: 'string',
-            required: true,
-            description: 'ISO 8601 timestamp'
-          },
-          {
-            id: '4',
-            name: 'sensorValues',
-            type: 'array',
-            required: true,
-            description: 'Array of sensor readings'
-          }
-        ],
-        variableMappings: [
-          {
-            id: '3',
-            sourceField: 'time',
-            targetField: 'timestamp',
-            transformation: 'toISOString()'
-          },
-          {
-            id: '4',
-            sourceField: 'data',
-            targetField: 'sensorValues'
-          }
-        ]
-      },
-      liveData: {
-        receivedCount: 45,
-        sentCount: 43,
-        errors: [
-          {
-            timestamp: '2024-01-15T13:22:15Z',
-            type: 'send',
-            message: 'Connection timeout to InfluxDB'
-          }
-        ]
-      },
-      createdAt: '2024-01-12T14:20:00Z',
-      updatedAt: '2024-01-15T09:15:00Z'
-    }
-  ]);
-
-  const [filteredIntegrations, setFilteredIntegrations] = useState<Integration[]>(integrations);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [filteredIntegrations, setFilteredIntegrations] = useState<Integration[]>([]);
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showTestPanel, setShowTestPanel] = useState(false);
   const [showLiveDataPanel, setShowLiveDataPanel] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleAddIntegration = (integration: Omit<Integration, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newIntegration: Integration = {
-      ...integration,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    const updatedIntegrations = [...integrations, newIntegration];
-    setIntegrations(updatedIntegrations);
-    setFilteredIntegrations(updatedIntegrations);
+  useEffect(() => {
+    fetchIntegrations();
+  }, [projectId]);
+
+  const fetchIntegrations = async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('integrations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching integrations:', error);
+        toast.error('Failed to load integrations');
+        return;
+      }
+
+      // Map database fields to Integration interface
+      const mappedData: Integration[] = (data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        status: item.status,
+        resultDestination: item.result_destination,
+        configuration: item.configuration,
+        sourceEndpoint: item.source_endpoint,
+        targetEndpoint: item.target_endpoint,
+        automationSteps: item.automation_steps || [],
+        outputMappings: item.output_mappings || [],
+        parameters: item.parameters,
+        dataConfiguration: item.data_configuration,
+        liveData: item.live_data,
+        lastTest: item.last_test,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }));
+
+      setIntegrations(mappedData);
+      setFilteredIntegrations(mappedData);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to load integrations');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditIntegration = (updatedIntegration: Integration) => {
-    const updatedIntegrations = integrations.map(integration =>
-      integration.id === updatedIntegration.id
-        ? { ...updatedIntegration, updatedAt: new Date().toISOString() }
-        : integration
-    );
-    setIntegrations(updatedIntegrations);
-    setFilteredIntegrations(updatedIntegrations);
+  const handleAddIntegration = async (integration: Omit<Integration, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('integrations')
+        .insert([{
+          project_id: projectId || null,
+          name: integration.name,
+          description: integration.description,
+          status: integration.status,
+          result_destination: integration.resultDestination,
+          configuration: integration.configuration as any,
+          source_endpoint: integration.sourceEndpoint as any,
+          target_endpoint: integration.targetEndpoint as any,
+          automation_steps: integration.automationSteps as any,
+          output_mappings: integration.outputMappings as any,
+          parameters: integration.parameters as any,
+          data_configuration: integration.dataConfiguration as any,
+          live_data: integration.liveData as any,
+          last_test: integration.lastTest as any
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Integration created successfully');
+      fetchIntegrations();
+    } catch (error) {
+      console.error('Error creating integration:', error);
+      toast.error('Failed to create integration');
+    }
   };
 
-  const handleDeleteIntegration = (id: string) => {
-    const updatedIntegrations = integrations.filter(integration => integration.id !== id);
-    setIntegrations(updatedIntegrations);
-    setFilteredIntegrations(updatedIntegrations);
+  const handleEditIntegration = async (updatedIntegration: Integration) => {
+    try {
+      const { error } = await supabase
+        .from('integrations')
+        .update({
+          name: updatedIntegration.name,
+          description: updatedIntegration.description,
+          status: updatedIntegration.status,
+          result_destination: updatedIntegration.resultDestination,
+          configuration: updatedIntegration.configuration as any,
+          source_endpoint: updatedIntegration.sourceEndpoint as any,
+          target_endpoint: updatedIntegration.targetEndpoint as any,
+          automation_steps: updatedIntegration.automationSteps as any,
+          output_mappings: updatedIntegration.outputMappings as any,
+          parameters: updatedIntegration.parameters as any,
+          data_configuration: updatedIntegration.dataConfiguration as any,
+          live_data: updatedIntegration.liveData as any,
+          last_test: updatedIntegration.lastTest as any
+        })
+        .eq('id', updatedIntegration.id);
+
+      if (error) throw error;
+
+      toast.success('Integration updated successfully');
+      fetchIntegrations();
+    } catch (error) {
+      console.error('Error updating integration:', error);
+      toast.error('Failed to update integration');
+    }
+  };
+
+  const handleDeleteIntegration = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('integrations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Integration deleted successfully');
+      fetchIntegrations();
+    } catch (error) {
+      console.error('Error deleting integration:', error);
+      toast.error('Failed to delete integration');
+    }
   };
 
   const handleFilter = (searchTerm: string, statusFilter: string, protocolFilter: string) => {
