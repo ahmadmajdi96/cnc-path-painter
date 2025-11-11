@@ -28,14 +28,11 @@ const AdminLogin = () => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Check if user is admin
-        const { data: adminProfile } = await supabase
-          .from('admin_profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
+        // Check if user is admin using security definer function
+        const { data: isAdmin } = await supabase
+          .rpc('is_admin', { check_user_id: session.user.id });
         
-        if (adminProfile) {
+        if (isAdmin) {
           navigate('/admin/dashboard');
         }
       }
@@ -86,49 +83,29 @@ const AdminLogin = () => {
       }
 
       if (data.user && data.session) {
-        // Set the session explicitly and wait for auth to propagate
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token
+        // Use security definer function to check admin status
+        // This bypasses RLS timing issues
+        const { data: isAdminResult, error: adminCheckError } = await supabase
+          .rpc('is_admin', { check_user_id: data.user.id });
+
+        console.log('Admin check result:', { 
+          userId: data.user.id,
+          isAdmin: isAdminResult,
+          error: adminCheckError
         });
-        
-        // Wait longer for auth context to fully propagate to all queries
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Verify session is set
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        console.log('Session verification:', { 
-          hasSession: !!currentSession,
-          userId: currentSession?.user?.id,
-          hasAccessToken: !!currentSession?.access_token
-        });
-        
-        if (!currentSession) {
-          setError('Failed to establish session. Please try again.');
-          toast.error('Failed to establish session. Please try again.');
+
+        if (adminCheckError) {
+          await supabase.auth.signOut();
+          setError('Failed to verify admin status. Please try again.');
+          toast.error('Failed to verify admin status. Please try again.');
+          console.error('Admin check error:', adminCheckError);
           return;
         }
-        
-        // Query admin profile with properly established auth context
-        const { data: adminProfile, error: profileError } = await supabase
-          .from('admin_profiles')
-          .select('*')
-          .eq('user_id', currentSession.user.id)
-          .maybeSingle();
 
-        console.log('Admin profile check:', { 
-          userId: currentSession.user.id,
-          adminProfile, 
-          profileError,
-          query: `user_id = ${currentSession.user.id}`
-        });
-
-        if (profileError || !adminProfile) {
+        if (!isAdminResult) {
           await supabase.auth.signOut();
           setError('Access denied. Admin privileges required.');
           toast.error('Access denied. Admin privileges required.');
-          console.error('Admin check failed:', { profileError, userId: currentSession.user.id });
           return;
         }
 
