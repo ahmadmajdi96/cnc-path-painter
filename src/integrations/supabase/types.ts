@@ -3184,7 +3184,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_admin: { Args: never; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       production_status: "active" | "maintenance" | "inactive"
