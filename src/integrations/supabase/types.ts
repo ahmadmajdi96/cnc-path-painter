@@ -1932,6 +1932,44 @@ export type Database = {
           },
         ]
       }
+      project_components: {
+        Row: {
+          component_id: string
+          component_name: string
+          component_type: string
+          created_at: string
+          id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          component_id: string
+          component_name: string
+          component_type: string
+          created_at?: string
+          id?: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          component_id?: string
+          component_name?: string
+          component_type?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_resources: {
         Row: {
           created_at: string
@@ -1972,6 +2010,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          is_built: boolean | null
           name: string
           start_date: string | null
           status: string
@@ -1984,6 +2023,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_built?: boolean | null
           name: string
           start_date?: string | null
           status?: string
@@ -1996,6 +2036,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_built?: boolean | null
           name?: string
           start_date?: string | null
           status?: string

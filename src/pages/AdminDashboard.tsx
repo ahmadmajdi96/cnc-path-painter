@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import AdminNavbar from '@/components/AdminNavbar';
+import { AdminNavigation } from '@/components/AdminNavigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, FolderKanban, DollarSign, Workflow, Bot, Database, Blocks, Zap, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -184,8 +184,8 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNavbar />
+    <div className="min-h-screen bg-background">
+      <AdminNavigation />
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">

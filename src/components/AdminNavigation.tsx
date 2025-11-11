@@ -1,17 +1,16 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Zap, Link as LinkIcon, Layout, GitBranch } from 'lucide-react';
+import { Users, FolderKanban, DollarSign, LayoutDashboard } from 'lucide-react';
 
-export const SoftwareNavigation = () => {
+export const AdminNavigation = () => {
   const location = useLocation();
   
   const navItems = [
-    { path: '/software/integrations', label: 'Integrations', icon: LinkIcon },
-    { path: '/software/ui-builder', label: 'UI Builder', icon: Layout },
-    { path: '/software/automation', label: 'Automation', icon: Zap },
-    { path: '/software/workflows', label: 'Workflows', icon: GitBranch },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/admin/clients', label: 'Clients', icon: Users },
+    { path: '/admin/projects', label: 'Projects', icon: FolderKanban },
+    { path: '/admin/payments', label: 'Payments', icon: DollarSign },
   ];
 
   return (
@@ -49,7 +48,7 @@ export const SoftwareNavigation = () => {
         </div>
         
         <div className="text-sm text-muted-foreground">
-          Industrial Software Portal
+          Admin Portal
         </div>
       </div>
     </nav>

@@ -8,7 +8,7 @@ import { WorkflowExecutions } from '@/components/WorkflowExecutions';
 
 const WorkflowsPortal = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <WorkflowsNavigation />
       <Routes>
         <Route path="/" element={<WorkflowsList />} />

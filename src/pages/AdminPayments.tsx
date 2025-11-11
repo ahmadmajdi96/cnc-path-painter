@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import AdminNavbar from '@/components/AdminNavbar';
+import { AdminNavigation } from '@/components/AdminNavigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -237,7 +237,7 @@ const AdminPayments = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminNavbar />
+      <AdminNavigation />
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>

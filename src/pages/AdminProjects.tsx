@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import AdminNavbar from '@/components/AdminNavbar';
+import { AdminNavigation } from '@/components/AdminNavigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Eye, Trash2 } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, Wrench, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -44,6 +44,7 @@ interface Project {
   end_date: string | null;
   created_at: string;
   client_id: string;
+  is_built: boolean;
   clients: {
     company_name: string;
   };
@@ -193,9 +194,27 @@ const AdminProjects = () => {
     return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
   };
 
+  const handleBuildProject = async (projectId: string, isBuilt: boolean) => {
+    try {
+      // Mark project as built
+      const { error } = await supabase
+        .from('projects')
+        .update({ is_built: true })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      // Navigate to project dashboard
+      navigate(`/admin/project/${projectId}`);
+    } catch (error: any) {
+      toast.error('Failed to access project dashboard');
+      console.error(error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <AdminNavbar />
+      <AdminNavigation />
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -356,22 +375,23 @@ const AdminProjects = () => {
                   <TableHead>Budget</TableHead>
                   <TableHead>Start Date</TableHead>
                   <TableHead>End Date</TableHead>
+                  <TableHead>Build</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : filteredProjects.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                      No projects found
-                    </TableCell>
-                  </TableRow>
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : filteredProjects.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    No projects found
+                  </TableCell>
+                </TableRow>
                 ) : (
                   filteredProjects.map((project) => (
                     <TableRow key={project.id}>
@@ -390,6 +410,25 @@ const AdminProjects = () => {
                         {project.end_date
                           ? new Date(project.end_date).toLocaleDateString()
                           : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant={project.is_built ? "outline" : "default"}
+                          size="sm"
+                          onClick={() => handleBuildProject(project.id, project.is_built)}
+                        >
+                          {project.is_built ? (
+                            <>
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </>
+                          ) : (
+                            <>
+                              <Wrench className="h-3 w-3 mr-1" />
+                              Build
+                            </>
+                          )}
+                        </Button>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
