@@ -86,51 +86,46 @@ const AdminLogin = () => {
       }
 
       if (data.user && data.session) {
-        // Wait for auth state to be fully established
-        const checkAdminStatus = () => new Promise<boolean>((resolve) => {
-          const timeout = setTimeout(() => {
-            console.error('Auth state change timeout');
-            resolve(false);
-          }, 5000);
-
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event, session?.user?.id);
-            
-            if (event === 'SIGNED_IN' && session) {
-              clearTimeout(timeout);
-              subscription.unsubscribe();
-              
-              // Now query with properly established auth context
-              const { data: adminProfile, error: profileError } = await supabase
-                .from('admin_profiles')
-                .select('*')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-
-              console.log('Admin profile check after auth state:', { 
-                userId: session.user.id,
-                adminProfile, 
-                profileError
-              });
-
-              if (profileError || !adminProfile) {
-                await supabase.auth.signOut();
-                setError('Access denied. Admin privileges required.');
-                toast.error('Access denied. Admin privileges required.');
-                resolve(false);
-              } else {
-                toast.success('Welcome back!');
-                navigate('/admin/dashboard');
-                resolve(true);
-              }
-            }
-          });
+        // Wait a moment for auth context to update
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Force a session refresh to ensure auth context is current
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        console.log('Current session after login:', { 
+          hasSession: !!currentSession,
+          userId: currentSession?.user?.id 
         });
-
-        const success = await checkAdminStatus();
-        if (!success) {
+        
+        if (!currentSession) {
+          setError('Failed to establish session. Please try again.');
+          toast.error('Failed to establish session. Please try again.');
           return;
         }
+        
+        // Now query with established auth context
+        const { data: adminProfile, error: profileError } = await supabase
+          .from('admin_profiles')
+          .select('*')
+          .eq('user_id', currentSession.user.id)
+          .maybeSingle();
+
+        console.log('Admin profile check:', { 
+          userId: currentSession.user.id,
+          adminProfile, 
+          profileError
+        });
+
+        if (profileError || !adminProfile) {
+          await supabase.auth.signOut();
+          setError('Access denied. Admin privileges required.');
+          toast.error('Access denied. Admin privileges required.');
+          console.error('Admin check failed:', { profileError, userId: currentSession.user.id });
+          return;
+        }
+
+        toast.success('Welcome back!');
+        navigate('/admin/dashboard');
       }
     } catch (error: any) {
       const errorMessage = 'An unexpected error occurred. Please try again.';
