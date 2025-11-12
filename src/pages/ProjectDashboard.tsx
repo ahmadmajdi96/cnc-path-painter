@@ -96,15 +96,6 @@ const ProjectDashboard = () => {
     );
   }
 
-  // Add AI Portal navigation items
-  if (isAIPortal) {
-    navItems.push(
-      { path: `/admin/project/${projectId}/ai/computer-vision`, label: 'Computer Vision' },
-      { path: `/admin/project/${projectId}/ai/ocr`, label: 'OCR' },
-      { path: `/admin/project/${projectId}/ai/nlp`, label: 'NLP' },
-      { path: `/admin/project/${projectId}/ai/chatbots`, label: 'Chat Bots' }
-    );
-  }
 
   // Add Workflows Portal navigation items
   if (isWorkflowsPortal && !isSoftwarePortal) {
@@ -117,66 +108,68 @@ const ProjectDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="bg-background border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link to="/admin/projects">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Projects
-              </Button>
-            </Link>
-            
-            <div className="h-6 w-px bg-border" />
-            
-            <div className="flex items-center space-x-1">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                
-                return (
-                  <Link key={item.path} to={item.path}>
-                    <Button
-                      variant={isActive ? "default" : "ghost"}
-                      className={`flex items-center gap-2 ${
-                        isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {item.label}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">
-              {project && `${project.name} - ${project.clients?.company_name}`}
-            </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-5 w-5" />
+      {!isAIPortal && (
+        <nav className="bg-background border-b border-border px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link to="/admin/projects">
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Projects
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Link>
+              
+              <div className="h-6 w-px bg-border" />
+              
+              <div className="flex items-center space-x-1">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  
+                  return (
+                    <Link key={item.path} to={item.path}>
+                      <Button
+                        variant={isActive ? "default" : "ghost"}
+                        className={`flex items-center gap-2 ${
+                          isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {item.label}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {project && `${project.name} - ${project.clients?.company_name}`}
+              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
         <Route path="/software/*" element={<SoftwarePortal projectId={projectId} hideNavigation />} />
-        <Route path="/ai/*" element={<AIPortal projectId={projectId} hideNavigation />} />
+        <Route path="/ai/*" element={<AIPortal projectId={projectId} />} />
         <Route path="/workflows/*" element={<WorkflowsPortal projectId={projectId} hideNavigation />} />
       </Routes>
     </div>
