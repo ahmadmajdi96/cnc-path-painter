@@ -803,6 +803,7 @@ export type Database = {
           content: string | null
           created_at: string
           dataset_id: string
+          file_url: string | null
           id: string
           name: string
           url: string | null
@@ -812,6 +813,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           dataset_id: string
+          file_url?: string | null
           id?: string
           name: string
           url?: string | null
@@ -821,6 +823,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           dataset_id?: string
+          file_url?: string | null
           id?: string
           name?: string
           url?: string | null

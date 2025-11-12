@@ -223,36 +223,63 @@ export const ImageDatasetBuilder = ({ datasetId }: ImageDatasetBuilderProps) => 
       return;
     }
 
-    const itemsToInsert = Array.from(files).map((file) => ({
-      dataset_id: datasetId,
-      name: file.name,
-      url: URL.createObjectURL(file),
-    }));
+    const uploadPromises = Array.from(files).map(async (file) => {
+      // Upload to storage
+      const filePath = `datasets/${datasetId}/${file.name}`;
+      const { error: storageError } = await supabase.storage
+        .from('dataset-files')
+        .upload(filePath, file, { upsert: true });
 
-    const { error } = await supabase.from('dataset_items').insert(itemsToInsert);
+      if (storageError) {
+        throw new Error(`Storage error for ${file.name}: ${storageError.message}`);
+      }
 
-    if (error) {
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('dataset-files')
+        .getPublicUrl(filePath);
+
+      return {
+        dataset_id: datasetId,
+        name: file.name,
+        url: publicUrl,
+        file_url: publicUrl,
+      };
+    });
+
+    try {
+      const itemsToInsert = await Promise.all(uploadPromises);
+      const { error } = await supabase.from('dataset_items').insert(itemsToInsert);
+
+      if (error) {
+        toast({
+          title: 'Error uploading images',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Update item count
+      await supabase
+        .from('datasets')
+        .update({ item_count: items.length + files.length })
+        .eq('id', datasetId);
+
+      queryClient.invalidateQueries({ queryKey: ['dataset-items', datasetId] });
+      queryClient.invalidateQueries({ queryKey: ['dataset', datasetId] });
+
+      toast({
+        title: 'Images uploaded',
+        description: `${files.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
       toast({
         title: 'Error uploading images',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
-      return;
     }
-
-    // Update item count
-    await supabase
-      .from('datasets')
-      .update({ item_count: items.length + files.length })
-      .eq('id', datasetId);
-
-    queryClient.invalidateQueries({ queryKey: ['dataset-items', datasetId] });
-    queryClient.invalidateQueries({ queryKey: ['dataset', datasetId] });
-
-    toast({
-      title: 'Images uploaded',
-      description: `${files.length} image(s) uploaded successfully`,
-    });
   };
 
   const handleImageClick = (image: any) => {
