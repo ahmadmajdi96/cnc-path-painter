@@ -62,6 +62,9 @@ serve(async (req) => {
       case 'speech_recognition':
       case 'speech_synthesis':
       case 'speaker_identification':
+      case 'cost_reduction':
+      case 'business_analyzer':
+      case 'decision_maker':
         result = await processNLPModel(model, inputData);
         break;
       case 'quality_control':
