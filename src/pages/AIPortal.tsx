@@ -24,6 +24,9 @@ import SpeechSynthesisPage from './SpeechSynthesisPage';
 import SpeakerIdentificationPage from './SpeakerIdentificationPage';
 import NLPPage from './NLPPage';
 import ChatBotsPage from './ChatBotsPage';
+import CostReductionPage from './CostReductionPage';
+import BusinessAnalyzerPage from './BusinessAnalyzerPage';
+import DecisionMakerPage from './DecisionMakerPage';
 
 interface AIPortalProps {
   projectId?: string;
@@ -32,7 +35,7 @@ interface AIPortalProps {
 
 const AIPortal = ({ projectId, hideNavigation }: AIPortalProps) => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {!hideNavigation && <AINavigation />}
       <div className="w-full px-6 py-8">
         <Routes>
@@ -70,6 +73,11 @@ const AIPortal = ({ projectId, hideNavigation }: AIPortalProps) => {
           {/* Language AI */}
           <Route path="/nlp" element={<NLPPage projectId={projectId} />} />
           <Route path="/chatbots" element={<ChatBotsPage projectId={projectId} />} />
+          
+          {/* Business AI */}
+          <Route path="/cost-reduction" element={<CostReductionPage projectId={projectId} />} />
+          <Route path="/business-analyzer" element={<BusinessAnalyzerPage projectId={projectId} />} />
+          <Route path="/decision-maker" element={<DecisionMakerPage projectId={projectId} />} />
           
           <Route path="*" element={
             <div className="text-center py-12">

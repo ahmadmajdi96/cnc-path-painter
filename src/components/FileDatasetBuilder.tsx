@@ -23,6 +23,7 @@ interface CSVFile {
   id: string;
   name: string;
   content: string;
+  file_url?: string;
 }
 
 export const FileDatasetBuilder = ({ datasetId }: FileDatasetBuilderProps) => {
@@ -105,12 +106,33 @@ export const FileDatasetBuilder = ({ datasetId }: FileDatasetBuilderProps) => {
 
     const content = await file.text();
 
+    // Upload to storage
+    const filePath = `datasets/${datasetId}/${file.name}`;
+    const { error: storageError } = await supabase.storage
+      .from('dataset-files')
+      .upload(filePath, file, { upsert: true });
+
+    if (storageError) {
+      toast({
+        title: 'Error uploading file to storage',
+        description: storageError.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('dataset-files')
+      .getPublicUrl(filePath);
+
     const { error } = await supabase
       .from('dataset_items')
       .insert({
         dataset_id: datasetId,
         name: file.name,
         content: content,
+        file_url: publicUrl,
       });
 
     if (error) {
@@ -392,23 +414,37 @@ export const FileDatasetBuilder = ({ datasetId }: FileDatasetBuilderProps) => {
               {files.map((file) => (
                 <div
                   key={file.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => setSelectedFile(file)}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setSelectedFile(file)}>
                     <FileSpreadsheet className="w-5 h-5 text-primary" />
                     <span className="font-medium">{file.name}</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteFile(file.id);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
+                  <div className="flex gap-2">
+                    {file.file_url && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(file.file_url, '_blank');
+                        }}
+                        title="Download file"
+                      >
+                        <Download className="w-4 h-4 text-primary" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteFile(file.id);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

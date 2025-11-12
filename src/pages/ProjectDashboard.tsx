@@ -96,7 +96,15 @@ const ProjectDashboard = () => {
     );
   }
 
-  // Don't add AI Portal navigation items here - they have their own navigation
+  // Add AI Portal navigation items
+  if (isAIPortal) {
+    navItems.push(
+      { path: `/admin/project/${projectId}/ai/computer-vision`, label: 'Computer Vision' },
+      { path: `/admin/project/${projectId}/ai/ocr`, label: 'OCR' },
+      { path: `/admin/project/${projectId}/ai/nlp`, label: 'NLP' },
+      { path: `/admin/project/${projectId}/ai/chatbots`, label: 'Chat Bots' }
+    );
+  }
 
   // Add Workflows Portal navigation items
   if (isWorkflowsPortal && !isSoftwarePortal) {
@@ -168,7 +176,7 @@ const ProjectDashboard = () => {
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
         <Route path="/software/*" element={<SoftwarePortal projectId={projectId} hideNavigation />} />
-        <Route path="/ai/*" element={<AIPortal projectId={projectId} />} />
+        <Route path="/ai/*" element={<AIPortal projectId={projectId} hideNavigation />} />
         <Route path="/workflows/*" element={<WorkflowsPortal projectId={projectId} hideNavigation />} />
       </Routes>
     </div>
