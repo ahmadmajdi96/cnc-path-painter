@@ -153,6 +153,32 @@ export const FileDatasetBuilder = ({ datasetId }: FileDatasetBuilderProps) => {
   };
 
   const deleteFile = async (fileId: string) => {
+    const fileToDelete = files.find(f => f.id === fileId);
+    
+    if (fileToDelete?.file_url) {
+      // Extract key from MinIO URL
+      const urlParts = fileToDelete.file_url.split('/');
+      const key = urlParts.slice(4).join('/'); // Get everything after bucket name
+
+      try {
+        // Delete from MinIO
+        const { data, error: minioError } = await supabase.functions.invoke('minio-file-handler', {
+          body: {
+            action: 'delete',
+            bucket: 'dataset-files',
+            key: key,
+          },
+        });
+
+        if (minioError || !data?.success) {
+          console.error('MinIO delete error:', minioError || data?.error);
+        }
+      } catch (error) {
+        console.error('Error deleting from MinIO:', error);
+      }
+    }
+
+    // Delete from database
     const { error } = await supabase
       .from('dataset_items')
       .delete()
@@ -168,7 +194,7 @@ export const FileDatasetBuilder = ({ datasetId }: FileDatasetBuilderProps) => {
     }
 
     toast({
-      title: 'File deleted',
+      title: 'File deleted from MinIO',
       description: 'CSV file has been deleted successfully',
     });
 
