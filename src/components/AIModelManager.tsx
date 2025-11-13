@@ -136,7 +136,10 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
       'speech_recognition',
       'speech_synthesis',
       'speaker_identification',
-      'path_optimization'
+      'path_optimization',
+      'cost_reduction',
+      'business_analyzer',
+      'decision_maker'
     ];
     
     if (!validModelTypes.includes(modelType)) {
@@ -168,6 +171,8 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     console.log('Specifically model_type value:', modelData.model_type, 'Type:', typeof modelData.model_type);
 
     try {
+      let savedModelId = editingModel?.id;
+      
       if (editingModel) {
         console.log('Updating existing model:', editingModel.id);
         const { error } = await supabase
@@ -198,11 +203,17 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
         }
 
         console.log('Model created successfully:', data);
+        savedModelId = data[0]?.id;
 
         toast({
           title: "Model created",
           description: "New AI model has been created successfully"
         });
+      }
+
+      // Send complete model data to endpoint URL if provided
+      if (formData.endpoint_url && savedModelId) {
+        await sendModelDataToEndpoint(savedModelId, modelData);
       }
 
       setIsAddDialogOpen(false);
@@ -214,6 +225,121 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
       toast({
         title: "Error saving model",
         description: error instanceof Error ? error.message : "Failed to save model",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sendModelDataToEndpoint = async (modelId: string, modelData: any) => {
+    try {
+      // Fetch all available datasets
+      const { data: datasetsData, error: datasetsError } = await supabase
+        .from('datasets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      let datasets: any[] = [];
+      
+      if (datasetsData && datasetsData.length > 0) {
+        // Fetch items for each dataset
+        for (const dataset of datasetsData) {
+          const { data: items } = await supabase
+            .from('dataset_items')
+            .select('*')
+            .eq('dataset_id', dataset.id)
+            .limit(100); // Limit items per dataset to avoid huge payloads
+          
+          datasets.push({
+            ...dataset,
+            items: items || []
+          });
+        }
+      }
+
+      // Construct the comprehensive model payload
+      const payload = {
+        model: {
+          id: modelId,
+          name: modelData.name,
+          model_type: modelData.model_type,
+          model_name: modelData.model_name,
+          description: modelData.description,
+          status: modelData.status,
+          configuration: {
+            temperature: modelData.temperature,
+            max_tokens: modelData.max_tokens,
+            system_prompt: modelData.system_prompt
+          },
+          credentials: {
+            api_key: modelData.api_key,
+            endpoint_url: modelData.endpoint_url
+          },
+          project_id: modelData.project_id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        datasets: datasets.map(ds => ({
+          id: ds.id,
+          name: ds.name,
+          description: ds.description,
+          type: ds.type,
+          mode: ds.mode,
+          status: ds.status,
+          item_count: ds.item_count,
+          created_at: ds.created_at,
+          updated_at: ds.updated_at,
+          items: ds.items.map((item: any) => ({
+            id: item.id,
+            content: item.content,
+            label: item.label,
+            annotations: item.annotations,
+            file_url: item.file_url,
+            metadata: item.metadata,
+            created_at: item.created_at
+          }))
+        })),
+        metadata: {
+          total_datasets: datasets.length,
+          total_items: datasets.reduce((sum: number, ds: any) => sum + (ds.items?.length || 0), 0),
+          project_id: modelData.project_id,
+          timestamp: new Date().toISOString(),
+          sync_version: "1.0"
+        }
+      };
+
+      console.log('Sending model data to endpoint:', modelData.endpoint_url);
+      console.log('Payload preview:', {
+        model: payload.model.name,
+        datasets_count: payload.datasets.length,
+        total_items: payload.metadata.total_items
+      });
+
+      const response = await fetch(modelData.endpoint_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(modelData.api_key && { 'Authorization': `Bearer ${modelData.api_key}` })
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Endpoint response:', result);
+
+      toast({
+        title: "Model data synced",
+        description: "Model and dataset information sent to endpoint successfully"
+      });
+    } catch (error) {
+      console.error('Error sending model data to endpoint:', error);
+      toast({
+        title: "Sync warning",
+        description: "Model saved but failed to sync with endpoint: " + (error instanceof Error ? error.message : "Unknown error"),
         variant: "destructive"
       });
     }

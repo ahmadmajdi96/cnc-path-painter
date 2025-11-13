@@ -24,9 +24,7 @@ import SpeechSynthesisPage from './SpeechSynthesisPage';
 import SpeakerIdentificationPage from './SpeakerIdentificationPage';
 import NLPPage from './NLPPage';
 import ChatBotsPage from './ChatBotsPage';
-import CostReductionPage from './CostReductionPage';
-import BusinessAnalyzerPage from './BusinessAnalyzerPage';
-import DecisionMakerPage from './DecisionMakerPage';
+import BusinessAIPage from './BusinessAIPage';
 
 interface AIPortalProps {
   projectId?: string;
@@ -74,10 +72,11 @@ const AIPortal = ({ projectId, hideNavigation }: AIPortalProps) => {
           <Route path="/nlp" element={<NLPPage projectId={projectId} />} />
           <Route path="/chatbots" element={<ChatBotsPage projectId={projectId} />} />
           
-          {/* Business AI */}
-          <Route path="/cost-reduction" element={<CostReductionPage projectId={projectId} />} />
-          <Route path="/business-analyzer" element={<BusinessAnalyzerPage projectId={projectId} />} />
-          <Route path="/decision-maker" element={<DecisionMakerPage projectId={projectId} />} />
+          {/* Business AI - Unified Page */}
+          <Route path="/business-ai" element={<BusinessAIPage projectId={projectId} />} />
+          <Route path="/cost-reduction" element={<BusinessAIPage projectId={projectId} />} />
+          <Route path="/business-analyzer" element={<BusinessAIPage projectId={projectId} />} />
+          <Route path="/decision-maker" element={<BusinessAIPage projectId={projectId} />} />
           
           <Route path="*" element={
             <div className="text-center py-12">
