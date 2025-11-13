@@ -1,5 +1,5 @@
 
-import { Eye, MessageSquare, Scan, Search, Users, Camera, FileText, Brain } from "lucide-react";
+import { Eye, MessageSquare, Scan, Search, Users, Camera, FileText, Brain, TrendingDown } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
 
 export interface AINavItem {
@@ -57,6 +57,12 @@ export const aiNavItems: AINavItem[] = [
     to: "/ai/nlp",
     icon: Brain,
     page: "NLP",
+  },
+  {
+    title: "Business AI",
+    to: "/ai/business-ai",
+    icon: TrendingDown,
+    page: "BusinessAI",
   },
   {
     title: "Chat Bots",
