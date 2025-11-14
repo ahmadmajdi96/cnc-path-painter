@@ -67,17 +67,20 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     try {
       console.log('Loading models for type:', modelType);
       
-      let query = supabase
+      // Only fetch models for the current project
+      // If no projectId, return empty array (project context required)
+      if (!projectId) {
+        setModels([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('chatbots')
         .select('*')
         .eq('model_type', modelType)
-        .order('created_at', { ascending: false });
-
-      if (projectId) {
-        query = query.eq('project_id', projectId);
-      }
-
-      const { data, error } = await query;
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false});
 
       if (error) {
         console.error('Error loading models:', error);
