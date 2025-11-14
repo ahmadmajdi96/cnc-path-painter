@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CreateDatasetDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export const CreateDatasetDialog = ({ open, onOpenChange, onSuccess, projectId }
   const [mode, setMode] = useState<'classify' | 'annotate'>('annotate');
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -76,6 +78,9 @@ export const CreateDatasetDialog = ({ open, onOpenChange, onSuccess, projectId }
       title: 'Dataset created',
       description: `"${name}" has been created successfully`,
     });
+
+    // Invalidate datasets query to refresh the list
+    queryClient.invalidateQueries({ queryKey: ['datasets', projectId] });
 
     // Reset form
     setName('');
