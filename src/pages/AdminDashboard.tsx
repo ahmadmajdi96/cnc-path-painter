@@ -82,79 +82,41 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch clients
-      const { count: totalClients } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeClients } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      // Fetch projects
-      const { count: totalProjects } = await supabase
-        .from('projects')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeProjects } = await supabase
-        .from('projects')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      // Fetch payments
-      const { data: completedPayments } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('status', 'completed');
-
-      const { data: pendingPayments } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('status', 'pending');
+      // Run all queries in parallel for better performance
+      const [
+        { count: totalClients },
+        { count: activeClients },
+        { count: totalProjects },
+        { count: activeProjects },
+        { data: completedPayments },
+        { data: pendingPayments },
+        { count: totalDatasets },
+        { count: activeDatasets },
+        { count: totalChatbots },
+        { count: activeChatbots },
+        { count: totalWorkflows },
+        { count: activeWorkflows },
+        { count: totalExecutions },
+        { count: successfulExecutions },
+      ] = await Promise.all([
+        supabase.from('clients').select('*', { count: 'exact', head: true }),
+        supabase.from('clients').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('projects').select('*', { count: 'exact', head: true }),
+        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('payments').select('amount').eq('status', 'completed'),
+        supabase.from('payments').select('amount').eq('status', 'pending'),
+        supabase.from('datasets').select('*', { count: 'exact', head: true }),
+        supabase.from('datasets').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('chatbots').select('*', { count: 'exact', head: true }),
+        supabase.from('chatbots').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('workflows').select('*', { count: 'exact', head: true }),
+        supabase.from('workflows').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('workflow_executions').select('*', { count: 'exact', head: true }),
+        supabase.from('workflow_executions').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+      ]);
 
       const totalRevenue = completedPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const pendingAmount = pendingPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-
-      // Fetch datasets (AI Portal)
-      const { count: totalDatasets } = await supabase
-        .from('datasets')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeDatasets } = await supabase
-        .from('datasets')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      // Fetch chatbots (AI Portal)
-      const { count: totalChatbots } = await supabase
-        .from('chatbots')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeChatbots } = await supabase
-        .from('chatbots')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      // Fetch workflows (Workflows Portal)
-      const { count: totalWorkflows } = await supabase
-        .from('workflows')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeWorkflows } = await supabase
-        .from('workflows')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      // Fetch workflow executions
-      const { count: totalExecutions } = await supabase
-        .from('workflow_executions')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: successfulExecutions } = await supabase
-        .from('workflow_executions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed');
 
       setStats({
         totalClients: totalClients || 0,
