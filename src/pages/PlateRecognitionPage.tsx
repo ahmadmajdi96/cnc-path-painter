@@ -97,10 +97,12 @@ const PlateRecognitionPage = ({ projectId }: PlateRecognitionPageProps = {}) => 
             description="AI models for license plate detection and OCR"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="plate_recognition"
+            projectId={projectId}
           />
         </div>
 

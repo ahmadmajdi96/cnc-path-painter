@@ -82,10 +82,12 @@ const QualityControlPage = ({ projectId }: QualityControlPageProps = {}) => {
             description="AI models for visual inspection and defect detection"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="quality_control"
+            projectId={projectId}
           />
         </div>
 

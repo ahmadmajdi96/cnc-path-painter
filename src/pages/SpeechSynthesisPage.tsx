@@ -123,10 +123,12 @@ const SpeechSynthesisPage = ({ projectId }: SpeechSynthesisPageProps = {}) => {
             description="AI models for text-to-speech generation"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector 
             modelId={selectedModel?.id || null}
             modelType="speech_synthesis"
+            projectId={projectId}
           />
         </div>
 

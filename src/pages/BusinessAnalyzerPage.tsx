@@ -169,6 +169,8 @@ Key challenges:
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="business_analysis"
+            projectId={projectId}
+            modelType="business_analysis"
           />
         </div>
 

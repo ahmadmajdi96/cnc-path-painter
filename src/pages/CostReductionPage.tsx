@@ -164,6 +164,8 @@ We operate 24/7 with 3 shifts and have noticed increasing overtime costs. Materi
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="cost_reduction"
+            projectId={projectId}
+            modelType="cost_reduction"
           />
         </div>
 

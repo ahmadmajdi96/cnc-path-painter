@@ -96,10 +96,12 @@ const SpeechRecognitionPage = ({ projectId }: SpeechRecognitionPageProps = {}) =
             description="AI models for automatic speech recognition"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector 
             modelId={selectedModel?.id || null}
             modelType="speech_recognition"
+            projectId={projectId}
           />
         </div>
 

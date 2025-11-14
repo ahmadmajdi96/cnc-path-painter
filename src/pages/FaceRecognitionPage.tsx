@@ -99,10 +99,12 @@ const FaceRecognitionPage = ({ projectId }: FaceRecognitionPageProps = {}) => {
             description="AI models for face detection and recognition"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="face_recognition"
+            projectId={projectId}
           />
         </div>
 

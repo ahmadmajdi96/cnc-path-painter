@@ -80,10 +80,12 @@ const PlateDetectionPage = ({ projectId }: PlateDetectionPageProps = {}) => {
           title="AI Models"
           description="Select or configure plate detection models"
           onModelSelect={setSelectedModel}
+          projectId={projectId}
         />
         <AIModelDatasetSelector 
           modelId={selectedModel?.id || null}
           modelType="plate_detection"
+          projectId={projectId}
         />
       </div>
 

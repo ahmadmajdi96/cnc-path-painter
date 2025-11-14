@@ -194,10 +194,12 @@ const OCRPage = ({ projectId }: OCRPageProps = {}) => {
             description="AI models for optical character recognition and text extraction"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="ocr"
+            projectId={projectId}
           />
         </div>
 

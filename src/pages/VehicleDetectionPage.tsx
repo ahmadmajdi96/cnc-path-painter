@@ -85,10 +85,12 @@ const VehicleDetectionPage = ({ projectId }: VehicleDetectionPageProps = {}) => 
             description="AI models for vehicle detection and localization"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector 
             modelId={selectedModel?.id || null}
             modelType="vehicle_detection"
+            projectId={projectId}
           />
         </div>
 

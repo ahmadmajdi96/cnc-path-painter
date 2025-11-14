@@ -90,10 +90,12 @@ const PlateNumberExtractionPage = ({ projectId }: PlateNumberExtractionPageProps
           title="AI Models"
           description="Select or configure plate OCR models"
           onModelSelect={setSelectedModel}
+          projectId={projectId}
         />
         <AIModelDatasetSelector 
           modelId={selectedModel?.id || null}
           modelType="plate_ocr"
+          projectId={projectId}
         />
       </div>
 
