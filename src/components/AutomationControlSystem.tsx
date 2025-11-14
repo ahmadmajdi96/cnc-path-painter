@@ -9,6 +9,7 @@ import { AddAutomationDialog } from './AddAutomationDialog';
 import { EditAutomationDialog } from './EditAutomationDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useProjectId } from '@/hooks/useProjectId';
 
 export interface AutomationParameter {
   id: string;
@@ -212,7 +213,8 @@ export interface Automation {
   updatedAt: string;
 }
 
-export const AutomationControlSystem = ({ projectId }: { projectId?: string }) => {
+export const AutomationControlSystem = () => {
+  const { projectId } = useProjectId();
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [filteredAutomations, setFilteredAutomations] = useState<Automation[]>([]);
   const [selectedAutomation, setSelectedAutomation] = useState<Automation | null>(null);
