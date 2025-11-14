@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Layers, Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useProjectId } from '@/hooks/useProjectId';
 import { CreateCombinationDialog } from '@/components/CreateCombinationDialog';
 import { EditCombinationDialog } from '@/components/EditCombinationDialog';
 import {
@@ -38,11 +39,8 @@ interface Combination {
   created_at: string;
 }
 
-interface DatasetsCombinerPageProps {
-  projectId?: string;
-}
-
-const DatasetsCombinerPage = ({ projectId }: DatasetsCombinerPageProps = {}) => {
+const DatasetsCombinerPage = () => {
+  const { projectId } = useProjectId();
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);

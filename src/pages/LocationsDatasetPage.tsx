@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Upload, Plus, Trash2, Download, Save, FolderOpen, FilePlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useProjectId } from '@/hooks/useProjectId';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MapboxMap from '@/components/MapboxMap';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,11 +29,8 @@ interface LocationDataset {
   updated_at: string;
 }
 
-interface LocationsDatasetPageProps {
-  projectId?: string;
-}
-
-const LocationsDatasetPage = ({ projectId }: LocationsDatasetPageProps = {}) => {
+const LocationsDatasetPage = () => {
+  const { projectId } = useProjectId();
   const [locations, setLocations] = useState<Location[]>([]);
   const [datasetName, setDatasetName] = useState('');
   const [savedDatasets, setSavedDatasets] = useState<LocationDataset[]>([]);

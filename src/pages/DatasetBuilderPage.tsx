@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useProjectId } from '@/hooks/useProjectId';
 import { CreateDatasetDialog } from '@/components/CreateDatasetDialog';
 import { ImageDatasetBuilder } from '@/components/ImageDatasetBuilder';
 import { FileDatasetBuilder } from '@/components/FileDatasetBuilder';
@@ -40,11 +41,8 @@ interface Dataset {
   created_at: string;
 }
 
-interface DatasetBuilderPageProps {
-  projectId?: string;
-}
-
-const DatasetBuilderPage = ({ projectId }: DatasetBuilderPageProps = {}) => {
+const DatasetBuilderPage = () => {
+  const { projectId } = useProjectId();
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
