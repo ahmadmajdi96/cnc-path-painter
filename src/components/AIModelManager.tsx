@@ -59,13 +59,14 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
   });
 
   useEffect(() => {
+    console.log('AIModelManager mounted/updated with projectId:', projectId);
     loadModels();
   }, [modelType, projectId]);
 
   const loadModels = async () => {
     setLoading(true);
     try {
-      console.log('Loading models for type:', modelType);
+      console.log('Loading models for type:', modelType, 'projectId:', projectId);
       
       // Only fetch models for the current project
       if (!projectId) {
@@ -117,6 +118,7 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
     
     console.log('=== DEBUG: Model Creation ===');
     console.log('Original modelType prop:', modelType);
+    console.log('ProjectId prop value:', projectId);
     console.log('Form data:', formData);
     
     // Validate model type before submission
