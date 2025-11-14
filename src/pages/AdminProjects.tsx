@@ -109,28 +109,31 @@ const AdminProjects = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch projects with client info
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          clients (
-            company_name
-          )
-        `)
-        .order('created_at', { ascending: false });
+      // Fetch both in parallel for better performance
+      const [
+        { data: projectsData, error: projectsError },
+        { data: clientsData, error: clientsError }
+      ] = await Promise.all([
+        supabase
+          .from('projects')
+          .select(`
+            *,
+            clients (
+              company_name
+            )
+          `)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('clients')
+          .select('id, company_name')
+          .eq('status', 'active')
+          .order('company_name')
+      ]);
 
       if (projectsError) throw projectsError;
-      setProjects(projectsData || []);
-
-      // Fetch clients for dropdown
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('id, company_name')
-        .eq('status', 'active')
-        .order('company_name');
-
       if (clientsError) throw clientsError;
+      
+      setProjects(projectsData || []);
       setClients(clientsData || []);
     } catch (error: any) {
       toast.error('Failed to fetch data');
