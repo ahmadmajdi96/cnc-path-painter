@@ -141,20 +141,18 @@ export const IntegrationControlSystem = ({ projectId }: IntegrationControlSystem
     try {
       setLoading(true);
       
-      // Only fetch integrations for the current project
-      // If no projectId, return empty array (project context required)
-      if (!projectId) {
-        setIntegrations([]);
-        setFilteredIntegrations([]);
-        setLoading(false);
-        return;
+      // Build query based on whether projectId is provided
+      let query = supabase
+        .from('integrations')
+        .select('*');
+      
+      // If projectId is provided, filter by it
+      // If projectId is undefined, show all integrations (no project filter)
+      if (projectId !== undefined) {
+        query = query.eq('project_id', projectId);
       }
 
-      const { data, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching integrations:', error);
