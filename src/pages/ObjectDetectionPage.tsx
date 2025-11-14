@@ -6,12 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Scan, Upload, Settings, Play, Image } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface ObjectDetectionPageProps {
-  projectId?: string;
-}
-
-const ObjectDetectionPage = ({ projectId }: ObjectDetectionPageProps = {}) => {
+const ObjectDetectionPage = () => {
+  const { projectId } = useProjectId();
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

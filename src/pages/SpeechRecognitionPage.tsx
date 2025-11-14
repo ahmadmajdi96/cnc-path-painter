@@ -7,12 +7,10 @@ import { Upload, Mic, AlertCircle, Copy } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useToast } from '@/hooks/use-toast';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface SpeechRecognitionPageProps {
-  projectId?: string;
-}
-
-const SpeechRecognitionPage = ({ projectId }: SpeechRecognitionPageProps = {}) => {
+const SpeechRecognitionPage = () => {
+  const { projectId } = useProjectId();
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const { toast } = useToast();
 

@@ -3,6 +3,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { useProjectId } from '@/hooks/useProjectId';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -59,12 +60,9 @@ const getBusinessAI = (baseUrl: string) => [
   { title: "Decision Maker", to: `${baseUrl}/ai/decision-maker`, description: "AI-powered strategic decision support" },
 ];
 
-interface AINavigationProps {
-  projectId?: string;
-}
-
-export const AINavigation = ({ projectId }: AINavigationProps) => {
+export const AINavigation = () => {
   const location = useLocation();
+  const { projectId } = useProjectId();
   const baseUrl = projectId ? `/admin/project/${projectId}` : '';
   
   const urbanSystems = getUrbanSystems(baseUrl);

@@ -3,13 +3,11 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Workflow, PlayCircle, Settings, List } from 'lucide-react';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface WorkflowsNavigationProps {
-  projectId?: string;
-}
-
-export const WorkflowsNavigation = ({ projectId }: WorkflowsNavigationProps) => {
+export const WorkflowsNavigation = () => {
   const location = useLocation();
+  const { projectId } = useProjectId();
   const baseUrl = projectId ? `/admin/project/${projectId}` : '';
   
   const navItems = [

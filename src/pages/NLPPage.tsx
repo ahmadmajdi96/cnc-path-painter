@@ -10,12 +10,10 @@ import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
 import { useToast } from '@/hooks/use-toast';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface NLPPageProps {
-  projectId?: string;
-}
-
-const NLPPage = ({ projectId }: NLPPageProps = {}) => {
+const NLPPage = () => {
+  const { projectId } = useProjectId();
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [inputText, setInputText] = useState('');
   const [analysisTask, setAnalysisTask] = useState('sentiment');

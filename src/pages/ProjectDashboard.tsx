@@ -3,6 +3,7 @@ import { Routes, Route, Link, useParams, useNavigate, useLocation } from 'react-
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, User, LogOut } from 'lucide-react';
+import { useProjectId } from '@/hooks/useProjectId';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,15 +27,19 @@ interface Project {
 }
 
 const ProjectDashboard = () => {
-  const { projectId } = useParams();
+  const { projectId: urlProjectId } = useParams();
+  const { setProjectId } = useProjectId();
   const navigate = useNavigate();
   const location = useLocation();
   const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => {
+    if (urlProjectId) {
+      setProjectId(urlProjectId);
+    }
     checkAuth();
     fetchProject();
-  }, [projectId]);
+  }, [urlProjectId]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -50,7 +55,7 @@ const ProjectDashboard = () => {
   };
 
   const fetchProject = async () => {
-    if (!projectId) return;
+    if (!urlProjectId) return;
 
     const { data, error } = await supabase
       .from('projects')
@@ -61,7 +66,7 @@ const ProjectDashboard = () => {
           company_name
         )
       `)
-      .eq('id', projectId)
+      .eq('id', urlProjectId)
       .single();
 
     if (error) {
@@ -73,6 +78,7 @@ const ProjectDashboard = () => {
   };
 
   const handleLogout = async () => {
+    setProjectId(null);
     await supabase.auth.signOut();
     navigate('/admin/login');
   };
@@ -83,16 +89,16 @@ const ProjectDashboard = () => {
   const isWorkflowsPortal = location.pathname.includes('/workflows');
 
   const navItems = [
-    { path: `/admin/project/${projectId}`, label: 'Overview' },
+    { path: `/admin/project/${urlProjectId}`, label: 'Overview' },
   ];
 
   // Add Software Portal navigation items
   if (isSoftwarePortal) {
     navItems.push(
-      { path: `/admin/project/${projectId}/software/integrations`, label: 'Integrations' },
-      { path: `/admin/project/${projectId}/software/ui-builder`, label: 'UI Builder' },
-      { path: `/admin/project/${projectId}/software/automation`, label: 'Automation' },
-      { path: `/admin/project/${projectId}/software/workflows`, label: 'Workflows' }
+      { path: `/admin/project/${urlProjectId}/software/integrations`, label: 'Integrations' },
+      { path: `/admin/project/${urlProjectId}/software/ui-builder`, label: 'UI Builder' },
+      { path: `/admin/project/${urlProjectId}/software/automation`, label: 'Automation' },
+      { path: `/admin/project/${urlProjectId}/software/workflows`, label: 'Workflows' }
     );
   }
 
@@ -100,9 +106,9 @@ const ProjectDashboard = () => {
   // Add Workflows Portal navigation items
   if (isWorkflowsPortal && !isSoftwarePortal) {
     navItems.push(
-      { path: `/admin/project/${projectId}/workflows`, label: 'All Workflows' },
-      { path: `/admin/project/${projectId}/workflows/designer`, label: 'Designer' },
-      { path: `/admin/project/${projectId}/workflows/executions`, label: 'Executions' }
+      { path: `/admin/project/${urlProjectId}/workflows`, label: 'All Workflows' },
+      { path: `/admin/project/${urlProjectId}/workflows/designer`, label: 'Designer' },
+      { path: `/admin/project/${urlProjectId}/workflows/executions`, label: 'Executions' }
     );
   }
 
@@ -168,9 +174,9 @@ const ProjectDashboard = () => {
 
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
-        <Route path="/software/*" element={<SoftwarePortal projectId={projectId} />} />
-        <Route path="/ai/*" element={<AIPortal projectId={projectId} />} />
-        <Route path="/workflows/*" element={<WorkflowsPortal projectId={projectId} />} />
+        <Route path="/software/*" element={<SoftwarePortal />} />
+        <Route path="/ai/*" element={<AIPortal />} />
+        <Route path="/workflows/*" element={<WorkflowsPortal />} />
       </Routes>
     </div>
   );

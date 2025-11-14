@@ -6,12 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Users, Upload, Settings, Play, Image, UserCheck } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface FaceRecognitionPageProps {
-  projectId?: string;
-}
-
-const FaceRecognitionPage = ({ projectId }: FaceRecognitionPageProps = {}) => {
+const FaceRecognitionPage = () => {
+  const { projectId } = useProjectId();
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (
