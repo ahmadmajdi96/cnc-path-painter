@@ -169,7 +169,7 @@ const ProjectDashboard = () => {
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
         <Route path="/software/*" element={<SoftwarePortal projectId={projectId} hideNavigation />} />
-        <Route path="/ai/*" element={<AIPortal projectId={projectId} />} />
+        <Route path="/ai/*" element={<AIPortal projectId={projectId} hideNavigation />} />
         <Route path="/workflows/*" element={<WorkflowsPortal projectId={projectId} hideNavigation />} />
       </Routes>
     </div>

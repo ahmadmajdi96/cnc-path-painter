@@ -493,6 +493,7 @@ export type Database = {
           name: string
           plunge_rate: number | null
           port: number | null
+          project_id: string | null
           protocol: string | null
           safe_height: number | null
           status: string
@@ -512,6 +513,7 @@ export type Database = {
           name: string
           plunge_rate?: number | null
           port?: number | null
+          project_id?: string | null
           protocol?: string | null
           safe_height?: number | null
           status?: string
@@ -531,6 +533,7 @@ export type Database = {
           name?: string
           plunge_rate?: number | null
           port?: number | null
+          project_id?: string | null
           protocol?: string | null
           safe_height?: number | null
           status?: string
@@ -538,7 +541,15 @@ export type Database = {
           work_area?: string | null
           work_height?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cnc_machines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {
@@ -590,6 +601,7 @@ export type Database = {
           position_x: number | null
           position_y: number | null
           position_z: number | null
+          project_id: string | null
           protocol: string
           status: string
           updated_at: string
@@ -614,6 +626,7 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           position_z?: number | null
+          project_id?: string | null
           protocol?: string
           status?: string
           updated_at?: string
@@ -638,12 +651,21 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           position_z?: number | null
+          project_id?: string | null
           protocol?: string
           status?: string
           updated_at?: string
           voltage?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conveyor_belts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       critical_alerts: {
         Row: {
@@ -1046,6 +1068,7 @@ export type Database = {
           id: string
           machine_id: string
           name: string
+          project_id: string | null
           status: string
           updated_at: string
           url: string
@@ -1056,6 +1079,7 @@ export type Database = {
           id?: string
           machine_id: string
           name: string
+          project_id?: string | null
           status?: string
           updated_at?: string
           url: string
@@ -1066,11 +1090,20 @@ export type Database = {
           id?: string
           machine_id?: string
           name?: string
+          project_id?: string | null
           status?: string
           updated_at?: string
           url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "endpoints_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expenses: {
         Row: {
@@ -1112,6 +1145,7 @@ export type Database = {
           ip_address: unknown
           model: string | null
           name: string
+          project_id: string | null
           serial_number: string | null
           status: string | null
           type: string
@@ -1126,6 +1160,7 @@ export type Database = {
           ip_address?: unknown
           model?: string | null
           name: string
+          project_id?: string | null
           serial_number?: string | null
           status?: string | null
           type: string
@@ -1140,12 +1175,21 @@ export type Database = {
           ip_address?: unknown
           model?: string | null
           name?: string
+          project_id?: string | null
           serial_number?: string | null
           status?: string | null
           type?: string
           warranty_expiry?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hardware_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integrations: {
         Row: {
@@ -1229,6 +1273,7 @@ export type Database = {
           joint_7_angle: number | null
           joint_8_angle: number | null
           name: string
+          project_id: string | null
           robotic_arm_id: string
           updated_at: string
         }
@@ -1245,6 +1290,7 @@ export type Database = {
           joint_7_angle?: number | null
           joint_8_angle?: number | null
           name: string
+          project_id?: string | null
           robotic_arm_id: string
           updated_at?: string
         }
@@ -1261,10 +1307,18 @@ export type Database = {
           joint_7_angle?: number | null
           joint_8_angle?: number | null
           name?: string
+          project_id?: string | null
           robotic_arm_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "joint_configurations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "joint_configurations_robotic_arm_id_fkey"
             columns: ["robotic_arm_id"]
@@ -1288,6 +1342,7 @@ export type Database = {
           model: string
           name: string
           port: number | null
+          project_id: string | null
           protocol: string | null
           status: string
           updated_at: string
@@ -1305,6 +1360,7 @@ export type Database = {
           model: string
           name: string
           port?: number | null
+          project_id?: string | null
           protocol?: string | null
           status?: string
           updated_at?: string
@@ -1322,11 +1378,20 @@ export type Database = {
           model?: string
           name?: string
           port?: number | null
+          project_id?: string | null
           protocol?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "laser_machines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       laser_toolpaths: {
         Row: {
@@ -1336,6 +1401,7 @@ export type Database = {
           laser_params: Json | null
           name: string
           points: Json
+          project_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1345,6 +1411,7 @@ export type Database = {
           laser_params?: Json | null
           name: string
           points?: Json
+          project_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1354,6 +1421,7 @@ export type Database = {
           laser_params?: Json | null
           name?: string
           points?: Json
+          project_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1362,6 +1430,13 @@ export type Database = {
             columns: ["laser_machine_id"]
             isOneToOne: false
             referencedRelation: "laser_machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laser_toolpaths_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1679,6 +1754,7 @@ export type Database = {
           joint_7_angle: number | null
           joint_8_angle: number | null
           motion_path_id: string
+          project_id: string | null
           sequence_order: number
         }
         Insert: {
@@ -1695,6 +1771,7 @@ export type Database = {
           joint_7_angle?: number | null
           joint_8_angle?: number | null
           motion_path_id: string
+          project_id?: string | null
           sequence_order: number
         }
         Update: {
@@ -1711,6 +1788,7 @@ export type Database = {
           joint_7_angle?: number | null
           joint_8_angle?: number | null
           motion_path_id?: string
+          project_id?: string | null
           sequence_order?: number
         }
         Relationships: [
@@ -1719,6 +1797,13 @@ export type Database = {
             columns: ["motion_path_id"]
             isOneToOne: false
             referencedRelation: "motion_paths"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motion_keyframes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1732,6 +1817,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           path_data: Json
+          project_id: string | null
           robotic_arm_id: string
           updated_at: string
         }
@@ -1743,6 +1829,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           path_data?: Json
+          project_id?: string | null
           robotic_arm_id: string
           updated_at?: string
         }
@@ -1754,10 +1841,18 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           path_data?: Json
+          project_id?: string | null
           robotic_arm_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "motion_paths_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "motion_paths_robotic_arm_id_fkey"
             columns: ["robotic_arm_id"]
@@ -1884,6 +1979,7 @@ export type Database = {
           name: string
           nozzle_diameter: number | null
           port: number | null
+          project_id: string | null
           protocol: string | null
           status: string
           updated_at: string
@@ -1903,6 +1999,7 @@ export type Database = {
           name: string
           nozzle_diameter?: number | null
           port?: number | null
+          project_id?: string | null
           protocol?: string | null
           status?: string
           updated_at?: string
@@ -1922,11 +2019,20 @@ export type Database = {
           name?: string
           nozzle_diameter?: number | null
           port?: number | null
+          project_id?: string | null
           protocol?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "printer_3d_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       printer_3d_configurations: {
         Row: {
@@ -1940,6 +2046,7 @@ export type Database = {
           models_with_files: Json | null
           print_params: Json | null
           printer_id: string | null
+          project_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1953,6 +2060,7 @@ export type Database = {
           models_with_files?: Json | null
           print_params?: Json | null
           printer_id?: string | null
+          project_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1966,6 +2074,7 @@ export type Database = {
           models_with_files?: Json | null
           print_params?: Json | null
           printer_id?: string | null
+          project_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1974,6 +2083,13 @@ export type Database = {
             columns: ["printer_id"]
             isOneToOne: true
             referencedRelation: "printer_3d"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "printer_3d_configurations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -2423,6 +2539,7 @@ export type Database = {
           position_x: number | null
           position_y: number | null
           position_z: number | null
+          project_id: string | null
           protocol: string | null
           status: string
           updated_at: string
@@ -2443,6 +2560,7 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           position_z?: number | null
+          project_id?: string | null
           protocol?: string | null
           status?: string
           updated_at?: string
@@ -2463,11 +2581,20 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           position_z?: number | null
+          project_id?: string | null
           protocol?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "robotic_arms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_assignments: {
         Row: {
@@ -3224,6 +3351,7 @@ export type Database = {
           error_message: string | null
           execution_data: Json | null
           id: string
+          project_id: string | null
           started_at: string
           status: string
           workflow_id: string
@@ -3235,6 +3363,7 @@ export type Database = {
           error_message?: string | null
           execution_data?: Json | null
           id?: string
+          project_id?: string | null
           started_at?: string
           status?: string
           workflow_id: string
@@ -3246,11 +3375,19 @@ export type Database = {
           error_message?: string | null
           execution_data?: Json | null
           id?: string
+          project_id?: string | null
           started_at?: string
           status?: string
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_executions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_executions_workflow_id_fkey"
             columns: ["workflow_id"]
