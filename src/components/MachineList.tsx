@@ -13,6 +13,7 @@ interface MachineListProps {
   selectedMachine: string;
   onMachineSelect: (id: string) => void;
   machineType: 'cnc' | 'laser' | '3d_printer' | 'robotic_arms';
+  projectId?: string;
   externalFilters?: {
     searchTerm?: string;
     status?: string;
@@ -37,6 +38,7 @@ export const MachineList = ({
   selectedMachine, 
   onMachineSelect, 
   machineType,
+  projectId,
   externalFilters,
   hideFilters = false,
   onMachinesLoaded
@@ -59,9 +61,16 @@ export const MachineList = ({
   } : filters;
 
   const { data: machines = [], isLoading } = useQuery({
-    queryKey: [machineType, activeFilters],
+    queryKey: [machineType, projectId, activeFilters],
     queryFn: async () => {
       console.log('Fetching machines for type:', machineType);
+      
+      // Only fetch machines for the current project
+      // If no projectId, return empty array (project context required)
+      if (!projectId) {
+        return [];
+      }
+      
       let query: any;
       
       if (machineType === 'cnc') {
@@ -77,6 +86,9 @@ export const MachineList = ({
       } else {
         throw new Error('Invalid machine type');
       }
+      
+      // Filter by project_id
+      query = query.eq('project_id', projectId);
       
       if (activeFilters.status) {
         query = query.eq('status', activeFilters.status);

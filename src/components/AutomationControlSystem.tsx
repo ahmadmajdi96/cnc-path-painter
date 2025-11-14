@@ -227,16 +227,21 @@ export const AutomationControlSystem = ({ projectId }: { projectId?: string }) =
   const fetchAutomations = async () => {
     try {
       setLoading(true);
-      let query = supabase
-        .from('automations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (projectId) {
-        query = query.eq('project_id', projectId);
+      
+      // Only fetch automations for the current project
+      // If no projectId, return empty array (project context required)
+      if (!projectId) {
+        setAutomations([]);
+        setFilteredAutomations([]);
+        setLoading(false);
+        return;
       }
 
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from('automations')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching automations:', error);

@@ -12,9 +12,10 @@ interface AddMachineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   machineType: 'cnc' | 'laser' | '3d_printer';
+  projectId?: string;
 }
 
-export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachineDialogProps) => {
+export const AddMachineDialog = ({ open, onOpenChange, machineType, projectId }: AddMachineDialogProps) => {
   const [formData, setFormData] = useState({
     name: '',
     model: '',
@@ -60,7 +61,8 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType }: AddMachine
         endpoint_url: data.endpoint_url || null,
         ip_address: data.ip_address || null,
         port: data.port ? parseInt(data.port) : null,
-        protocol: data.protocol || null
+        protocol: data.protocol || null,
+        project_id: projectId || null
       };
 
       if (machineType === 'cnc') {

@@ -26,25 +26,18 @@ export const WorkflowsList = ({ projectId }: WorkflowsListProps) => {
 
   const fetchWorkflows = async () => {
     try {
-      let data: any = null;
-      let error: any = null;
-
-      if (projectId) {
-        const result = await (supabase as any)
-          .from('workflows')
-          .select('*')
-          .eq('project_id', projectId)
-          .order('created_at', { ascending: false });
-        data = result.data;
-        error = result.error;
-      } else {
-        const result = await (supabase as any)
-          .from('workflows')
-          .select('*')
-          .order('created_at', { ascending: false });
-        data = result.data;
-        error = result.error;
+      // Only fetch workflows for the current project
+      // If no projectId, return empty array (project context required)
+      if (!projectId) {
+        setWorkflows([]);
+        return;
       }
+
+      const { data, error } = await (supabase as any)
+        .from('workflows')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching workflows:', error);
