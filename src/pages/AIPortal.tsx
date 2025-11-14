@@ -34,7 +34,7 @@ interface AIPortalProps {
 const AIPortal = ({ projectId, hideNavigation }: AIPortalProps) => {
   return (
     <div className="min-h-screen bg-background">
-      {!hideNavigation && <AINavigation />}
+      {!hideNavigation && <AINavigation projectId={projectId} />}
       <div className="w-full px-6 py-8">
         <Routes>
           {/* Urban */}

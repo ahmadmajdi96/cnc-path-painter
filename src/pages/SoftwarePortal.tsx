@@ -16,7 +16,7 @@ interface SoftwarePortalProps {
 const SoftwarePortal = ({ projectId, hideNavigation }: SoftwarePortalProps) => {
   return (
     <div className="min-h-screen bg-background">
-      {!hideNavigation && <SoftwareNavigation />}
+      {!hideNavigation && <SoftwareNavigation projectId={projectId} />}
       <Routes>
         <Route path="/" element={<IntegrationsPage projectId={projectId} />} />
         <Route path="/integrations" element={<IntegrationsPage projectId={projectId} />} />

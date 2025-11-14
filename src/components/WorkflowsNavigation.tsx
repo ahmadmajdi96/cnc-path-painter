@@ -4,20 +4,25 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Workflow, PlayCircle, Settings, List } from 'lucide-react';
 
-export const WorkflowsNavigation = () => {
+interface WorkflowsNavigationProps {
+  projectId?: string;
+}
+
+export const WorkflowsNavigation = ({ projectId }: WorkflowsNavigationProps) => {
   const location = useLocation();
+  const baseUrl = projectId ? `/admin/project/${projectId}` : '';
   
   const navItems = [
-    { path: '/workflows/', label: 'All Workflows', icon: List },
-    { path: '/workflows/designer', label: 'Designer', icon: Workflow },
-    { path: '/workflows/executions', label: 'Executions', icon: PlayCircle },
+    { path: `${baseUrl}/workflows/`, label: 'All Workflows', icon: List },
+    { path: `${baseUrl}/workflows/designer`, label: 'Designer', icon: Workflow },
+    { path: `${baseUrl}/workflows/executions`, label: 'Executions', icon: PlayCircle },
   ];
 
   return (
     <nav className="bg-background border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/">
+          <Link to={baseUrl ? `${baseUrl}` : "/"}>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               Back to Portals
