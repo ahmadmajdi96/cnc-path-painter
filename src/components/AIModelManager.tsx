@@ -563,15 +563,17 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
                 </>
               )}
 
-              <div>
-                <Label htmlFor="system_prompt">System Prompt</Label>
-                <Input
-                  id="system_prompt"
-                  value={formData.system_prompt}
-                  onChange={(e) => setFormData(prev => ({ ...prev, system_prompt: e.target.value }))}
-                  placeholder="You are a helpful AI assistant for..."
-                />
-              </div>
+              {editingModel && (
+                <div>
+                  <Label htmlFor="system_prompt">System Prompt</Label>
+                  <Input
+                    id="system_prompt"
+                    value={formData.system_prompt}
+                    onChange={(e) => setFormData(prev => ({ ...prev, system_prompt: e.target.value }))}
+                    placeholder="You are a helpful AI assistant for..."
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
