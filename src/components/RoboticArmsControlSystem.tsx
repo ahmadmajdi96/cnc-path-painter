@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddRoboticArmDialog } from './AddRoboticArmDialog';
 
-export const RoboticArmsControlSystem = () => {
+export const RoboticArmsControlSystem = ({ projectId }: { projectId?: string }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
@@ -61,6 +61,7 @@ export const RoboticArmsControlSystem = () => {
                 selectedMachine={selectedMachine}
                 onMachineSelect={setSelectedMachine}
                 machineType="robotic_arms"
+                projectId={projectId}
                 externalFilters={{
                   searchTerm,
                   status: statusFilter,
@@ -108,6 +109,7 @@ export const RoboticArmsControlSystem = () => {
       <AddRoboticArmDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
+        projectId={projectId}
       />
     </div>
   );

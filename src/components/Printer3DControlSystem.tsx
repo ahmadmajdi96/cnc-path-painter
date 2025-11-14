@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
 
-export const Printer3DControlSystem = () => {
+export const Printer3DControlSystem = ({ projectId }: { projectId?: string }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
@@ -61,6 +61,7 @@ export const Printer3DControlSystem = () => {
                 selectedMachine={selectedMachine}
                 onMachineSelect={setSelectedMachine}
                 machineType="3d_printer"
+                projectId={projectId}
                 externalFilters={{
                   searchTerm,
                   status: statusFilter,
@@ -109,6 +110,7 @@ export const Printer3DControlSystem = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
         machineType="3d_printer"
+        projectId={projectId}
       />
     </div>
   );

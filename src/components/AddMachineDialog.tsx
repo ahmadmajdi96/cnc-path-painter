@@ -131,6 +131,8 @@ export const AddMachineDialog = ({ open, onOpenChange, machineType, projectId }:
     },
     onSuccess: () => {
       console.log('Machine added successfully');
+      // Invalidate all machine queries for this type and project
+      queryClient.invalidateQueries({ queryKey: [machineType, projectId] });
       queryClient.invalidateQueries({ queryKey: [machineType] });
       toast({
         title: "Success",
