@@ -53,11 +53,17 @@ export const WorkflowDesigner = ({ projectId }: { projectId?: string }) => {
     
     try {
       // Fetch workflow using the workflows table that exists
-      const { data: workflowData, error: workflowError } = await supabase
+      // Filter by projectId to ensure project isolation
+      let query = supabase
         .from('workflows')
         .select('*')
-        .eq('id', workflowId)
-        .single();
+        .eq('id', workflowId);
+      
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+      
+      const { data: workflowData, error: workflowError } = await query.single();
 
       if (workflowError) {
         console.log('Workflow not found:', workflowError);
@@ -86,7 +92,7 @@ export const WorkflowDesigner = ({ projectId }: { projectId?: string }) => {
         setWorkflow(mappedWorkflow);
       }
 
-      // Fetch workflow nodes
+      // Fetch workflow nodes (project isolation enforced by workflow_id belonging to project)
       const { data: nodesData, error: nodesError } = await supabase
         .from('workflow_nodes')
         .select('*')
@@ -111,7 +117,7 @@ export const WorkflowDesigner = ({ projectId }: { projectId?: string }) => {
         setNodes(flowNodes);
       }
 
-      // Fetch workflow connections
+      // Fetch workflow connections (project isolation enforced by workflow_id belonging to project)
       const { data: connectionsData, error: connectionsError } = await supabase
         .from('workflow_connections')
         .select('*')
