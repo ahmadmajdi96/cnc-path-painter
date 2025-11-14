@@ -13,54 +13,67 @@ import {
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 
-const urbanSystems = [
-  { title: "Vehicle Detection", to: "/ai/vehicle-detection", description: "Detect vehicles in images and videos" },
-  { title: "Vehicle Recognition", to: "/ai/vehicle-recognition", description: "Classify and identify vehicle types" },
-  { title: "Plate Detection", to: "/ai/plate-detection", description: "Locate license plates in images" },
-  { title: "Plate Number Extraction", to: "/ai/plate-number-extraction", description: "Extract text from license plates" },
-  { title: "Feeds Management", to: "/ai/feeds-management", description: "Manage multiple video surveillance feeds" },
-  { title: "Path Optimization", to: "/ai/path-optimization", description: "Optimize vehicle routing and paths" },
+const getUrbanSystems = (baseUrl: string) => [
+  { title: "Vehicle Detection", to: `${baseUrl}/ai/vehicle-detection`, description: "Detect vehicles in images and videos" },
+  { title: "Vehicle Recognition", to: `${baseUrl}/ai/vehicle-recognition`, description: "Classify and identify vehicle types" },
+  { title: "Plate Detection", to: `${baseUrl}/ai/plate-detection`, description: "Locate license plates in images" },
+  { title: "Plate Number Extraction", to: `${baseUrl}/ai/plate-number-extraction`, description: "Extract text from license plates" },
+  { title: "Feeds Management", to: `${baseUrl}/ai/feeds-management`, description: "Manage multiple video surveillance feeds" },
+  { title: "Path Optimization", to: `${baseUrl}/ai/path-optimization`, description: "Optimize vehicle routing and paths" },
 ];
 
-const industrialSystems = [
-  { title: "OCR", to: "/ai/ocr", description: "Optical character recognition" },
-  { title: "Quality Control", to: "/ai/quality-control", description: "AI-powered quality inspection" },
-  { title: "Object Detection", to: "/ai/object-detection", description: "Real-time object detection" },
-  { title: "Object Recognition", to: "/ai/object-recognition", description: "Object classification and recognition" },
+const getIndustrialSystems = (baseUrl: string) => [
+  { title: "OCR", to: `${baseUrl}/ai/ocr`, description: "Optical character recognition" },
+  { title: "Quality Control", to: `${baseUrl}/ai/quality-control`, description: "AI-powered quality inspection" },
+  { title: "Object Detection", to: `${baseUrl}/ai/object-detection`, description: "Real-time object detection" },
+  { title: "Object Recognition", to: `${baseUrl}/ai/object-recognition`, description: "Object classification and recognition" },
 ];
 
-const peopleSystems = [
-  { title: "Human Detection", to: "/ai/human-detection", description: "Detect people in images and videos" },
-  { title: "Facial Recognition", to: "/ai/facial-recognition", description: "Facial detection and recognition" },
+const getPeopleSystems = (baseUrl: string) => [
+  { title: "Human Detection", to: `${baseUrl}/ai/human-detection`, description: "Detect people in images and videos" },
+  { title: "Facial Recognition", to: `${baseUrl}/ai/facial-recognition`, description: "Facial detection and recognition" },
 ];
 
-const soundSystems = [
-  { title: "Speech Recognition", to: "/ai/speech-recognition", description: "Convert speech to text" },
-  { title: "Speech Synthesis", to: "/ai/speech-synthesis", description: "Convert text to speech" },
-  { title: "Speaker Identification", to: "/ai/speaker-identification", description: "Identify speakers by voice" },
+const getSoundSystems = (baseUrl: string) => [
+  { title: "Speech Recognition", to: `${baseUrl}/ai/speech-recognition`, description: "Convert speech to text" },
+  { title: "Speech Synthesis", to: `${baseUrl}/ai/speech-synthesis`, description: "Convert text to speech" },
+  { title: "Speaker Identification", to: `${baseUrl}/ai/speaker-identification`, description: "Identify speakers by voice" },
 ];
 
-const dataTools = [
-  { title: "Dataset Builder", to: "/ai/dataset-builder", description: "Build and annotate datasets for AI training" },
-  { title: "Rules Dataset", to: "/ai/rules-dataset", description: "Create and manage rules with sub-rules and prompts" },
-  { title: "Question Dataset", to: "/ai/question-dataset", description: "Create questions with answers and sub-questions" },
-  { title: "Datasets Combiner", to: "/ai/datasets-combiner", description: "Select and combine multiple datasets" },
-  { title: "Locations Dataset", to: "/ai/locations-dataset", description: "Create and manage location datasets with coordinates" },
+const getDataTools = (baseUrl: string) => [
+  { title: "Dataset Builder", to: `${baseUrl}/ai/dataset-builder`, description: "Build and annotate datasets for AI training" },
+  { title: "Rules Dataset", to: `${baseUrl}/ai/rules-dataset`, description: "Create and manage rules with sub-rules and prompts" },
+  { title: "Question Dataset", to: `${baseUrl}/ai/question-dataset`, description: "Create questions with answers and sub-questions" },
+  { title: "Datasets Combiner", to: `${baseUrl}/ai/datasets-combiner`, description: "Select and combine multiple datasets" },
+  { title: "Locations Dataset", to: `${baseUrl}/ai/locations-dataset`, description: "Create and manage location datasets with coordinates" },
 ];
 
-const languageAI = [
-  { title: "NLP", to: "/ai/nlp", description: "Natural language processing and text analysis" },
-  { title: "Chat Bots", to: "/ai/chatbots", description: "Conversational AI and automated responses" },
+const getLanguageAI = (baseUrl: string) => [
+  { title: "NLP", to: `${baseUrl}/ai/nlp`, description: "Natural language processing and text analysis" },
+  { title: "Chat Bots", to: `${baseUrl}/ai/chatbots`, description: "Conversational AI and automated responses" },
 ];
 
-const businessAI = [
-  { title: "Cost Reduction", to: "/ai/cost-reduction", description: "Analyze and identify cost-saving opportunities" },
-  { title: "Business Analyzer", to: "/ai/business-analyzer", description: "Comprehensive business performance analysis" },
-  { title: "Decision Maker", to: "/ai/decision-maker", description: "AI-powered strategic decision support" },
+const getBusinessAI = (baseUrl: string) => [
+  { title: "Cost Reduction", to: `${baseUrl}/ai/cost-reduction`, description: "Analyze and identify cost-saving opportunities" },
+  { title: "Business Analyzer", to: `${baseUrl}/ai/business-analyzer`, description: "Comprehensive business performance analysis" },
+  { title: "Decision Maker", to: `${baseUrl}/ai/decision-maker`, description: "AI-powered strategic decision support" },
 ];
 
-export const AINavigation = () => {
+interface AINavigationProps {
+  projectId?: string;
+}
+
+export const AINavigation = ({ projectId }: AINavigationProps) => {
   const location = useLocation();
+  const baseUrl = projectId ? `/admin/project/${projectId}` : '';
+  
+  const urbanSystems = getUrbanSystems(baseUrl);
+  const industrialSystems = getIndustrialSystems(baseUrl);
+  const peopleSystems = getPeopleSystems(baseUrl);
+  const soundSystems = getSoundSystems(baseUrl);
+  const dataTools = getDataTools(baseUrl);
+  const languageAI = getLanguageAI(baseUrl);
+  const businessAI = getBusinessAI(baseUrl);
   
   const isUrbanActive = urbanSystems.some(item => location.pathname === item.to);
   const isIndustrialActive = industrialSystems.some(item => location.pathname === item.to);

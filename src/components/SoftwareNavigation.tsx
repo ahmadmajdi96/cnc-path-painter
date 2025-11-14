@@ -4,21 +4,26 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Zap, Link as LinkIcon, Layout, GitBranch } from 'lucide-react';
 
-export const SoftwareNavigation = () => {
+interface SoftwareNavigationProps {
+  projectId?: string;
+}
+
+export const SoftwareNavigation = ({ projectId }: SoftwareNavigationProps) => {
   const location = useLocation();
+  const baseUrl = projectId ? `/admin/project/${projectId}` : '';
   
   const navItems = [
-    { path: '/software/integrations', label: 'Integrations', icon: LinkIcon },
-    { path: '/software/ui-builder', label: 'UI Builder', icon: Layout },
-    { path: '/software/automation', label: 'Automation', icon: Zap },
-    { path: '/software/workflows', label: 'Workflows', icon: GitBranch },
+    { path: `${baseUrl}/software/integrations`, label: 'Integrations', icon: LinkIcon },
+    { path: `${baseUrl}/software/ui-builder`, label: 'UI Builder', icon: Layout },
+    { path: `${baseUrl}/software/automation`, label: 'Automation', icon: Zap },
+    { path: `${baseUrl}/software/workflows`, label: 'Workflows', icon: GitBranch },
   ];
 
   return (
     <nav className="bg-background border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/">
+          <Link to={baseUrl ? `${baseUrl}` : "/"}>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               Back to Portals
             </Button>

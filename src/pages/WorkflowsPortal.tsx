@@ -14,7 +14,7 @@ interface WorkflowsPortalProps {
 const WorkflowsPortal = ({ projectId, hideNavigation }: WorkflowsPortalProps) => {
   return (
     <div className="min-h-screen bg-background">
-      {!hideNavigation && <WorkflowsNavigation />}
+      {!hideNavigation && <WorkflowsNavigation projectId={projectId} />}
       <Routes>
         <Route path="/" element={<WorkflowsList projectId={projectId} />} />
         <Route path="/designer/:workflowId?" element={<WorkflowDesigner projectId={projectId} />} />
