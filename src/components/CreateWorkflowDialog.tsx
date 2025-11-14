@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CreateWorkflowDialogProps {
   open: boolean;
@@ -38,6 +39,7 @@ export const CreateWorkflowDialog: React.FC<CreateWorkflowDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +66,9 @@ export const CreateWorkflowDialog: React.FC<CreateWorkflowDialogProps> = ({
         title: "Success",
         description: "Workflow created successfully",
       });
+
+      // Invalidate workflows query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['workflows', projectId] });
 
       onWorkflowCreated();
       onOpenChange(false);

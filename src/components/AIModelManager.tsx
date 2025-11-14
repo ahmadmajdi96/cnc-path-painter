@@ -60,7 +60,7 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
 
   useEffect(() => {
     loadModels();
-  }, [modelType]);
+  }, [modelType, projectId]);
 
   const loadModels = async () => {
     setLoading(true);
