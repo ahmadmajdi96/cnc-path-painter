@@ -272,34 +272,17 @@ export const AINavigation = () => {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger className={cn(
-                  "h-9",
-                  isBusinessAIActive && "bg-accent text-accent-foreground"
-                )}>
-                  Business
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-1 p-2">
-                    {businessAI.map((item) => (
-                      <li key={item.to}>
-                        <NavigationMenuLink asChild>
-                          <Link
-                            to={item.to}
-                            className={cn(
-                              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-                              location.pathname === item.to && "bg-accent text-accent-foreground"
-                            )}
-                          >
-                            <div className="text-sm font-medium leading-none">{item.title}</div>
-                            <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">
-                              {item.description}
-                            </p>
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
-                    ))}
-                  </ul>
-                </NavigationMenuContent>
+                <Link to="/ai/business-ai">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-9",
+                      location.pathname === "/ai/business-ai" && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    Business
+                  </Button>
+                </Link>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>

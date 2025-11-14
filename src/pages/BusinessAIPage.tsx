@@ -269,7 +269,7 @@ Current situation:
         {/* AI Model Manager */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AIModelManager
-            modelType={analysisType}
+            modelType="business"
             title="Business AI Models"
             description="Manage AI models for business analysis"
             onModelSelect={setSelectedModel}
@@ -279,7 +279,7 @@ Current situation:
 
           <AIModelDatasetSelector
             modelId={selectedModel?.id}
-            modelType={analysisType}
+            modelType="business"
           />
         </div>
       </div>
