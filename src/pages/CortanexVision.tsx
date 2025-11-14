@@ -93,7 +93,8 @@ const CortanexVision = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-sky-400/20 to-emerald-400/20 blur-3xl" />
               <img 
                 src={visionSystem} 
-                alt="Vision Inspection System" 
+                alt="Vision Inspection System"
+                loading="eager"
                 className="relative rounded-2xl shadow-2xl"
               />
             </div>

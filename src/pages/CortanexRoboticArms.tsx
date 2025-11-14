@@ -74,7 +74,8 @@ const CortanexRoboticArms = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-sky-400/20 to-emerald-400/20 blur-3xl" />
               <img 
                 src={roboticFeature} 
-                alt="Robotic Arm System" 
+                alt="Robotic Arm System"
+                loading="eager"
                 className="relative rounded-2xl shadow-2xl"
               />
             </div>
@@ -140,7 +141,8 @@ const CortanexRoboticArms = () => {
           <Card className="overflow-hidden hover:shadow-2xl transition-all">
             <img 
               src={roboticInterface} 
-              alt="Robotic Arm Control Interface" 
+              alt="Robotic Arm Control Interface"
+              loading="lazy"
               className="w-full"
             />
             <div className="p-8 bg-gradient-to-br from-white to-sky-50/30">
