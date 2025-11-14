@@ -28,11 +28,13 @@ interface Dataset {
 interface AIModelDatasetSelectorProps {
   modelId: string | null;
   modelType: string;
+  projectId?: string;
 }
 
 export const AIModelDatasetSelector: React.FC<AIModelDatasetSelectorProps> = ({
   modelId,
   modelType,
+  projectId,
 }) => {
   const { toast } = useToast();
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
@@ -41,12 +43,17 @@ export const AIModelDatasetSelector: React.FC<AIModelDatasetSelectorProps> = ({
   const [showTrainDialog, setShowTrainDialog] = useState(false);
 
   const { data: datasets } = useQuery({
-    queryKey: ['datasets'],
+    queryKey: ['datasets', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('datasets')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+      
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Dataset[];

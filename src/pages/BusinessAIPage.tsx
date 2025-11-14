@@ -281,6 +281,7 @@ Current situation:
           <AIModelDatasetSelector
             modelId={selectedModel?.id}
             modelType="business"
+            projectId={projectId}
           />
         </div>
       </div>
