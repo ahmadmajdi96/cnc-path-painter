@@ -79,7 +79,8 @@ const CortanexCNC = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-sky-400/20 to-emerald-400/20 blur-3xl" />
               <img 
                 src={cncFeature} 
-                alt="CNC Control System" 
+                alt="CNC Control System"
+                loading="eager"
                 className="relative rounded-2xl shadow-2xl"
               />
             </div>
@@ -148,7 +149,8 @@ const CortanexCNC = () => {
           <Card className="overflow-hidden hover:shadow-2xl transition-all">
             <img 
               src={cncInterface} 
-              alt="CNC Control Interface Dashboard" 
+              alt="CNC Control Interface Dashboard"
+              loading="lazy"
               className="w-full"
             />
             <div className="p-8 bg-gradient-to-br from-white to-sky-50/30">
@@ -203,7 +205,8 @@ const CortanexCNC = () => {
             <Card className="overflow-hidden hover:shadow-2xl transition-all">
               <img 
                 src={cncFullSystem} 
-                alt="Complete CNC Control System Dashboard" 
+                alt="Complete CNC Control System Dashboard"
+                loading="lazy"
                 className="w-full"
               />
               <div className="p-8 bg-gradient-to-br from-white to-sky-50/30">
@@ -232,7 +235,8 @@ const CortanexCNC = () => {
             <Card className="overflow-hidden hover:shadow-xl transition-all">
               <img 
                 src={cncMachineList} 
-                alt="CNC Machine List and Filters" 
+                alt="CNC Machine List and Filters"
+                loading="lazy"
                 className="w-full"
               />
               <div className="p-6 bg-gradient-to-br from-white to-sky-50/20">
@@ -258,7 +262,8 @@ const CortanexCNC = () => {
             <Card className="overflow-hidden hover:shadow-xl transition-all">
               <img 
                 src={cncEndpointManager} 
-                alt="Endpoint Manager Interface" 
+                alt="Endpoint Manager Interface"
+                loading="lazy"
                 className="w-full"
               />
               <div className="p-6 bg-gradient-to-br from-white to-emerald-50/20">
@@ -284,7 +289,8 @@ const CortanexCNC = () => {
             <Card className="overflow-hidden hover:shadow-xl transition-all md:col-span-2">
               <img 
                 src={cncToolpathManager} 
-                alt="Toolpath and G-Code Management" 
+                alt="Toolpath and G-Code Management"
+                loading="lazy"
                 className="w-full"
               />
               <div className="p-6 bg-gradient-to-br from-white to-sky-50/20">

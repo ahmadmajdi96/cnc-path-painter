@@ -103,7 +103,8 @@ const CortanexConveyor = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-sky-400/20 blur-3xl" />
               <img 
                 src={conveyorSystem} 
-                alt="Conveyor System" 
+                alt="Conveyor System"
+                loading="eager"
                 className="relative rounded-2xl shadow-2xl"
               />
             </div>
