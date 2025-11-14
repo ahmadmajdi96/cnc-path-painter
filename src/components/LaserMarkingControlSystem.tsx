@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
 
-export const LaserMarkingControlSystem = () => {
+export const LaserMarkingControlSystem = ({ projectId }: { projectId?: string }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
@@ -61,6 +61,7 @@ export const LaserMarkingControlSystem = () => {
                 selectedMachine={selectedMachine}
                 onMachineSelect={setSelectedMachine}
                 machineType="laser"
+                projectId={projectId}
                 externalFilters={{
                   searchTerm,
                   status: statusFilter,
@@ -110,6 +111,7 @@ export const LaserMarkingControlSystem = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
         machineType="laser"
+        projectId={projectId}
       />
     </div>
   );

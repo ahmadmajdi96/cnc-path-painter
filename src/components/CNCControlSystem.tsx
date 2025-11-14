@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { AddMachineDialog } from './AddMachineDialog';
 
-export const CNCControlSystem = () => {
+export const CNCControlSystem = ({ projectId }: { projectId?: string }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<string>('');
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
@@ -61,6 +61,7 @@ export const CNCControlSystem = () => {
                 selectedMachine={selectedMachine}
                 onMachineSelect={setSelectedMachine}
                 machineType="cnc"
+                projectId={projectId}
                 externalFilters={{
                   searchTerm,
                   status: statusFilter,
@@ -109,6 +110,7 @@ export const CNCControlSystem = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
         machineType="cnc"
+        projectId={projectId}
       />
     </div>
   );

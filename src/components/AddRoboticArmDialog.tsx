@@ -12,9 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 interface AddRoboticArmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  projectId?: string;
 }
 
-export const AddRoboticArmDialog = ({ open, onOpenChange }: AddRoboticArmDialogProps) => {
+export const AddRoboticArmDialog = ({ open, onOpenChange, projectId }: AddRoboticArmDialogProps) => {
   const [formData, setFormData] = useState({
     name: '',
     model: '',
@@ -36,11 +37,16 @@ export const AddRoboticArmDialog = ({ open, onOpenChange }: AddRoboticArmDialogP
     mutationFn: async (data: typeof formData) => {
       const { error } = await supabase
         .from('robotic_arms')
-        .insert([data]);
+        .insert([{
+          ...data,
+          project_id: projectId || null
+        }]);
       
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidate robotic arms queries for this project
+      queryClient.invalidateQueries({ queryKey: ['robotic_arms', projectId] });
       queryClient.invalidateQueries({ queryKey: ['robotic_arms'] });
       toast({
         title: "Success",

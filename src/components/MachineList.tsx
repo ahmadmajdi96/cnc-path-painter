@@ -153,6 +153,8 @@ export const MachineList = ({
     },
     onSuccess: () => {
       console.log('Machine deleted successfully');
+      // Invalidate all machine queries for this type and project
+      queryClient.invalidateQueries({ queryKey: [machineType, projectId] });
       queryClient.invalidateQueries({ queryKey: [machineType] });
       if (selectedMachine === editingMachine?.id) {
         onMachineSelect('');
