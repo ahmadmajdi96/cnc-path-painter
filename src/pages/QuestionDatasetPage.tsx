@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, ChevronDown, ChevronRight, Search, Save, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useProjectId } from '@/hooks/useProjectId';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
@@ -52,11 +53,8 @@ interface QuestionDataset {
   status: 'draft' | 'active' | 'archived';
 }
 
-interface QuestionDatasetPageProps {
-  projectId?: string;
-}
-
-const QuestionDatasetPage = ({ projectId }: QuestionDatasetPageProps = {}) => {
+const QuestionDatasetPage = () => {
+  const { projectId } = useProjectId();
   const { toast } = useToast();
   const [questionDatasets, setQuestionDatasets] = useState<QuestionDataset[]>([]);
   const [selectedDataset, setSelectedDataset] = useState<QuestionDataset | null>(null);
