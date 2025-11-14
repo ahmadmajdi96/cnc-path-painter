@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Settings, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useProjectId } from '@/hooks/useProjectId';
 
 export interface AutomationStep {
   id: string;
@@ -119,11 +120,8 @@ export interface Integration {
   updatedAt: string;
 }
 
-interface IntegrationControlSystemProps {
-  projectId?: string;
-}
-
-export const IntegrationControlSystem = ({ projectId }: IntegrationControlSystemProps) => {
+export const IntegrationControlSystem = () => {
+  const { projectId } = useProjectId();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [filteredIntegrations, setFilteredIntegrations] = useState<Integration[]>([]);
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);

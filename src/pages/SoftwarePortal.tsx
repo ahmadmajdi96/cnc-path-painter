@@ -21,7 +21,7 @@ const SoftwarePortal = ({ hideNavigation }: SoftwarePortalProps) => {
         <Route path="/integrations" element={<IntegrationsPage />} />
         <Route path="/ui-builder" element={<IntegrationUIBuilder />} />
         <Route path="/automation/*" element={<AutomationPage />} />
-        <Route path="/workflows/*" element={<WorkflowsPortal hideNavigation />} />
+        <Route path="/workflows/*" element={<WorkflowsPortal hideNavigation={true} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
