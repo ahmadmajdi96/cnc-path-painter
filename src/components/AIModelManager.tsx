@@ -139,7 +139,8 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
       'path_optimization',
       'cost_reduction',
       'business_analyzer',
-      'decision_maker'
+      'decision_maker',
+      'business'
     ];
     
     if (!validModelTypes.includes(modelType)) {
