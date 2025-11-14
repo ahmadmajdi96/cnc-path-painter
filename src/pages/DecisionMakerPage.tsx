@@ -180,7 +180,6 @@ Current situation:
             modelId={selectedModel?.id || null}
             modelType="decision_support"
             projectId={projectId}
-            modelType="decision_support"
           />
         </div>
 

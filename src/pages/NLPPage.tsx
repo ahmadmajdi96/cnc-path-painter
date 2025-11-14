@@ -181,7 +181,6 @@ const NLPPage = ({ projectId }: NLPPageProps = {}) => {
             modelId={selectedModel?.id || null}
             modelType="nlp"
             projectId={projectId}
-            modelType="nlp"
           />
         </div>
 
