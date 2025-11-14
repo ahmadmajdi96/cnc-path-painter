@@ -3,13 +3,11 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Zap, Link as LinkIcon, Layout, GitBranch } from 'lucide-react';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface SoftwareNavigationProps {
-  projectId?: string;
-}
-
-export const SoftwareNavigation = ({ projectId }: SoftwareNavigationProps) => {
+export const SoftwareNavigation = () => {
   const location = useLocation();
+  const { projectId } = useProjectId();
   const baseUrl = projectId ? `/admin/project/${projectId}` : '';
   
   const navItems = [

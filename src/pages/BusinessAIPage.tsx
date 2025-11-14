@@ -10,12 +10,10 @@ import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
 import { useAIModelProcessor } from '@/hooks/useAIModelProcessor';
 import { useToast } from '@/hooks/use-toast';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface BusinessAIPageProps {
-  projectId?: string;
-}
-
-const BusinessAIPage = ({ projectId }: BusinessAIPageProps = {}) => {
+const BusinessAIPage = () => {
+  const { projectId } = useProjectId();
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const [inputText, setInputText] = useState('');
   const [analysisType, setAnalysisType] = useState<'cost_reduction' | 'business_analyzer' | 'decision_maker'>('cost_reduction');

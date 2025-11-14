@@ -5,12 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, Video, AlertCircle } from 'lucide-react';
 import { AIModelManager } from '@/components/AIModelManager';
 import { AIModelDatasetSelector } from '@/components/AIModelDatasetSelector';
+import { useProjectId } from '@/hooks/useProjectId';
 
-interface VehicleDetectionPageProps {
-  projectId?: string;
-}
-
-const VehicleDetectionPage = ({ projectId }: VehicleDetectionPageProps = {}) => {
+const VehicleDetectionPage = () => {
+  const { projectId } = useProjectId();
   const [selectedModel, setSelectedModel] = useState<any>(null);
 
   return (

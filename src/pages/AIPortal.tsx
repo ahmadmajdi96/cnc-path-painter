@@ -27,56 +27,55 @@ import ChatBotsPage from './ChatBotsPage';
 import BusinessAIPage from './BusinessAIPage';
 
 interface AIPortalProps {
-  projectId?: string;
   hideNavigation?: boolean;
 }
 
-const AIPortal = ({ projectId, hideNavigation }: AIPortalProps) => {
+const AIPortal = ({ hideNavigation }: AIPortalProps) => {
   return (
     <div className="min-h-screen bg-background">
-      {!hideNavigation && <AINavigation projectId={projectId} />}
+      {!hideNavigation && <AINavigation />}
       <div className="w-full px-6 py-8">
         <Routes>
           {/* Urban */}
-          <Route path="/" element={<VehicleDetectionPage projectId={projectId} />} />
-          <Route path="/vehicle-detection" element={<VehicleDetectionPage projectId={projectId} />} />
-          <Route path="/vehicle-recognition" element={<VehicleRecognitionPage projectId={projectId} />} />
-          <Route path="/plate-detection" element={<PlateDetectionPage projectId={projectId} />} />
-          <Route path="/plate-number-extraction" element={<PlateNumberExtractionPage projectId={projectId} />} />
-          <Route path="/feeds-management" element={<FeedsManagementPage projectId={projectId} />} />
-          <Route path="/path-optimization" element={<PathOptimizationPage projectId={projectId} />} />
+          <Route path="/" element={<VehicleDetectionPage />} />
+          <Route path="/vehicle-detection" element={<VehicleDetectionPage />} />
+          <Route path="/vehicle-recognition" element={<VehicleRecognitionPage />} />
+          <Route path="/plate-detection" element={<PlateDetectionPage />} />
+          <Route path="/plate-number-extraction" element={<PlateNumberExtractionPage />} />
+          <Route path="/feeds-management" element={<FeedsManagementPage />} />
+          <Route path="/path-optimization" element={<PathOptimizationPage />} />
           
           {/* Industrial */}
-          <Route path="/ocr" element={<OCRPage projectId={projectId} />} />
-          <Route path="/quality-control" element={<QualityControlPage projectId={projectId} />} />
-          <Route path="/object-detection" element={<ObjectDetectionPage projectId={projectId} />} />
-          <Route path="/object-recognition" element={<ObjectRecognitionPage projectId={projectId} />} />
+          <Route path="/ocr" element={<OCRPage />} />
+          <Route path="/quality-control" element={<QualityControlPage />} />
+          <Route path="/object-detection" element={<ObjectDetectionPage />} />
+          <Route path="/object-recognition" element={<ObjectRecognitionPage />} />
           
           {/* People */}
-          <Route path="/human-detection" element={<HumanDetectionPage projectId={projectId} />} />
-          <Route path="/facial-recognition" element={<FaceRecognitionPage projectId={projectId} />} />
+          <Route path="/human-detection" element={<HumanDetectionPage />} />
+          <Route path="/facial-recognition" element={<FaceRecognitionPage />} />
           
           {/* Sounds */}
-          <Route path="/speech-recognition" element={<SpeechRecognitionPage projectId={projectId} />} />
-          <Route path="/speech-synthesis" element={<SpeechSynthesisPage projectId={projectId} />} />
-          <Route path="/speaker-identification" element={<SpeakerIdentificationPage projectId={projectId} />} />
+          <Route path="/speech-recognition" element={<SpeechRecognitionPage />} />
+          <Route path="/speech-synthesis" element={<SpeechSynthesisPage />} />
+          <Route path="/speaker-identification" element={<SpeakerIdentificationPage />} />
           
           {/* Data Tools */}
-          <Route path="/dataset-builder" element={<DatasetBuilderPage projectId={projectId} />} />
-          <Route path="/rules-dataset" element={<RulesDatasetPage projectId={projectId} />} />
-          <Route path="/question-dataset" element={<QuestionDatasetPage projectId={projectId} />} />
-          <Route path="/datasets-combiner" element={<DatasetsCombinerPage projectId={projectId} />} />
-          <Route path="/locations-dataset" element={<LocationsDatasetPage projectId={projectId} />} />
+          <Route path="/dataset-builder" element={<DatasetBuilderPage />} />
+          <Route path="/rules-dataset" element={<RulesDatasetPage />} />
+          <Route path="/question-dataset" element={<QuestionDatasetPage />} />
+          <Route path="/datasets-combiner" element={<DatasetsCombinerPage />} />
+          <Route path="/locations-dataset" element={<LocationsDatasetPage />} />
           
           {/* Language AI */}
-          <Route path="/nlp" element={<NLPPage projectId={projectId} />} />
-          <Route path="/chatbots" element={<ChatBotsPage projectId={projectId} />} />
+          <Route path="/nlp" element={<NLPPage />} />
+          <Route path="/chatbots" element={<ChatBotsPage />} />
           
           {/* Business AI - Unified Page */}
-          <Route path="/business-ai" element={<BusinessAIPage projectId={projectId} />} />
-          <Route path="/cost-reduction" element={<BusinessAIPage projectId={projectId} />} />
-          <Route path="/business-analyzer" element={<BusinessAIPage projectId={projectId} />} />
-          <Route path="/decision-maker" element={<BusinessAIPage projectId={projectId} />} />
+          <Route path="/business-ai" element={<BusinessAIPage />} />
+          <Route path="/cost-reduction" element={<BusinessAIPage />} />
+          <Route path="/business-analyzer" element={<BusinessAIPage />} />
+          <Route path="/decision-maker" element={<BusinessAIPage />} />
           
           <Route path="*" element={
             <div className="text-center py-12">
