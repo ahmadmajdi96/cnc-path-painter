@@ -538,26 +538,30 @@ export const AIModelManager: React.FC<AIModelManagerProps> = ({
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="api_key">API Key</Label>
-                <Input
-                  id="api_key"
-                  type="password"
-                  value={formData.api_key}
-                  onChange={(e) => setFormData(prev => ({ ...prev, api_key: e.target.value }))}
-                  placeholder="Enter API key"
-                />
-              </div>
+              {editingModel && (
+                <>
+                  <div>
+                    <Label htmlFor="api_key">API Key</Label>
+                    <Input
+                      id="api_key"
+                      type="password"
+                      value={formData.api_key}
+                      onChange={(e) => setFormData(prev => ({ ...prev, api_key: e.target.value }))}
+                      placeholder="Enter API key"
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="endpoint_url">Endpoint URL (Optional)</Label>
-                <Input
-                  id="endpoint_url"
-                  value={formData.endpoint_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, endpoint_url: e.target.value }))}
-                  placeholder="https://api.openai.com/v1/chat/completions"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="endpoint_url">Endpoint URL</Label>
+                    <Input
+                      id="endpoint_url"
+                      value={formData.endpoint_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, endpoint_url: e.target.value }))}
+                      placeholder="https://api.openai.com/v1/chat/completions"
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <Label htmlFor="system_prompt">System Prompt</Label>
