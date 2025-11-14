@@ -39,9 +39,10 @@ const BusinessAIPage = ({ projectId }: BusinessAIPageProps = {}) => {
         decision_maker: 'strategic_decision'
       };
 
-      await processWithModel(selectedModel?.id, analysisType, {
+      await processWithModel(selectedModel?.id, 'business', {
         text: inputText,
-        task: taskMap[analysisType]
+        task: taskMap[analysisType],
+        analysisType: analysisType
       });
     } catch (error) {
       // Error handling is done in the hook
