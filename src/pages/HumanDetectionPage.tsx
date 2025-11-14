@@ -85,10 +85,12 @@ const HumanDetectionPage = ({ projectId }: HumanDetectionPageProps = {}) => {
             description="AI models for person detection and tracking"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector 
             modelId={selectedModel?.id || null}
             modelType="human_detection"
+            projectId={projectId}
           />
         </div>
 

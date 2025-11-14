@@ -180,6 +180,8 @@ const NLPPage = ({ projectId }: NLPPageProps = {}) => {
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="nlp"
+            projectId={projectId}
+            modelType="nlp"
           />
         </div>
 

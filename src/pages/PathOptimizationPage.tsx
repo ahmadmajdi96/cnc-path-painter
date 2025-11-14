@@ -392,10 +392,12 @@ const PathOptimizationPage = ({ projectId }: PathOptimizationPageProps = {}) => 
           title="AI Models"
           description="Select or configure path optimization models"
           onModelSelect={setSelectedModel}
+          projectId={projectId}
         />
         <AIModelDatasetSelector 
           modelId={selectedModel?.id || null}
           modelType="path_optimization"
+          projectId={projectId}
         />
       </div>
 

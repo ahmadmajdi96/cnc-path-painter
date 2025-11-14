@@ -94,10 +94,12 @@ const ObjectRecognitionPage = ({ projectId }: ObjectRecognitionPageProps = {}) =
             description="AI models for object classification and identification"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector
             modelId={selectedModel?.id || null}
             modelType="object_recognition"
+            projectId={projectId}
           />
         </div>
 

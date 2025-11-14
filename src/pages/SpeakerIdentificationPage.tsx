@@ -85,10 +85,12 @@ const SpeakerIdentificationPage = ({ projectId }: SpeakerIdentificationPageProps
             description="AI models for voice biometrics and speaker recognition"
             onModelSelect={setSelectedModel}
             selectedModelId={selectedModel?.id}
+            projectId={projectId}
           />
           <AIModelDatasetSelector 
             modelId={selectedModel?.id || null}
             modelType="speaker_identification"
+            projectId={projectId}
           />
         </div>
 
