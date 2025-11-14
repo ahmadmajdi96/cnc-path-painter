@@ -57,18 +57,16 @@ const DatasetBuilderPage = ({ projectId }: DatasetBuilderPageProps = {}) => {
   const { data: datasets, refetch } = useQuery({
     queryKey: ['datasets', projectId],
     queryFn: async () => {
-      // Build query based on whether projectId is provided
-      let query = supabase
-        .from('datasets')
-        .select('*');
-      
-      // If projectId is provided, filter by it
-      // If projectId is undefined, show all datasets (no project filter)
-      if (projectId !== undefined) {
-        query = query.eq('project_id', projectId);
+      // Only fetch datasets for the current project
+      if (!projectId) {
+        return [];
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('datasets')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Dataset[];

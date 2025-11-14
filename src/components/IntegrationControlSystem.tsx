@@ -141,18 +141,19 @@ export const IntegrationControlSystem = ({ projectId }: IntegrationControlSystem
     try {
       setLoading(true);
       
-      // Build query based on whether projectId is provided
-      let query = supabase
-        .from('integrations')
-        .select('*');
-      
-      // If projectId is provided, filter by it
-      // If projectId is undefined, show all integrations (no project filter)
-      if (projectId !== undefined) {
-        query = query.eq('project_id', projectId);
+      // Only fetch integrations for the current project
+      if (!projectId) {
+        setIntegrations([]);
+        setFilteredIntegrations([]);
+        setLoading(false);
+        return;
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching integrations:', error);
