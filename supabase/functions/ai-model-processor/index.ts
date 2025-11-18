@@ -65,6 +65,7 @@ serve(async (req) => {
       case 'cost_reduction':
       case 'business_analyzer':
       case 'decision_maker':
+      case 'business':
         result = await processNLPModel(model, inputData);
         break;
       case 'quality_control':
