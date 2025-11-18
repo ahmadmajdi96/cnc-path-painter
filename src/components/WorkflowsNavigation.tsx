@@ -23,7 +23,7 @@ export const WorkflowsNavigation = () => {
           <Link to={baseUrl ? `${baseUrl}` : "/"}>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Back to Portals
+              Back to Project Overview
             </Button>
           </Link>
           

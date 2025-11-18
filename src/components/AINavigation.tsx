@@ -85,10 +85,10 @@ export const AINavigation = () => {
     <nav className="bg-background border-b border-border px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/">
+          <Link to={baseUrl ? `${baseUrl}` : "/"}>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Back to Portals
+              Back to Project Overview
             </Button>
           </Link>
           
