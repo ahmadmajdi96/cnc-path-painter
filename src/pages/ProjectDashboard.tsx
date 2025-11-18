@@ -114,7 +114,7 @@ const ProjectDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {!isAIPortal && (
+      {!isAIPortal && !isSoftwarePortal && !isWorkflowsPortal && (
         <nav className="bg-background border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
