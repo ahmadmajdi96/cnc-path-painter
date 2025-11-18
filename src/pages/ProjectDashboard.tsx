@@ -174,7 +174,7 @@ const ProjectDashboard = () => {
 
       <Routes>
         <Route path="/" element={<ProjectOverview />} />
-        <Route path="/software/*" element={<SoftwarePortal hideNavigation={true} />} />
+        <Route path="/software/*" element={<SoftwarePortal />} />
         <Route path="/ai/*" element={<AIPortal />} />
         <Route path="/workflows/*" element={<WorkflowsPortal />} />
       </Routes>
