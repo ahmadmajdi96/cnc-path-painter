@@ -23,7 +23,7 @@ export const SoftwareNavigation = () => {
         <div className="flex items-center space-x-4">
           <Link to={baseUrl ? `${baseUrl}` : "/"}>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              Back to Portals
+              Back to Project Overview
             </Button>
           </Link>
           
