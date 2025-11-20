@@ -29,26 +29,7 @@ serve(async (req) => {
       try {
         console.log('Starting website build for:', buildId);
         
-        // Prepare the prompt for the AI
-        const prompt = `Create a complete website based on the following specifications:
-
-Website Type: ${websiteData.website_type}
-
-Use Cases:
-${websiteData.use_cases}
-
-Features per Page:
-${JSON.stringify(websiteData.features, null, 2)}
-
-Redirections:
-${JSON.stringify(websiteData.redirections, null, 2)}
-
-Additional Details:
-${JSON.stringify(websiteData.additional_details, null, 2)}
-
-Please provide a complete, production-ready website code structure including HTML, CSS, and JavaScript files. Include all necessary components, routing logic, and styling.`;
-
-        // Call Novita AI API
+        // Call Novita AI API with just the JSON object
         const response = await fetch('https://api.novita.ai/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -58,8 +39,7 @@ Please provide a complete, production-ready website code structure including HTM
           body: JSON.stringify({
             model: 'kat-coder',
             messages: [
-              { role: 'system', content: 'You are an expert web developer. Generate complete, production-ready website code.' },
-              { role: 'user', content: prompt }
+              { role: 'user', content: JSON.stringify(websiteData, null, 2) }
             ],
             max_tokens: 8000,
             temperature: 0.7,
