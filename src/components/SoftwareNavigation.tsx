@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Zap, Link as LinkIcon, Layout, GitBranch } from 'lucide-react';
+import { Zap, Link as LinkIcon, Layout, GitBranch, Globe } from 'lucide-react';
 import { useProjectId } from '@/hooks/useProjectId';
 
 export const SoftwareNavigation = () => {
@@ -15,6 +15,7 @@ export const SoftwareNavigation = () => {
     { path: `${baseUrl}/software/ui-builder`, label: 'UI Builder', icon: Layout },
     { path: `${baseUrl}/software/automation`, label: 'Automation', icon: Zap },
     { path: `${baseUrl}/software/workflows`, label: 'Workflows', icon: GitBranch },
+    { path: `${baseUrl}/software/website-builder`, label: 'Website Builder', icon: Globe },
   ];
 
   return (
