@@ -1,1 +1,10 @@
 project_id = "iyeknkzjskwrzbqvhszi"
+
+[functions.build-website]
+verify_jwt = true
+
+[functions.ai-model-processor]
+verify_jwt = true
+
+[functions.minio-file-handler]
+verify_jwt = false

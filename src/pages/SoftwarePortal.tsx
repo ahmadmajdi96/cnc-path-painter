@@ -6,6 +6,8 @@ import AutomationPage from './AutomationPage';
 import IntegrationsPage from './IntegrationsPage';
 import IntegrationUIBuilder from './IntegrationUIBuilder';
 import WorkflowsPortal from './WorkflowsPortal';
+import WebsiteBuilderPage from './WebsiteBuilderPage';
+import WebsitesListPage from './WebsitesListPage';
 import NotFound from './NotFound';
 
 interface SoftwarePortalProps {
@@ -22,6 +24,8 @@ const SoftwarePortal = ({ hideNavigation }: SoftwarePortalProps) => {
         <Route path="/ui-builder" element={<IntegrationUIBuilder />} />
         <Route path="/automation/*" element={<AutomationPage />} />
         <Route path="/workflows/*" element={<WorkflowsPortal hideNavigation={true} />} />
+        <Route path="/website-builder" element={<WebsiteBuilderPage />} />
+        <Route path="/websites" element={<WebsitesListPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
