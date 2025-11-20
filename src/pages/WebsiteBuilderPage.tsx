@@ -97,6 +97,7 @@ const WebsiteBuilderPage = () => {
       const { data: buildData, error: insertError } = await supabase
         .from('website_builds')
         .insert([{
+          project_id: projectId,
           website_type: websiteType,
           use_cases: useCases,
           features: features as any,
