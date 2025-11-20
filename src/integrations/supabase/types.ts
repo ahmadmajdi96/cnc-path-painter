@@ -3282,6 +3282,62 @@ export type Database = {
         }
         Relationships: []
       }
+      website_builds: {
+        Row: {
+          additional_details: Json
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          features: Json
+          id: string
+          project_id: string | null
+          redirections: Json
+          result_file_url: string | null
+          status: string
+          updated_at: string
+          use_cases: string
+          website_type: string
+        }
+        Insert: {
+          additional_details?: Json
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          features?: Json
+          id?: string
+          project_id?: string | null
+          redirections?: Json
+          result_file_url?: string | null
+          status?: string
+          updated_at?: string
+          use_cases: string
+          website_type: string
+        }
+        Update: {
+          additional_details?: Json
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          features?: Json
+          id?: string
+          project_id?: string | null
+          redirections?: Json
+          result_file_url?: string | null
+          status?: string
+          updated_at?: string
+          use_cases?: string
+          website_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_builds_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_connections: {
         Row: {
           condition_type: string
