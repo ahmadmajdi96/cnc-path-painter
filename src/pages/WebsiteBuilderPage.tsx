@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectId } from '@/hooks/useProjectId';
-import { Plus, Trash2, Loader2, Layout, LayoutDashboard, FileText, ShoppingCart, Globe, Palette } from 'lucide-react';
+import { Plus, Trash2, Loader2, Layout, LayoutDashboard, FileText, ShoppingCart, Globe, Palette, Monitor, Tablet, Smartphone, Type, Layers, Settings, Download, Eye, Sparkles, Image as ImageIcon, Link2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 
 interface Feature {
   page: string;
@@ -23,11 +25,33 @@ interface Redirection {
 
 interface WebsiteSection {
   id: string;
-  type: 'hero' | 'features' | 'gallery' | 'testimonials' | 'cta' | 'footer' | 'content';
+  type: 'hero' | 'features' | 'gallery' | 'testimonials' | 'cta' | 'footer' | 'content' | 'form' | 'pricing' | 'team';
   title: string;
   content: string;
   imageUrl?: string;
   layout?: 'single' | 'grid' | 'columns';
+  typography?: {
+    fontFamily?: string;
+    fontSize?: string;
+    lineHeight?: string;
+    fontWeight?: string;
+  };
+  spacing?: {
+    paddingTop?: string;
+    paddingBottom?: string;
+    paddingLeft?: string;
+    paddingRight?: string;
+  };
+  styling?: {
+    backgroundColor?: string;
+    borderRadius?: string;
+    boxShadow?: string;
+    border?: string;
+  };
+  animation?: {
+    type?: string;
+    duration?: string;
+  };
 }
 
 const websiteTypes = [
@@ -45,8 +69,50 @@ const sectionTypes = [
   { id: 'testimonials', label: 'Testimonials', description: 'Customer reviews', defaultLayout: 'columns' },
   { id: 'cta', label: 'Call to Action', description: 'Conversion focused section', defaultLayout: 'single' },
   { id: 'content', label: 'Content Block', description: 'Text and media content', defaultLayout: 'columns' },
+  { id: 'form', label: 'Contact Form', description: 'Form with input fields', defaultLayout: 'single' },
+  { id: 'pricing', label: 'Pricing Table', description: 'Pricing plans comparison', defaultLayout: 'grid' },
+  { id: 'team', label: 'Team Members', description: 'Team member profiles', defaultLayout: 'grid' },
   { id: 'footer', label: 'Footer', description: 'Bottom navigation and info', defaultLayout: 'columns' },
 ] as const;
+
+const fontFamilies = [
+  'Inter',
+  'Roboto',
+  'Open Sans',
+  'Poppins',
+  'Montserrat',
+  'Lato',
+  'Playfair Display',
+  'Merriweather',
+  'Source Sans Pro',
+  'Raleway',
+];
+
+const templateSections = {
+  startup: [
+    { type: 'hero', title: 'Transform Your Business', content: 'Launch faster with our innovative solutions' },
+    { type: 'features', title: 'Why Choose Us', content: 'Powerful features to accelerate your growth' },
+    { type: 'pricing', title: 'Simple Pricing', content: 'Choose the perfect plan for your needs' },
+    { type: 'testimonials', title: 'What Our Clients Say', content: 'Trusted by thousands worldwide' },
+    { type: 'cta', title: 'Ready to Get Started?', content: 'Join us today and transform your workflow' },
+    { type: 'footer', title: 'Stay Connected', content: 'Follow us on social media' },
+  ],
+  agency: [
+    { type: 'hero', title: 'Creative Agency', content: 'We bring your vision to life' },
+    { type: 'content', title: 'About Us', content: 'A team of passionate designers and developers' },
+    { type: 'gallery', title: 'Our Work', content: 'Explore our latest projects' },
+    { type: 'team', title: 'Meet the Team', content: 'The talented people behind our success' },
+    { type: 'form', title: 'Get In Touch', content: 'Let us know how we can help' },
+    { type: 'footer', title: 'Connect With Us', content: 'Let\'s work together' },
+  ],
+  portfolio: [
+    { type: 'hero', title: 'Welcome to My Portfolio', content: 'Designer, Developer, Creator' },
+    { type: 'content', title: 'About Me', content: 'Passionate about creating beautiful digital experiences' },
+    { type: 'gallery', title: 'Featured Projects', content: 'A selection of my recent work' },
+    { type: 'testimonials', title: 'Client Testimonials', content: 'What clients say about working with me' },
+    { type: 'form', title: 'Let\'s Work Together', content: 'Have a project in mind?' },
+  ],
+} as const;
 
 const WebsiteBuilderPage = () => {
   const navigate = useNavigate();
@@ -66,6 +132,21 @@ const WebsiteBuilderPage = () => {
   const [redirections, setRedirections] = useState<Redirection[]>([{ from: '', to: '' }]);
   const [additionalDetails, setAdditionalDetails] = useState('');
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [typography, setTypography] = useState({
+    headingFont: 'Inter',
+    bodyFont: 'Inter',
+    headingSize: '32',
+    bodySize: '16',
+  });
+  const [seoSettings, setSeoSettings] = useState({
+    title: '',
+    description: '',
+    keywords: '',
+    ogImage: '',
+  });
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedNav, setSelectedNav] = useState<string[]>(['Home', 'About', 'Services', 'Contact']);
 
   const addFeaturePage = () => {
     setFeatures([...features, { page: '', features: [''] }]);
@@ -121,9 +202,85 @@ const WebsiteBuilderPage = () => {
       title: sectionType?.label || 'New Section',
       content: sectionType?.description || '',
       layout: sectionType?.defaultLayout as WebsiteSection['layout'],
+      typography: {
+        fontFamily: typography.bodyFont,
+        fontSize: '16px',
+        lineHeight: '1.6',
+        fontWeight: '400',
+      },
+      spacing: {
+        paddingTop: '4rem',
+        paddingBottom: '4rem',
+        paddingLeft: '2rem',
+        paddingRight: '2rem',
+      },
+      styling: {
+        backgroundColor: 'white',
+        borderRadius: '0px',
+        boxShadow: 'none',
+        border: 'none',
+      },
     };
     setSections([...sections, newSection]);
     setSelectedSection(newSection.id);
+  };
+
+  const loadTemplate = (template: keyof typeof templateSections) => {
+    const templateData = templateSections[template];
+    const newSections = templateData.map((t, i) => ({
+      id: `${Date.now()}-${i}`,
+      type: t.type as WebsiteSection['type'],
+      title: t.title,
+      content: t.content,
+      layout: sectionTypes.find(st => st.id === t.type)?.defaultLayout as WebsiteSection['layout'],
+      typography: {
+        fontFamily: typography.bodyFont,
+        fontSize: '16px',
+        lineHeight: '1.6',
+        fontWeight: '400',
+      },
+      spacing: {
+        paddingTop: '4rem',
+        paddingBottom: '4rem',
+        paddingLeft: '2rem',
+        paddingRight: '2rem',
+      },
+      styling: {
+        backgroundColor: 'white',
+        borderRadius: '0px',
+        boxShadow: 'none',
+        border: 'none',
+      },
+    }));
+    setSections(newSections);
+    setShowTemplates(false);
+    toast({
+      title: "Template Loaded",
+      description: `${template.charAt(0).toUpperCase() + template.slice(1)} template has been applied`,
+    });
+  };
+
+  const exportAsJSON = () => {
+    const exportData = {
+      websiteType,
+      colors: { primaryColor, secondaryColor, accentColor },
+      typography,
+      seoSettings,
+      navigation: selectedNav,
+      sections,
+      features,
+      redirections,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `website-design-${Date.now()}.json`;
+    a.click();
+    toast({
+      title: "Exported Successfully",
+      description: "Your website design has been exported as JSON",
+    });
   };
 
   const removeSection = (id: string) => {
@@ -245,11 +402,52 @@ const WebsiteBuilderPage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card">
-        <div className="px-8 py-6">
-          <h1 className="text-3xl font-bold text-foreground">Website Designer</h1>
-          <p className="text-muted-foreground mt-2">Design your website with AI - choose a type, customize colors, and define features</p>
+        <div className="px-8 py-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Professional Website Designer</h1>
+            <p className="text-muted-foreground mt-2">Create stunning, client-ready website mockups with advanced controls</p>
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={() => setShowTemplates(!showTemplates)}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Templates
+            </Button>
+            <Button type="button" variant="outline" onClick={exportAsJSON}>
+              <Download className="h-4 w-4 mr-2" />
+              Export JSON
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Templates Modal */}
+      {showTemplates && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-8">
+          <Card className="max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Choose a Template</h2>
+                <Button variant="ghost" onClick={() => setShowTemplates(false)}>✕</Button>
+              </div>
+              <div className="grid grid-cols-3 gap-6">
+                {Object.keys(templateSections).map((template) => (
+                  <button
+                    key={template}
+                    onClick={() => loadTemplate(template as keyof typeof templateSections)}
+                    className="p-6 border-2 rounded-lg hover:border-primary transition-all text-left"
+                  >
+                    <Sparkles className="h-8 w-8 mb-3 text-primary" />
+                    <h3 className="font-bold text-lg mb-2 capitalize">{template}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {templateSections[template as keyof typeof templateSections].length} sections included
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-[calc(100vh-140px)]">
@@ -343,10 +541,12 @@ const WebsiteBuilderPage = () => {
 
               {/* Tabs for advanced settings */}
               <Tabs defaultValue="sections" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="sections">Sections</TabsTrigger>
-                  <TabsTrigger value="description">Description</TabsTrigger>
-                  <TabsTrigger value="features">Pages</TabsTrigger>
+                  <TabsTrigger value="typography">Typography</TabsTrigger>
+                  <TabsTrigger value="seo">SEO</TabsTrigger>
+                  <TabsTrigger value="navigation">Nav</TabsTrigger>
+                  <TabsTrigger value="pages">Pages</TabsTrigger>
                   <TabsTrigger value="advanced">Advanced</TabsTrigger>
                 </TabsList>
 
@@ -423,56 +623,263 @@ const WebsiteBuilderPage = () => {
                             </div>
                           </div>
 
-                          {/* Section Editor */}
-                          {selectedSection === section.id && (
-                            <div className="mt-3 pt-3 border-t border-border space-y-3">
-                              <div>
-                                <Label className="text-xs">Title</Label>
-                                <Input
-                                  value={section.title}
-                                  onChange={(e) => updateSection(section.id, { title: e.target.value })}
-                                  className="mt-1"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-xs">Content</Label>
-                                <Textarea
-                                  value={section.content}
-                                  onChange={(e) => updateSection(section.id, { content: e.target.value })}
-                                  className="mt-1"
-                                  rows={3}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-xs">Layout</Label>
-                                <select
-                                  value={section.layout}
-                                  onChange={(e) => updateSection(section.id, { layout: e.target.value as WebsiteSection['layout'] })}
-                                  className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <option value="single">Single Column</option>
-                                  <option value="columns">Two Columns</option>
-                                  <option value="grid">Grid Layout</option>
-                                </select>
-                              </div>
-                              <div>
-                                <Label className="text-xs">Image URL (optional)</Label>
-                                <Input
-                                  value={section.imageUrl || ''}
-                                  onChange={(e) => updateSection(section.id, { imageUrl: e.target.value })}
-                                  placeholder="https://example.com/image.jpg"
-                                  className="mt-1"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              </div>
-                            </div>
-                          )}
+                           {/* Section Editor */}
+                           {selectedSection === section.id && (
+                             <div className="mt-3 pt-3 border-t border-border space-y-3">
+                               <div>
+                                 <Label className="text-xs">Title</Label>
+                                 <Input
+                                   value={section.title}
+                                   onChange={(e) => updateSection(section.id, { title: e.target.value })}
+                                   className="mt-1"
+                                   onClick={(e) => e.stopPropagation()}
+                                 />
+                               </div>
+                               <div>
+                                 <Label className="text-xs">Content</Label>
+                                 <Textarea
+                                   value={section.content}
+                                   onChange={(e) => updateSection(section.id, { content: e.target.value })}
+                                   className="mt-1"
+                                   rows={3}
+                                   onClick={(e) => e.stopPropagation()}
+                                 />
+                               </div>
+                               <div>
+                                 <Label className="text-xs">Layout</Label>
+                                 <select
+                                   value={section.layout}
+                                   onChange={(e) => updateSection(section.id, { layout: e.target.value as WebsiteSection['layout'] })}
+                                   className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                   onClick={(e) => e.stopPropagation()}
+                                 >
+                                   <option value="single">Single Column</option>
+                                   <option value="columns">Two Columns</option>
+                                   <option value="grid">Grid Layout</option>
+                                 </select>
+                               </div>
+                               <div>
+                                 <Label className="text-xs">Image URL (optional)</Label>
+                                 <Input
+                                   value={section.imageUrl || ''}
+                                   onChange={(e) => updateSection(section.id, { imageUrl: e.target.value })}
+                                   placeholder="https://example.com/image.jpg"
+                                   className="mt-1"
+                                   onClick={(e) => e.stopPropagation()}
+                                 />
+                               </div>
+                               <div className="space-y-2">
+                                 <Label className="text-xs font-semibold">Spacing</Label>
+                                 <div className="grid grid-cols-2 gap-2">
+                                   <div>
+                                     <Label className="text-xs">Padding Top</Label>
+                                     <Input
+                                       value={section.spacing?.paddingTop || '4rem'}
+                                       onChange={(e) => updateSection(section.id, { 
+                                         spacing: { ...section.spacing, paddingTop: e.target.value } 
+                                       })}
+                                       className="text-xs"
+                                       onClick={(e) => e.stopPropagation()}
+                                     />
+                                   </div>
+                                   <div>
+                                     <Label className="text-xs">Padding Bottom</Label>
+                                     <Input
+                                       value={section.spacing?.paddingBottom || '4rem'}
+                                       onChange={(e) => updateSection(section.id, { 
+                                         spacing: { ...section.spacing, paddingBottom: e.target.value } 
+                                       })}
+                                       className="text-xs"
+                                       onClick={(e) => e.stopPropagation()}
+                                     />
+                                   </div>
+                                 </div>
+                               </div>
+                               <div className="space-y-2">
+                                 <Label className="text-xs font-semibold">Styling</Label>
+                                 <div>
+                                   <Label className="text-xs">Background Color</Label>
+                                   <div className="flex gap-2">
+                                     <input
+                                       type="color"
+                                       value={section.styling?.backgroundColor || '#ffffff'}
+                                       onChange={(e) => updateSection(section.id, { 
+                                         styling: { ...section.styling, backgroundColor: e.target.value } 
+                                       })}
+                                       className="w-10 h-8 rounded"
+                                       onClick={(e) => e.stopPropagation()}
+                                     />
+                                     <Input
+                                       value={section.styling?.backgroundColor || '#ffffff'}
+                                       onChange={(e) => updateSection(section.id, { 
+                                         styling: { ...section.styling, backgroundColor: e.target.value } 
+                                       })}
+                                       className="flex-1 text-xs"
+                                       onClick={(e) => e.stopPropagation()}
+                                     />
+                                   </div>
+                                 </div>
+                                 <div>
+                                   <Label className="text-xs">Border Radius</Label>
+                                   <Input
+                                     value={section.styling?.borderRadius || '0px'}
+                                     onChange={(e) => updateSection(section.id, { 
+                                       styling: { ...section.styling, borderRadius: e.target.value } 
+                                     })}
+                                     placeholder="0px, 8px, 16px"
+                                     className="text-xs"
+                                     onClick={(e) => e.stopPropagation()}
+                                   />
+                                 </div>
+                                 <div>
+                                   <Label className="text-xs">Box Shadow</Label>
+                                   <select
+                                     value={section.styling?.boxShadow || 'none'}
+                                     onChange={(e) => updateSection(section.id, { 
+                                       styling: { ...section.styling, boxShadow: e.target.value } 
+                                     })}
+                                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs"
+                                     onClick={(e) => e.stopPropagation()}
+                                   >
+                                     <option value="none">None</option>
+                                     <option value="0 1px 3px rgba(0,0,0,0.12)">Small</option>
+                                     <option value="0 4px 6px rgba(0,0,0,0.1)">Medium</option>
+                                     <option value="0 10px 25px rgba(0,0,0,0.15)">Large</option>
+                                   </select>
+                                 </div>
+                               </div>
+                             </div>
+                           )}
                         </div>
                       ))}
                     </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="typography" className="space-y-4 mt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Heading Font Family</Label>
+                      <Select value={typography.headingFont} onValueChange={(v) => setTypography({...typography, headingFont: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {fontFamilies.map(font => (
+                            <SelectItem key={font} value={font}>{font}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Body Font Family</Label>
+                      <Select value={typography.bodyFont} onValueChange={(v) => setTypography({...typography, bodyFont: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {fontFamilies.map(font => (
+                            <SelectItem key={font} value={font}>{font}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Heading Size: {typography.headingSize}px</Label>
+                      <Slider 
+                        value={[parseInt(typography.headingSize)]} 
+                        onValueChange={(v) => setTypography({...typography, headingSize: v[0].toString()})}
+                        min={24}
+                        max={64}
+                        step={2}
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Body Size: {typography.bodySize}px</Label>
+                      <Slider 
+                        value={[parseInt(typography.bodySize)]} 
+                        onValueChange={(v) => setTypography({...typography, bodySize: v[0].toString()})}
+                        min={12}
+                        max={24}
+                        step={1}
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="seo" className="space-y-4 mt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Page Title</Label>
+                      <Input 
+                        value={seoSettings.title}
+                        onChange={(e) => setSeoSettings({...seoSettings, title: e.target.value})}
+                        placeholder="Your Website Title"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">50-60 characters recommended</p>
+                    </div>
+                    <div>
+                      <Label>Meta Description</Label>
+                      <Textarea 
+                        value={seoSettings.description}
+                        onChange={(e) => setSeoSettings({...seoSettings, description: e.target.value})}
+                        placeholder="Brief description of your website..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">150-160 characters recommended</p>
+                    </div>
+                    <div>
+                      <Label>Keywords (comma-separated)</Label>
+                      <Input 
+                        value={seoSettings.keywords}
+                        onChange={(e) => setSeoSettings({...seoSettings, keywords: e.target.value})}
+                        placeholder="design, web, agency"
+                      />
+                    </div>
+                    <div>
+                      <Label>OG Image URL</Label>
+                      <Input 
+                        value={seoSettings.ogImage}
+                        onChange={(e) => setSeoSettings({...seoSettings, ogImage: e.target.value})}
+                        placeholder="https://example.com/og-image.jpg"
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="navigation" className="space-y-4 mt-4">
+                  <div className="space-y-3">
+                    <Label>Navigation Menu Items</Label>
+                    {selectedNav.map((item, i) => (
+                      <div key={i} className="flex gap-2">
+                        <Input 
+                          value={item}
+                          onChange={(e) => {
+                            const newNav = [...selectedNav];
+                            newNav[i] = e.target.value;
+                            setSelectedNav(newNav);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedNav(selectedNav.filter((_, idx) => idx !== i))}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedNav([...selectedNav, 'New Page'])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add Menu Item
+                    </Button>
                   </div>
                 </TabsContent>
 
@@ -491,7 +898,7 @@ const WebsiteBuilderPage = () => {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="features" className="space-y-4 mt-4">
+                <TabsContent value="pages" className="space-y-4 mt-4">
                   <div className="flex items-center justify-between">
                     <Label>Pages & Features</Label>
                     <Button type="button" onClick={addFeaturePage} size="sm" variant="outline">
@@ -614,22 +1021,56 @@ const WebsiteBuilderPage = () => {
           <div className="bg-muted/30 overflow-y-auto">
             <div className="p-8">
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 text-foreground">Live Preview</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-foreground">Live Preview</h3>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={previewDevice === 'desktop' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPreviewDevice('desktop')}
+                    >
+                      <Monitor className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={previewDevice === 'tablet' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPreviewDevice('tablet')}
+                    >
+                      <Tablet className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={previewDevice === 'mobile' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPreviewDevice('mobile')}
+                    >
+                      <Smartphone className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
                   
-                  {/* Browser-like preview container */}
-                  <div className="rounded-lg border-2 border-border bg-background overflow-hidden shadow-xl">
-                    {/* Browser chrome */}
-                    <div className="bg-muted border-b border-border px-4 py-3 flex items-center gap-2">
-                      <div className="flex gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500" />
-                        <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                        <div className="w-3 h-3 rounded-full bg-green-500" />
-                      </div>
-                      <div className="flex-1 bg-background rounded px-3 py-1 text-xs text-muted-foreground ml-3">
-                        {websiteTypes.find(t => t.id === websiteType)?.label || 'Your Website'}.com
-                      </div>
+                {/* Browser-like preview container with responsive sizing */}
+                <div 
+                  className={`mx-auto rounded-lg border-2 border-border bg-background overflow-hidden shadow-xl transition-all duration-300 ${
+                    previewDevice === 'desktop' ? 'w-full' :
+                    previewDevice === 'tablet' ? 'w-[768px]' :
+                    'w-[375px]'
+                  }`}
+                >
+                  {/* Browser chrome */}
+                  <div className="bg-muted border-b border-border px-4 py-3 flex items-center gap-2">
+                    <div className="flex gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                      <div className="w-3 h-3 rounded-full bg-green-500" />
                     </div>
+                    <div className="flex-1 bg-background rounded px-3 py-1 text-xs text-muted-foreground ml-3 truncate">
+                      {websiteTypes.find(t => t.id === websiteType)?.label || 'Your Website'}.com
+                    </div>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  </div>
 
                     {/* Website preview content */}
                     <div className="min-h-[600px] max-h-[800px] overflow-y-auto bg-white">
@@ -1019,7 +1460,6 @@ const WebsiteBuilderPage = () => {
                       )}
                     </div>
                   </div>
-                </div>
 
                 {/* Color palette reference */}
                 <div className="bg-card rounded-lg border border-border p-4">
