@@ -63,12 +63,18 @@ serve(async (req) => {
           specifications: websiteData,
         };
 
+        // Encode JSON to base64 using Unicode-safe method
+        const jsonString = JSON.stringify(resultData, null, 2);
+        const encoder = new TextEncoder();
+        const data = encoder.encode(jsonString);
+        const base64 = btoa(String.fromCharCode(...data));
+
         // Update the build record with completed status
         const { error: updateError } = await supabase
           .from('website_builds')
           .update({
             status: 'completed',
-            result_file_url: `data:application/json;base64,${btoa(JSON.stringify(resultData, null, 2))}`,
+            result_file_url: `data:application/json;base64,${base64}`,
             completed_at: new Date().toISOString(),
           })
           .eq('id', buildId);
