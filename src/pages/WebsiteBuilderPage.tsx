@@ -633,25 +633,22 @@ const WebsiteBuilderPage = () => {
 
                     {/* Website preview content */}
                     <div className="min-h-[600px] max-h-[800px] overflow-y-auto bg-white">
-                      {/* Navigation bar mockup */}
-                      <div 
-                        className="h-16 flex items-center justify-between px-8 border-b"
-                        style={{ 
-                          backgroundColor: primaryColor,
-                          borderColor: `${primaryColor}40`
-                        }}
-                      >
-                        <div className="font-bold text-white text-lg">Logo</div>
-                        <div className="flex gap-6 text-sm text-white/90">
-                          <span>Home</span>
-                          <span>About</span>
-                          <span>Services</span>
-                          <span>Contact</span>
-                        </div>
-                      </div>
-
-                      {/* Render sections */}
-                      {sections.map((section) => (
+                      {/* Landing Page Preview */}
+                      {(!websiteType || websiteType === 'landing') && (
+                        <>
+                          <div 
+                            className="h-16 flex items-center justify-between px-8 border-b"
+                            style={{ backgroundColor: primaryColor }}
+                          >
+                            <div className="font-bold text-white text-lg">Logo</div>
+                            <div className="flex gap-6 text-sm text-white/90">
+                              <span>Home</span>
+                              <span>Features</span>
+                              <span>Pricing</span>
+                              <span>Contact</span>
+                            </div>
+                          </div>
+                          {sections.map((section) => (
                         <div 
                           key={section.id}
                           className={`relative ${
@@ -856,6 +853,169 @@ const WebsiteBuilderPage = () => {
                             <p>Add sections to see your website preview</p>
                           </div>
                         </div>
+                      )}
+                        </>
+                      )}
+
+                      {/* Dashboard Preview */}
+                      {websiteType === 'dashboard' && (
+                        <div className="flex h-full min-h-[600px]">
+                          <div className="w-64 border-r bg-gray-50 p-4">
+                            <div className="font-bold mb-6" style={{ color: primaryColor }}>Dashboard</div>
+                            <div className="space-y-2">
+                              <div className="p-3 rounded text-white text-sm" style={{ backgroundColor: primaryColor }}>Overview</div>
+                              <div className="p-3 rounded text-gray-600 text-sm hover:bg-gray-100">Analytics</div>
+                              <div className="p-3 rounded text-gray-600 text-sm hover:bg-gray-100">Reports</div>
+                              <div className="p-3 rounded text-gray-600 text-sm hover:bg-gray-100">Settings</div>
+                            </div>
+                          </div>
+                          <div className="flex-1 p-8">
+                            <h2 className="text-2xl font-bold mb-6" style={{ color: primaryColor }}>Overview</h2>
+                            <div className="grid grid-cols-3 gap-6 mb-8">
+                              <div className="p-6 rounded-lg border-2 border-gray-200">
+                                <div className="text-sm text-gray-600 mb-2">Total Users</div>
+                                <div className="text-3xl font-bold" style={{ color: primaryColor }}>24,532</div>
+                              </div>
+                              <div className="p-6 rounded-lg border-2 border-gray-200">
+                                <div className="text-sm text-gray-600 mb-2">Revenue</div>
+                                <div className="text-3xl font-bold" style={{ color: secondaryColor }}>$45,234</div>
+                              </div>
+                              <div className="p-6 rounded-lg border-2 border-gray-200">
+                                <div className="text-sm text-gray-600 mb-2">Active</div>
+                                <div className="text-3xl font-bold" style={{ color: accentColor }}>1,234</div>
+                              </div>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-6 h-64">
+                              <div className="text-sm font-semibold text-gray-600 mb-4">Analytics Chart</div>
+                              <div className="h-40 flex items-end gap-2">
+                                {[40, 70, 55, 80, 65, 90, 75].map((h, i) => (
+                                  <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, backgroundColor: primaryColor }} />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Blog Preview */}
+                      {websiteType === 'blog' && (
+                        <>
+                          <div className="h-16 flex items-center justify-between px-8 border-b bg-white">
+                            <div className="font-bold text-gray-900 text-lg">Blog</div>
+                            <div className="flex gap-6 text-sm text-gray-600">
+                              <span>Home</span>
+                              <span>Articles</span>
+                              <span>Categories</span>
+                              <span>About</span>
+                            </div>
+                          </div>
+                          <div className="p-12 max-w-5xl mx-auto">
+                            <h1 className="text-4xl font-bold mb-2" style={{ color: primaryColor }}>Latest Articles</h1>
+                            <p className="text-gray-600 mb-12">Insights, stories, and updates</p>
+                            <div className="space-y-8">
+                              {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex gap-6 border-b border-gray-200 pb-8">
+                                  <div className="w-48 h-32 bg-gray-200 rounded-lg flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <div className="text-xs font-semibold mb-2" style={{ color: secondaryColor }}>CATEGORY</div>
+                                    <h3 className="text-xl font-bold mb-2">Article Title Goes Here</h3>
+                                    <p className="text-gray-600 text-sm mb-3">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>
+                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                      <span>By Author Name</span>
+                                      <span>•</span>
+                                      <span>May 15, 2024</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* E-commerce Preview */}
+                      {websiteType === 'ecommerce' && (
+                        <>
+                          <div className="h-16 flex items-center justify-between px-8 border-b bg-white">
+                            <div className="font-bold text-gray-900 text-lg">Store</div>
+                            <div className="flex gap-6 text-sm text-gray-600 items-center">
+                              <span>Shop</span>
+                              <span>Categories</span>
+                              <span>Deals</span>
+                              <div className="ml-4 flex gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gray-200" />
+                                <div className="w-8 h-8 rounded-full" style={{ backgroundColor: primaryColor }} />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-12">
+                            <div className="mb-8 p-12 rounded-lg text-center" style={{ backgroundColor: `${primaryColor}10` }}>
+                              <h2 className="text-3xl font-bold mb-4" style={{ color: primaryColor }}>Summer Sale - Up to 50% Off</h2>
+                              <button className="px-8 py-3 rounded-lg text-white font-semibold" style={{ backgroundColor: primaryColor }}>
+                                Shop Now
+                              </button>
+                            </div>
+                            <h3 className="text-2xl font-bold mb-6">Featured Products</h3>
+                            <div className="grid grid-cols-4 gap-6">
+                              {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="border-2 border-gray-200 rounded-lg overflow-hidden">
+                                  <div className="aspect-square bg-gray-200" />
+                                  <div className="p-4">
+                                    <h4 className="font-semibold mb-1">Product Name</h4>
+                                    <div className="text-sm text-gray-600 mb-2">Category</div>
+                                    <div className="font-bold" style={{ color: primaryColor }}>$99.99</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Corporate Preview */}
+                      {websiteType === 'corporate' && (
+                        <>
+                          <div className="h-20 flex items-center justify-between px-12 border-b bg-white">
+                            <div className="font-bold text-gray-900 text-2xl">Company</div>
+                            <div className="flex gap-8 text-sm text-gray-600">
+                              <span>About</span>
+                              <span>Services</span>
+                              <span>Team</span>
+                              <span>Contact</span>
+                              <button className="px-6 py-2 rounded text-white text-sm font-semibold" style={{ backgroundColor: primaryColor }}>
+                                Get Started
+                              </button>
+                            </div>
+                          </div>
+                          <div className="p-16 text-center" style={{ backgroundColor: `${primaryColor}05` }}>
+                            <h1 className="text-5xl font-bold mb-6" style={{ color: primaryColor }}>
+                              Professional Solutions for Your Business
+                            </h1>
+                            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+                              We deliver exceptional results through innovation, expertise, and dedication to excellence
+                            </p>
+                            <div className="flex gap-4 justify-center">
+                              <button className="px-8 py-4 rounded-lg text-white font-semibold" style={{ backgroundColor: primaryColor }}>
+                                Contact Sales
+                              </button>
+                              <button className="px-8 py-4 rounded-lg font-semibold border-2" style={{ borderColor: primaryColor, color: primaryColor }}>
+                                Learn More
+                              </button>
+                            </div>
+                          </div>
+                          <div className="p-12">
+                            <h2 className="text-3xl font-bold text-center mb-12" style={{ color: primaryColor }}>Our Services</h2>
+                            <div className="grid grid-cols-3 gap-8 max-w-6xl mx-auto">
+                              {[1, 2, 3].map((i) => (
+                                <div key={i} className="p-8 text-center border-2 border-gray-200 rounded-lg">
+                                  <div className="w-16 h-16 rounded-lg mx-auto mb-4" style={{ backgroundColor: `${secondaryColor}30` }} />
+                                  <h3 className="font-bold text-lg mb-3">Service {i}</h3>
+                                  <p className="text-gray-600 text-sm">Comprehensive solutions tailored to your needs</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
