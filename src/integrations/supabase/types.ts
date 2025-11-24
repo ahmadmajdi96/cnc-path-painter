@@ -1135,6 +1135,466 @@ export type Database = {
         }
         Relationships: []
       }
+      function_dependencies: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          expected_response: Json | null
+          function_id: string | null
+          id: string
+          limit_value: number | null
+          name: string
+          parameters: Json | null
+          timeout: number | null
+          type: string
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          expected_response?: Json | null
+          function_id?: string | null
+          id?: string
+          limit_value?: number | null
+          name: string
+          parameters?: Json | null
+          timeout?: number | null
+          type: string
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          expected_response?: Json | null
+          function_id?: string | null
+          id?: string
+          limit_value?: number | null
+          name?: string
+          parameters?: Json | null
+          timeout?: number | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_dependencies_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_error_handling: {
+        Row: {
+          created_at: string | null
+          fallback_action: string | null
+          function_id: string | null
+          id: string
+          max_retries: number | null
+          notification: string | null
+          retry_strategy: string | null
+          return_error_format: Json | null
+          timeout_behavior: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fallback_action?: string | null
+          function_id?: string | null
+          id?: string
+          max_retries?: number | null
+          notification?: string | null
+          retry_strategy?: string | null
+          return_error_format?: Json | null
+          timeout_behavior?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fallback_action?: string | null
+          function_id?: string | null
+          id?: string
+          max_retries?: number | null
+          notification?: string | null
+          retry_strategy?: string | null
+          return_error_format?: Json | null
+          timeout_behavior?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_error_handling_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_inputs: {
+        Row: {
+          constraints: Json | null
+          created_at: string | null
+          data_type: string
+          default_value: Json | null
+          function_id: string | null
+          id: string
+          name: string
+          position: number | null
+          required: boolean | null
+          source: string | null
+        }
+        Insert: {
+          constraints?: Json | null
+          created_at?: string | null
+          data_type: string
+          default_value?: Json | null
+          function_id?: string | null
+          id?: string
+          name: string
+          position?: number | null
+          required?: boolean | null
+          source?: string | null
+        }
+        Update: {
+          constraints?: Json | null
+          created_at?: string | null
+          data_type?: string
+          default_value?: Json | null
+          function_id?: string | null
+          id?: string
+          name?: string
+          position?: number | null
+          required?: boolean | null
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_inputs_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_logic: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          error_config: Json | null
+          function_id: string | null
+          id: string
+          position: number
+          step_id: string
+          step_type: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          error_config?: Json | null
+          function_id?: string | null
+          id?: string
+          position: number
+          step_id: string
+          step_type: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          error_config?: Json | null
+          function_id?: string | null
+          id?: string
+          position?: number
+          step_id?: string
+          step_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_logic_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_outputs: {
+        Row: {
+          created_at: string | null
+          failure_structure: Json | null
+          function_id: string | null
+          id: string
+          output_name: string
+          output_type: string
+          success_structure: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          failure_structure?: Json | null
+          function_id?: string | null
+          id?: string
+          output_name: string
+          output_type: string
+          success_structure?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          failure_structure?: Json | null
+          function_id?: string | null
+          id?: string
+          output_name?: string
+          output_type?: string
+          success_structure?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_outputs_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_performance: {
+        Row: {
+          concurrency_limit: number | null
+          created_at: string | null
+          function_id: string | null
+          id: string
+          max_payload_size: number | null
+          priority: string | null
+          rate_limit: number | null
+          timeout_limit: number | null
+        }
+        Insert: {
+          concurrency_limit?: number | null
+          created_at?: string | null
+          function_id?: string | null
+          id?: string
+          max_payload_size?: number | null
+          priority?: string | null
+          rate_limit?: number | null
+          timeout_limit?: number | null
+        }
+        Update: {
+          concurrency_limit?: number | null
+          created_at?: string | null
+          function_id?: string | null
+          id?: string
+          max_payload_size?: number | null
+          priority?: string | null
+          rate_limit?: number | null
+          timeout_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_performance_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_security: {
+        Row: {
+          allowed_roles: Json | null
+          created_at: string | null
+          filter_outputs: boolean | null
+          function_id: string | null
+          id: string
+          require_authentication: boolean | null
+          sanitize_inputs: boolean | null
+          used_secrets: Json | null
+        }
+        Insert: {
+          allowed_roles?: Json | null
+          created_at?: string | null
+          filter_outputs?: boolean | null
+          function_id?: string | null
+          id?: string
+          require_authentication?: boolean | null
+          sanitize_inputs?: boolean | null
+          used_secrets?: Json | null
+        }
+        Update: {
+          allowed_roles?: Json | null
+          created_at?: string | null
+          filter_outputs?: boolean | null
+          function_id?: string | null
+          id?: string
+          require_authentication?: boolean | null
+          sanitize_inputs?: boolean | null
+          used_secrets?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_security_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_tests: {
+        Row: {
+          created_at: string | null
+          expected_outputs: Json | null
+          function_id: string | null
+          id: string
+          mock_dependencies: Json | null
+          preview_enabled: boolean | null
+          test_inputs: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          expected_outputs?: Json | null
+          function_id?: string | null
+          id?: string
+          mock_dependencies?: Json | null
+          preview_enabled?: boolean | null
+          test_inputs?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          expected_outputs?: Json | null
+          function_id?: string | null
+          id?: string
+          mock_dependencies?: Json | null
+          preview_enabled?: boolean | null
+          test_inputs?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_tests_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_triggers: {
+        Row: {
+          authentication_required: boolean | null
+          created_at: string | null
+          function_id: string | null
+          id: string
+          properties: Json | null
+          trigger_type: string
+        }
+        Insert: {
+          authentication_required?: boolean | null
+          created_at?: string | null
+          function_id?: string | null
+          id?: string
+          properties?: Json | null
+          trigger_type: string
+        }
+        Update: {
+          authentication_required?: boolean | null
+          created_at?: string | null
+          function_id?: string | null
+          id?: string
+          properties?: Json | null
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_triggers_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_validation: {
+        Row: {
+          business_rules: Json | null
+          created_at: string | null
+          dependency_availability_required: boolean | null
+          function_id: string | null
+          id: string
+          input_validation: Json | null
+          output_validation: Json | null
+        }
+        Insert: {
+          business_rules?: Json | null
+          created_at?: string | null
+          dependency_availability_required?: boolean | null
+          function_id?: string | null
+          id?: string
+          input_validation?: Json | null
+          output_validation?: Json | null
+        }
+        Update: {
+          business_rules?: Json | null
+          created_at?: string | null
+          dependency_availability_required?: boolean | null
+          function_id?: string | null
+          id?: string
+          input_validation?: Json | null
+          output_validation?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_validation_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      functions: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          editable_by: Json | null
+          id: string
+          is_locked: boolean | null
+          name: string
+          project_id: string | null
+          tags: Json | null
+          updated_at: string | null
+          version_number: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          editable_by?: Json | null
+          id?: string
+          is_locked?: boolean | null
+          name: string
+          project_id?: string | null
+          tags?: Json | null
+          updated_at?: string | null
+          version_number?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          editable_by?: Json | null
+          id?: string
+          is_locked?: boolean | null
+          name?: string
+          project_id?: string | null
+          tags?: Json | null
+          updated_at?: string | null
+          version_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "functions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hardware: {
         Row: {
           communication_protocol: string | null

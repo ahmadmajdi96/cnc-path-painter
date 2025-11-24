@@ -1,13 +1,9 @@
 
 import React from 'react';
-import { AutomationControlSystem } from '@/components/AutomationControlSystem';
+import { FunctionBuilder } from '@/components/FunctionBuilder';
 
 const AutomationPage = () => {
-  return (
-    <div className="container mx-auto px-6 py-8">
-      <AutomationControlSystem />
-    </div>
-  );
+  return <FunctionBuilder />;
 };
 
 export default AutomationPage;
