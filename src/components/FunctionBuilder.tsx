@@ -11,14 +11,7 @@ import { FunctionInfoSection } from './function-builder/FunctionInfoSection';
 import { FunctionInputsSection } from './function-builder/FunctionInputsSection';
 import { FunctionOutputsSection } from './function-builder/FunctionOutputsSection';
 import { FunctionLogicSection } from './function-builder/FunctionLogicSection';
-import { FunctionDependenciesSection } from './function-builder/FunctionDependenciesSection';
-import { FunctionTriggersSection } from './function-builder/FunctionTriggersSection';
-import { FunctionSecuritySection } from './function-builder/FunctionSecuritySection';
-import { FunctionValidationSection } from './function-builder/FunctionValidationSection';
 import { FunctionErrorHandlingSection } from './function-builder/FunctionErrorHandlingSection';
-import { FunctionPerformanceSection } from './function-builder/FunctionPerformanceSection';
-import { FunctionTestingSection } from './function-builder/FunctionTestingSection';
-import { FunctionVersionSection } from './function-builder/FunctionVersionSection';
 
 export interface FunctionData {
   id?: string;
@@ -230,22 +223,12 @@ export const FunctionBuilder = () => {
         <div className="col-span-9">
           <Card className="p-6">
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid grid-cols-6 mb-6">
+              <TabsList className="grid grid-cols-5 mb-6">
                 <TabsTrigger value="info">Info</TabsTrigger>
                 <TabsTrigger value="inputs">Inputs</TabsTrigger>
                 <TabsTrigger value="outputs">Outputs</TabsTrigger>
                 <TabsTrigger value="logic">Logic</TabsTrigger>
-                <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
-                <TabsTrigger value="triggers">Triggers</TabsTrigger>
-              </TabsList>
-              
-              <TabsList className="grid grid-cols-6 mb-6">
-                <TabsTrigger value="security">Security</TabsTrigger>
-                <TabsTrigger value="validation">Validation</TabsTrigger>
-                <TabsTrigger value="errors">Errors</TabsTrigger>
-                <TabsTrigger value="performance">Performance</TabsTrigger>
-                <TabsTrigger value="testing">Testing</TabsTrigger>
-                <TabsTrigger value="version">Version</TabsTrigger>
+                <TabsTrigger value="errors">Error Handling</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info">
@@ -277,59 +260,9 @@ export const FunctionBuilder = () => {
                 />
               </TabsContent>
 
-              <TabsContent value="dependencies">
-                <FunctionDependenciesSection
-                  functionId={selectedFunction}
-                  disabled={functionData.is_locked}
-                />
-              </TabsContent>
-
-              <TabsContent value="triggers">
-                <FunctionTriggersSection
-                  functionId={selectedFunction}
-                  disabled={functionData.is_locked}
-                />
-              </TabsContent>
-
-              <TabsContent value="security">
-                <FunctionSecuritySection
-                  functionId={selectedFunction}
-                  disabled={functionData.is_locked}
-                />
-              </TabsContent>
-
-              <TabsContent value="validation">
-                <FunctionValidationSection
-                  functionId={selectedFunction}
-                  disabled={functionData.is_locked}
-                />
-              </TabsContent>
-
               <TabsContent value="errors">
                 <FunctionErrorHandlingSection
                   functionId={selectedFunction}
-                  disabled={functionData.is_locked}
-                />
-              </TabsContent>
-
-              <TabsContent value="performance">
-                <FunctionPerformanceSection
-                  functionId={selectedFunction}
-                  disabled={functionData.is_locked}
-                />
-              </TabsContent>
-
-              <TabsContent value="testing">
-                <FunctionTestingSection
-                  functionId={selectedFunction}
-                  disabled={functionData.is_locked}
-                />
-              </TabsContent>
-
-              <TabsContent value="version">
-                <FunctionVersionSection
-                  data={functionData}
-                  onChange={setFunctionData}
                   disabled={functionData.is_locked}
                 />
               </TabsContent>
