@@ -4,7 +4,8 @@ import { useProjectId } from '@/hooks/useProjectId';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Save, Play, Settings, Lock, Unlock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Save, Lock, Unlock, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { FunctionList } from './FunctionList';
 import { FunctionInfoSection } from './function-builder/FunctionInfoSection';
@@ -12,13 +13,14 @@ import { FunctionInputsSection } from './function-builder/FunctionInputsSection'
 import { FunctionOutputsSection } from './function-builder/FunctionOutputsSection';
 import { FunctionLogicSection } from './function-builder/FunctionLogicSection';
 import { FunctionErrorHandlingSection } from './function-builder/FunctionErrorHandlingSection';
+import { FunctionGroupManager } from './function-builder/FunctionGroupManager';
 
 export interface FunctionData {
   id?: string;
   name: string;
   category: string;
   description: string;
-  tags: string[];
+  group_id: string | null;
   is_locked: boolean;
   version_number: string;
   editable_by: string[];
@@ -28,24 +30,28 @@ export const FunctionBuilder = () => {
   const { projectId } = useProjectId();
   const [functions, setFunctions] = useState<any[]>([]);
   const [selectedFunction, setSelectedFunction] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [functionData, setFunctionData] = useState<FunctionData>({
     name: '',
     category: 'data_processing',
     description: '',
-    tags: [],
+    group_id: null,
     is_locked: false,
     version_number: '1.0.0',
     editable_by: []
   });
   const [loading, setLoading] = useState(false);
+  const [inputs, setInputs] = useState<any[]>([]);
 
   useEffect(() => {
     fetchFunctions();
-  }, [projectId]);
+  }, [projectId, selectedGroup]);
 
   useEffect(() => {
     if (selectedFunction) {
       loadFunction(selectedFunction);
+      fetchInputs(selectedFunction);
     }
   }, [selectedFunction]);
 
@@ -53,18 +59,32 @@ export const FunctionBuilder = () => {
     if (!projectId) return;
     
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('functions')
-        .select('*')
+        .select('*, function_groups(name, color)')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
+      if (selectedGroup) {
+        query = query.eq('group_id', selectedGroup);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setFunctions(data || []);
     } catch (error) {
       console.error('Error fetching functions:', error);
       toast.error('Failed to load functions');
     }
+  };
+
+  const fetchInputs = async (functionId: string) => {
+    const { data } = await supabase
+      .from('function_inputs')
+      .select('*')
+      .eq('function_id', functionId)
+      .order('position');
+    setInputs(data || []);
   };
 
   const loadFunction = async (functionId: string) => {
@@ -78,7 +98,7 @@ export const FunctionBuilder = () => {
       if (error) throw error;
       setFunctionData({
         ...data,
-        tags: Array.isArray(data.tags) ? data.tags.map(t => String(t)) : [],
+        group_id: data.group_id || null,
         editable_by: Array.isArray(data.editable_by) ? data.editable_by.map(e => String(e)) : []
       });
     } catch (error) {
@@ -129,11 +149,12 @@ export const FunctionBuilder = () => {
       name: '',
       category: 'data_processing',
       description: '',
-      tags: [],
+      group_id: selectedGroup,
       is_locked: false,
       version_number: '1.0.0',
       editable_by: []
     });
+    setInputs([]);
   };
 
   const handleToggleLock = async () => {
@@ -177,8 +198,13 @@ export const FunctionBuilder = () => {
     }
   };
 
+  const filteredFunctions = functions.filter(fn =>
+    fn.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    fn.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="container mx-auto px-6 py-8">
+    <div className="w-full px-6 py-8">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Function Builder</h1>
@@ -211,16 +237,38 @@ export const FunctionBuilder = () => {
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-3">
-          <FunctionList
-            functions={functions}
-            selectedFunction={selectedFunction}
-            onSelect={setSelectedFunction}
-            onDelete={handleDelete}
-          />
+        <div className="col-span-2">
+          <Card className="p-4">
+            <FunctionGroupManager
+              projectId={projectId}
+              selectedGroup={selectedGroup}
+              onSelectGroup={setSelectedGroup}
+              onGroupsChange={fetchFunctions}
+            />
+          </Card>
         </div>
 
-        <div className="col-span-9">
+        <div className="col-span-2">
+          <Card className="p-4">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <FunctionList
+              functions={filteredFunctions}
+              selectedFunction={selectedFunction}
+              onSelect={setSelectedFunction}
+              onDelete={handleDelete}
+            />
+          </Card>
+        </div>
+
+        <div className="col-span-8">
           <Card className="p-6">
             <Tabs defaultValue="info" className="w-full">
               <TabsList className="grid grid-cols-5 mb-6">
@@ -236,6 +284,7 @@ export const FunctionBuilder = () => {
                   data={functionData}
                   onChange={setFunctionData}
                   disabled={functionData.is_locked}
+                  projectId={projectId}
                 />
               </TabsContent>
 
@@ -257,6 +306,7 @@ export const FunctionBuilder = () => {
                 <FunctionLogicSection
                   functionId={selectedFunction}
                   disabled={functionData.is_locked}
+                  inputs={inputs}
                 />
               </TabsContent>
 

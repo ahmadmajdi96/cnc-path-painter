@@ -1184,8 +1184,13 @@ export type Database = {
       }
       function_error_handling: {
         Row: {
+          connected_function_id: string | null
+          connected_group_id: string | null
+          connected_step_id: string | null
           created_at: string | null
+          description: string | null
           fallback_action: string | null
+          fallback_type: string | null
           function_id: string | null
           id: string
           max_retries: number | null
@@ -1195,8 +1200,13 @@ export type Database = {
           timeout_behavior: string | null
         }
         Insert: {
+          connected_function_id?: string | null
+          connected_group_id?: string | null
+          connected_step_id?: string | null
           created_at?: string | null
+          description?: string | null
           fallback_action?: string | null
+          fallback_type?: string | null
           function_id?: string | null
           id?: string
           max_retries?: number | null
@@ -1206,8 +1216,13 @@ export type Database = {
           timeout_behavior?: string | null
         }
         Update: {
+          connected_function_id?: string | null
+          connected_group_id?: string | null
+          connected_step_id?: string | null
           created_at?: string | null
+          description?: string | null
           fallback_action?: string | null
+          fallback_type?: string | null
           function_id?: string | null
           id?: string
           max_retries?: number | null
@@ -1218,10 +1233,62 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "function_error_handling_connected_function_id_fkey"
+            columns: ["connected_function_id"]
+            isOneToOne: false
+            referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "function_error_handling_connected_group_id_fkey"
+            columns: ["connected_group_id"]
+            isOneToOne: false
+            referencedRelation: "function_groups"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "function_error_handling_function_id_fkey"
             columns: ["function_id"]
             isOneToOne: false
             referencedRelation: "functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_groups: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_groups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1278,30 +1345,42 @@ export type Database = {
           config: Json | null
           created_at: string | null
           error_config: Json | null
+          fixed_variables: Json | null
           function_id: string | null
           id: string
+          input_mappings: Json | null
+          output_variables: Json | null
           position: number
           step_id: string
+          step_output_mappings: Json | null
           step_type: string
         }
         Insert: {
           config?: Json | null
           created_at?: string | null
           error_config?: Json | null
+          fixed_variables?: Json | null
           function_id?: string | null
           id?: string
+          input_mappings?: Json | null
+          output_variables?: Json | null
           position: number
           step_id: string
+          step_output_mappings?: Json | null
           step_type: string
         }
         Update: {
           config?: Json | null
           created_at?: string | null
           error_config?: Json | null
+          fixed_variables?: Json | null
           function_id?: string | null
           id?: string
+          input_mappings?: Json | null
+          output_variables?: Json | null
           position?: number
           step_id?: string
+          step_output_mappings?: Json | null
           step_type?: string
         }
         Relationships: [
@@ -1318,28 +1397,37 @@ export type Database = {
         Row: {
           created_at: string | null
           failure_structure: Json | null
+          fixed_value: Json | null
           function_id: string | null
           id: string
           output_name: string
           output_type: string
+          source_step_id: string | null
+          source_type: string | null
           success_structure: Json | null
         }
         Insert: {
           created_at?: string | null
           failure_structure?: Json | null
+          fixed_value?: Json | null
           function_id?: string | null
           id?: string
           output_name: string
           output_type: string
+          source_step_id?: string | null
+          source_type?: string | null
           success_structure?: Json | null
         }
         Update: {
           created_at?: string | null
           failure_structure?: Json | null
+          fixed_value?: Json | null
           function_id?: string | null
           id?: string
           output_name?: string
           output_type?: string
+          source_step_id?: string | null
+          source_type?: string | null
           success_structure?: Json | null
         }
         Relationships: [
@@ -1551,6 +1639,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           editable_by: Json | null
+          group_id: string | null
           id: string
           is_locked: boolean | null
           name: string
@@ -1564,6 +1653,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           editable_by?: Json | null
+          group_id?: string | null
           id?: string
           is_locked?: boolean | null
           name: string
@@ -1577,6 +1667,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           editable_by?: Json | null
+          group_id?: string | null
           id?: string
           is_locked?: boolean | null
           name?: string
@@ -1586,6 +1677,13 @@ export type Database = {
           version_number?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "functions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "function_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "functions_project_id_fkey"
             columns: ["project_id"]
